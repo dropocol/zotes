@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User profile data - extends Supabase auth
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id") // References supabase auth.users.id
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  notes     Note[]
+  projects  Project[]
+
+  @@map("user_profiles")
+}
+
+// Projects for organizing work
+model Project {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  color       String?  @db.VarChar(7) // Hex color
+  userId      String   @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes Note[]
+
+  @@index([userId])
+  @@map("projects")
+}
+
+// Notes - the core content type
+model Note {
+  id          String    @id @default(cuid())
+  title       String    @db.VarChar(500)
+  content     String?   @db.Text
+  projectId   String?   @map("project_id")
+  userId      String    @map("user_id")
+  pinned      Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user    UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+  @@map("notes")
+}
