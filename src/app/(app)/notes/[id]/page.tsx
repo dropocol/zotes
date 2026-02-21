@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -73,7 +72,9 @@ export default function NotePage({
     if (note) {
       const titleChanged = title !== note.title;
       const contentChanged = content !== (note.content || "");
-      const projectChanged = (selectedProject === "none" ? null : selectedProject) !== note.projectId;
+      const projectChanged =
+        (selectedProject === "none" ? null : selectedProject) !==
+        note.projectId;
       setHasChanges(titleChanged || contentChanged || projectChanged);
     }
   }, [title, content, selectedProject, note]);
@@ -176,26 +177,39 @@ export default function NotePage({
 
   return (
     <DashboardLayout
-      breadcrumbs={[
-        { title: "Notes", href: "/notes" },
-        { title: note.title },
-      ]}
+      breadcrumbs={[{ title: "Notes", href: "/notes" }, { title: note.title }]}
     >
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="max-w-[1000px] flex flex-col h-[calc(100vh-120px)]">
+        <div className="flex items-center gap-4 mb-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/notes">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight">Edit Note</h1>
-          </div>
-          {note.pinned && (
-            <Badge variant="secondary">Pinned</Badge>
-          )}
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Untitled"
+            className="text-2xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-1"
+          />
+          <Select value={selectedProject} onValueChange={setSelectedProject}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Select a project" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No project</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {note.pinned && <Badge variant="secondary">Pinned</Badge>}
           {hasChanges && (
-            <Badge variant="outline" className="text-muted-foreground">Unsaved changes</Badge>
+            <Badge variant="outline" className="text-muted-foreground">
+              Unsaved changes
+            </Badge>
           )}
           <Dialog>
             <DialogTrigger asChild>
@@ -207,11 +221,16 @@ export default function NotePage({
               <DialogHeader>
                 <DialogTitle>Delete Note</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete this note? This action cannot be undone.
+                  Are you sure you want to delete this note? This action cannot
+                  be undone.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
                   {isDeleting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
@@ -230,38 +249,8 @@ export default function NotePage({
           </Button>
         </div>
 
-        <div className="rounded-xl border bg-card shadow-sm">
-          <div className="p-6 border-b space-y-4">
-            <div className="space-y-2">
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Untitled"
-                className="text-2xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto"
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label className="text-muted-foreground text-sm">Project:</Label>
-                <Select value={selectedProject} onValueChange={setSelectedProject}>
-                  <SelectTrigger className="w-[200px] h-8">
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No project</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <div className="prose-container">
-            <TiptapEditor content={content} onChange={setContent} />
-          </div>
+        <div className="flex-1 overflow-hidden">
+          <TiptapEditor content={content} onChange={setContent} className="h-full" />
         </div>
       </div>
     </DashboardLayout>

@@ -10,7 +10,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const projects = await prisma.project.findMany({
+    // Get projects owned by user
+    const ownedProjects = await prisma.project.findMany({
       where: { userId: session.user.id },
       orderBy: { updatedAt: "desc" },
       include: {
@@ -19,6 +20,34 @@ export async function GET() {
         },
       },
     });
+
+    // Get projects where user is a collaborator
+    const collaborations = await prisma.projectCollaborator.findMany({
+      where: { userId: session.user.id },
+      include: {
+        project: {
+          include: {
+            _count: {
+              select: { notes: true, todoLists: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Combine and mark role
+    const projects = [
+      ...ownedProjects.map((p) => ({ ...p, userRole: "admin", isOwner: true })),
+      ...collaborations.map((c) => ({
+        ...c.project,
+        userRole: c.role,
+        isOwner: false,
+      })),
+    ];
+
+    // Sort by updatedAt
+    projects.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
     return NextResponse.json(projects);
   } catch (error) {

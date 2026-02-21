@@ -21,6 +21,7 @@ import { SortableTableHead, sortItems, type SortConfig } from "@/components/ui/s
 import { Plus, MoreHorizontal, Pencil, Trash2, FileText, CheckSquare } from "lucide-react";
 import Link from "next/link";
 import { ProjectForm } from "./project-form";
+import { RoleBadge } from "./role-badge";
 
 interface Project {
   id: string;
@@ -29,6 +30,8 @@ interface Project {
   color?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  userRole: string;
+  isOwner: boolean;
   _count?: {
     notes: number;
     todoLists: number;
@@ -170,12 +173,17 @@ export function ProjectsTable({ projects, onRefresh }: ProjectsTableProps) {
                     />
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={`/projects/${project.id}`}
-                      className="font-medium hover:text-primary transition-colors"
-                    >
-                      {project.name}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="font-medium hover:text-primary transition-colors"
+                      >
+                        {project.name}
+                      </Link>
+                      {!project.isOwner && (
+                        <RoleBadge role={project.userRole as "admin" | "collaborator"} />
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground max-w-[300px] truncate">
                     {project.description || "-"}
@@ -196,30 +204,32 @@ export function ProjectsTable({ projects, onRefresh }: ProjectsTableProps) {
                     {new Date(project.updatedAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(project)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(project.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {project.isOwner && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(project)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDelete(project.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
               ))

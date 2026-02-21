@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
@@ -15,11 +16,14 @@ export async function GET(
 
     const { id } = await params;
 
-    // Verify todo list belongs to user
+    // Verify access to todo list
     const todoList = await prisma.todoList.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { project: { collaborators: { some: { userId: session.user.id } } } },
+        ],
       },
     });
 
@@ -71,16 +75,32 @@ export async function POST(
       );
     }
 
-    // Verify todo list belongs to user
+    // Find todo list and verify access
     const todoList = await prisma.todoList.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { project: { collaborators: { some: { userId: session.user.id } } } },
+        ],
       },
     });
 
     if (!todoList) {
       return NextResponse.json({ error: "Todo list not found" }, { status: 404 });
+    }
+
+    // Check if user can modify
+    const isListOwner = todoList.userId === session.user.id;
+    let canModify = isListOwner;
+
+    if (todoList.projectId) {
+      const access = await getProjectAccess(todoList.projectId, session.user.id);
+      canModify = canModifyProject(access);
+    }
+
+    if (!canModify) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // If parentId is provided, verify it exists and is not a sub-item (enforce one level)

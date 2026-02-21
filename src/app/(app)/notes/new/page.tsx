@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -85,16 +84,32 @@ export default function NewNotePage() {
         { title: "New Note" },
       ]}
     >
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="max-w-[1000px] flex flex-col h-[calc(100vh-120px)]">
+        <div className="flex items-center gap-4 mb-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/notes">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight">New Note</h1>
-          </div>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Untitled"
+            className="text-2xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-1"
+          />
+          <Select value={selectedProject} onValueChange={setSelectedProject}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Select a project" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No project</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button onClick={handleSave} disabled={!title.trim() || isLoading}>
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -105,38 +120,8 @@ export default function NewNotePage() {
           </Button>
         </div>
 
-        <div className="rounded-xl border bg-card shadow-sm">
-          <div className="p-6 border-b space-y-4">
-            <div className="space-y-2">
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Untitled"
-                className="text-2xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto"
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label className="text-muted-foreground text-sm">Project:</Label>
-                <Select value={selectedProject} onValueChange={setSelectedProject}>
-                  <SelectTrigger className="w-[200px] h-8">
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No project</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <div className="prose-container">
-            <TiptapEditor content={content} onChange={setContent} />
-          </div>
+        <div className="flex-1 overflow-hidden">
+          <TiptapEditor content={content} onChange={setContent} className="h-full" />
         </div>
       </div>
     </DashboardLayout>

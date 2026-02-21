@@ -4,7 +4,7 @@ import { useState } from "react";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, FileText, CheckSquare, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, CheckSquare, MoreHorizontal, Users } from "lucide-react";
 import { TodoListForm } from "@/components/todos/todo-list-form";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import {
@@ -23,12 +23,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { ProjectForm } from "@/components/projects/project-form";
+import { RoleBadge } from "@/components/projects/role-badge";
+import { CollaboratorsList } from "@/components/projects/collaborators-list";
 
 interface Project {
   id: string;
   name: string;
   description?: string | null;
   color?: string | null;
+  userRole: string;
+  isOwner: boolean;
 }
 
 interface Note {
@@ -49,10 +53,26 @@ interface TodoList {
   };
 }
 
+interface Collaborator {
+  id: string;
+  name?: string | null;
+  email: string;
+  image?: string | null;
+  role: string;
+  isOwner: boolean;
+  collaborationId?: string;
+}
+
+interface CollaboratorsData {
+  owner: Collaborator;
+  collaborators: Collaborator[];
+}
+
 interface ProjectPageClientProps {
   project: Project | null;
   notes: Note[];
   todoLists: TodoList[];
+  collaboratorsData: CollaboratorsData | null;
   onRefresh: () => void;
 }
 
@@ -60,6 +80,7 @@ export function ProjectPageClient({
   project,
   notes,
   todoLists,
+  collaboratorsData,
   onRefresh,
 }: ProjectPageClientProps) {
   const [isTodoListFormOpen, setIsTodoListFormOpen] = useState(false);
@@ -68,6 +89,8 @@ export function ProjectPageClient({
   if (!project) {
     notFound();
   }
+
+  const canModify = project.userRole === "admin";
 
   // Strip HTML for preview
   const getPreview = (content: string | null | undefined) => {
@@ -106,6 +129,7 @@ export function ProjectPageClient({
               style={{ backgroundColor: project.color || "#f97316" }}
             />
             <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+            <RoleBadge role={project.userRole as "admin" | "collaborator"} />
           </div>
           {project.description && (
             <p className="text-muted-foreground mt-1 ml-4">
@@ -113,20 +137,37 @@ export function ProjectPageClient({
             </p>
           )}
         </div>
-        <Button variant="outline" size="sm" onClick={() => setIsProjectFormOpen(true)}>
-          <Pencil className="mr-2 h-4 w-4" />
-          Edit Project
-        </Button>
+        {canModify && (
+          <Button variant="outline" size="sm" onClick={() => setIsProjectFormOpen(true)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Project
+          </Button>
+        )}
       </div>
+
+      {/* Collaborators Section */}
+      {collaboratorsData && (
+        <div className="mb-8 p-4 rounded-lg border">
+          <CollaboratorsList
+            projectId={project.id}
+            owner={collaboratorsData.owner}
+            collaborators={collaboratorsData.collaborators}
+            isOwner={project.isOwner}
+            onRefresh={onRefresh}
+          />
+        </div>
+      )}
 
       {/* Todo Lists Table */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Todo Lists</h2>
-          <Button size="sm" onClick={() => setIsTodoListFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add List
-          </Button>
+          {canModify && (
+            <Button size="sm" onClick={() => setIsTodoListFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add List
+            </Button>
+          )}
         </div>
 
         <div className="rounded-lg border">
@@ -137,14 +178,14 @@ export function ProjectPageClient({
                 <TableHead>Name</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Updated</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
+                {canModify && <TableHead className="w-[60px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {todoLists.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No todo lists yet. Create your first list to get started.
+                  <TableCell colSpan={canModify ? 5 : 4} className="text-center text-muted-foreground py-8">
+                    No todo lists yet. {canModify ? "Create your first list to get started." : ""}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -167,28 +208,30 @@ export function ProjectPageClient({
                     <TableCell className="text-muted-foreground">
                       {new Date(todoList.updatedAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDeleteTodoList(todoList.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    {canModify && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteTodoList(todoList.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -201,12 +244,14 @@ export function ProjectPageClient({
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Notes</h2>
-          <Button size="sm" asChild>
-            <Link href={`/notes/new?projectId=${project.id}`}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Note
-            </Link>
-          </Button>
+          {canModify && (
+            <Button size="sm" asChild>
+              <Link href={`/notes/new?projectId=${project.id}`}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Note
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="rounded-lg border">
@@ -223,7 +268,7 @@ export function ProjectPageClient({
               {notes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    No notes yet. Create your first note to get started.
+                    No notes yet. {canModify ? "Create your first note to get started." : ""}
                   </TableCell>
                 </TableRow>
               ) : (

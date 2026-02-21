@@ -12,6 +12,8 @@ interface Project {
   name: string;
   description?: string | null;
   color?: string | null;
+  userRole: string;
+  isOwner: boolean;
 }
 
 interface Note {
@@ -32,6 +34,21 @@ interface TodoList {
   };
 }
 
+interface Collaborator {
+  id: string;
+  name?: string | null;
+  email: string;
+  image?: string | null;
+  role: string;
+  isOwner: boolean;
+  collaborationId?: string;
+}
+
+interface CollaboratorsData {
+  owner: Collaborator;
+  collaborators: Collaborator[];
+}
+
 export default function ProjectPage({
   params,
 }: {
@@ -40,6 +57,7 @@ export default function ProjectPage({
   const [project, setProject] = useState<Project | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
+  const [collaboratorsData, setCollaboratorsData] = useState<CollaboratorsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -58,6 +76,15 @@ export default function ProjectPage({
         setProject(data);
         setNotes(data.notes || []);
         setTodoLists(data.todoLists || []);
+
+        // Fetch collaborators
+        const collabResponse = await fetch(
+          `/api/projects/${resolvedParams.id}/collaborators`
+        );
+        if (collabResponse.ok) {
+          const collabData = await collabResponse.json();
+          setCollaboratorsData(collabData);
+        }
       } catch (err) {
         console.error("Error fetching project:", err);
         setError(true);
@@ -79,6 +106,15 @@ export default function ProjectPage({
         setProject(data);
         setNotes(data.notes || []);
         setTodoLists(data.todoLists || []);
+      }
+
+      // Refresh collaborators
+      const collabResponse = await fetch(
+        `/api/projects/${resolvedParams.id}/collaborators`
+      );
+      if (collabResponse.ok) {
+        const collabData = await collabResponse.json();
+        setCollaboratorsData(collabData);
       }
     } catch (err) {
       console.error("Error refreshing project:", err);
@@ -116,6 +152,7 @@ export default function ProjectPage({
       project={project}
       notes={notes}
       todoLists={todoLists}
+      collaboratorsData={collaboratorsData}
       onRefresh={handleRefresh}
     />
   );

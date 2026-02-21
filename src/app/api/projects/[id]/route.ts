@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
@@ -14,12 +15,14 @@ export async function GET(
     }
 
     const { id } = await params;
+    const access = await getProjectAccess(id, session.user.id);
 
-    const project = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
+    if (!canViewProject(access)) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id },
       include: {
         notes: {
           orderBy: { updatedAt: "desc" },
@@ -50,7 +53,11 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    return NextResponse.json(project);
+    return NextResponse.json({
+      ...project,
+      userRole: access.role,
+      isOwner: access.isOwner,
+    });
   } catch (error) {
     console.error("Error fetching project:", error);
     return NextResponse.json(
@@ -72,25 +79,20 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { name, description, color } = await request.json();
+    const access = await getProjectAccess(id, session.user.id);
 
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-    });
-
-    if (!existingProject) {
+    if (!canModifyProject(access)) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
+
+    const { name, description, color } = await request.json();
 
     const project = await prisma.project.update({
       where: { id },
       data: {
-        name: name ?? existingProject.name,
-        description: description ?? existingProject.description,
-        color: color ?? existingProject.color,
+        name: name ?? undefined,
+        description: description ?? undefined,
+        color: color ?? undefined,
       },
     });
 
@@ -116,15 +118,10 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const access = await getProjectAccess(id, session.user.id);
 
-    const existingProject = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-    });
-
-    if (!existingProject) {
+    // Only owner can delete project
+    if (!access.isOwner) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 

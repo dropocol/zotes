@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
@@ -15,10 +16,14 @@ export async function GET(
 
     const { id } = await params;
 
+    // Find todo list owned by user or in a collaborated project
     const todoList = await prisma.todoList.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { project: { collaborators: { some: { userId: session.user.id } } } },
+        ],
       },
       include: {
         items: {
@@ -44,7 +49,23 @@ export async function GET(
       return NextResponse.json({ error: "Todo list not found" }, { status: 404 });
     }
 
-    return NextResponse.json(todoList);
+    // Determine user role
+    let userRole: "admin" | "collaborator" | null = null;
+    let isOwner = todoList.userId === session.user.id;
+
+    if (todoList.projectId) {
+      const access = await getProjectAccess(todoList.projectId, session.user.id);
+      userRole = access.role;
+      isOwner = access.isOwner || isOwner;
+    } else {
+      userRole = isOwner ? "admin" : null;
+    }
+
+    return NextResponse.json({
+      ...todoList,
+      userRole,
+      isOwner,
+    });
   } catch (error) {
     console.error("Error fetching todo list:", error);
     return NextResponse.json(
@@ -71,12 +92,28 @@ export async function PUT(
     const existingTodoList = await prisma.todoList.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { project: { collaborators: { some: { userId: session.user.id } } } },
+        ],
       },
     });
 
     if (!existingTodoList) {
       return NextResponse.json({ error: "Todo list not found" }, { status: 404 });
+    }
+
+    // Check if user can modify
+    const isListOwner = existingTodoList.userId === session.user.id;
+    let canModify = isListOwner;
+
+    if (existingTodoList.projectId) {
+      const access = await getProjectAccess(existingTodoList.projectId, session.user.id);
+      canModify = canModifyProject(access);
+    }
+
+    if (!canModify) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const todoList = await prisma.todoList.update({
@@ -113,12 +150,28 @@ export async function DELETE(
     const existingTodoList = await prisma.todoList.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { project: { collaborators: { some: { userId: session.user.id } } } },
+        ],
       },
     });
 
     if (!existingTodoList) {
       return NextResponse.json({ error: "Todo list not found" }, { status: 404 });
+    }
+
+    // Check if user can modify
+    const isListOwner = existingTodoList.userId === session.user.id;
+    let canModify = isListOwner;
+
+    if (existingTodoList.projectId) {
+      const access = await getProjectAccess(existingTodoList.projectId, session.user.id);
+      canModify = canModifyProject(access);
+    }
+
+    if (!canModify) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.todoList.delete({

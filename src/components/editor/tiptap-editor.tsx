@@ -8,12 +8,14 @@ interface TiptapEditorProps {
   content?: string;
   onChange: (content: string) => void;
   editable?: boolean;
+  className?: string;
 }
 
 export function TiptapEditor({
   content = "",
   onChange,
   editable = true,
+  className = "",
 }: TiptapEditorProps) {
   const editor = useEditor({
     extensions: [StarterKit],
@@ -26,15 +28,17 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none focus:outline-none min-h-[400px] p-6",
+          "prose prose-sm max-w-none focus:outline-none p-4",
       },
     },
   });
 
   return (
-    <div className="overflow-hidden">
+    <div className={`overflow-hidden flex flex-col ${className}`}>
       {editable && <Toolbar editor={editor} />}
-      <EditorContent editor={editor} />
+      <div className="flex-1 overflow-y-auto">
+        <EditorContent editor={editor} className="h-full" />
+      </div>
     </div>
   );
 }

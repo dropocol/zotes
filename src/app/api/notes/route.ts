@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,12 +14,29 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");
 
-    const where: { userId: string; projectId?: string | null } = {
-      userId: session.user.id,
-    };
+    const where: {
+      OR?: Array<{ userId: string } | { project: { collaborators: { some: { userId: string } } } }>;
+      projectId?: string | null;
+    } = {};
 
     if (projectId) {
+      // Check access to project
+      const access = await getProjectAccess(projectId, session.user.id);
+      if (!canViewProject(access)) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
       where.projectId = projectId;
+      // Return only notes from this project (owned or collaborated)
+      where.OR = [
+        { userId: session.user.id },
+        { project: { collaborators: { some: { userId: session.user.id } } } },
+      ];
+    } else {
+      // Get all notes owned by user or from collaborated projects
+      where.OR = [
+        { userId: session.user.id },
+        { project: { collaborators: { some: { userId: session.user.id } } } },
+      ];
     }
 
     const notes = await prisma.note.findMany({
@@ -65,16 +83,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If projectId is provided, verify it belongs to user
+    // If projectId is provided, verify access
     if (projectId) {
-      const project = await prisma.project.findFirst({
-        where: {
-          id: projectId,
-          userId: session.user.id,
-        },
-      });
-
-      if (!project) {
+      const access = await getProjectAccess(projectId, session.user.id);
+      if (!canModifyProject(access)) {
         return NextResponse.json({ error: "Project not found" }, { status: 404 });
       }
     }

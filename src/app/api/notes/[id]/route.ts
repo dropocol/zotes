@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
@@ -15,10 +16,14 @@ export async function GET(
 
     const { id } = await params;
 
+    // Find note owned by user or in a collaborated project
     const note = await prisma.note.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { project: { collaborators: { some: { userId: session.user.id } } } },
+        ],
       },
       include: {
         project: {
@@ -35,7 +40,23 @@ export async function GET(
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
 
-    return NextResponse.json(note);
+    // Determine user role for the project
+    let userRole: "admin" | "collaborator" | null = null;
+    let isOwner = note.userId === session.user.id;
+
+    if (note.projectId) {
+      const access = await getProjectAccess(note.projectId, session.user.id);
+      userRole = access.role;
+      isOwner = access.isOwner || isOwner;
+    } else {
+      userRole = isOwner ? "admin" : null;
+    }
+
+    return NextResponse.json({
+      ...note,
+      userRole,
+      isOwner,
+    });
   } catch (error) {
     console.error("Error fetching note:", error);
     return NextResponse.json(
@@ -62,12 +83,28 @@ export async function PUT(
     const existingNote = await prisma.note.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { project: { collaborators: { some: { userId: session.user.id } } } },
+        ],
       },
     });
 
     if (!existingNote) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
+    }
+
+    // Check if user can modify (only owner of note or admin of project)
+    const isNoteOwner = existingNote.userId === session.user.id;
+    let canModify = isNoteOwner;
+
+    if (existingNote.projectId) {
+      const access = await getProjectAccess(existingNote.projectId, session.user.id);
+      canModify = canModifyProject(access);
+    }
+
+    if (!canModify) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const note = await prisma.note.update({
@@ -115,12 +152,28 @@ export async function DELETE(
     const existingNote = await prisma.note.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { project: { collaborators: { some: { userId: session.user.id } } } },
+        ],
       },
     });
 
     if (!existingNote) {
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
+    }
+
+    // Check if user can modify (only owner of note or admin of project)
+    const isNoteOwner = existingNote.userId === session.user.id;
+    let canModify = isNoteOwner;
+
+    if (existingNote.projectId) {
+      const access = await getProjectAccess(existingNote.projectId, session.user.id);
+      canModify = canModifyProject(access);
+    }
+
+    if (!canModify) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.note.delete({
