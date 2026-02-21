@@ -23,10 +23,22 @@ export async function GET(
       include: {
         notes: {
           orderBy: { updatedAt: "desc" },
-          take: 5,
+          take: 10,
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            pinned: true,
+            updatedAt: true,
+          },
         },
         todoLists: {
           orderBy: { updatedAt: "desc" },
+          include: {
+            _count: {
+              select: { items: true },
+            },
+          },
         },
         _count: {
           select: { notes: true, todoLists: true },

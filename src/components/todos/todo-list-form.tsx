@@ -35,7 +35,7 @@ export function TodoListForm({ open, onOpenChange, projectId }: TodoListFormProp
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/todo-lists", {
+      const response = await fetch("/api/todo/lists", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

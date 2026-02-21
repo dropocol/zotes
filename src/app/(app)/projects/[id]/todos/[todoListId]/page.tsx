@@ -1,10 +1,11 @@
-import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+"use client";
+
+import { useState, useEffect } from "react";
+import { use } from "react";
+import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { TodoListContainer } from "@/components/todos/todo-list-container";
-import { Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, CheckCircle2, Circle, ListTodo } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,62 +15,124 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DashboardLayout } from "@/components/dashboard-layout";
+import { TodoListContainer } from "@/components/todos/todo-list-container";
+import { useRouter } from "next/navigation";
 
-export default async function TodoListPage({
+interface TodoList {
+  id: string;
+  name: string;
+  description?: string | null;
+  project: {
+    id: string;
+    name: string;
+    color?: string | null;
+  };
+  items: {
+    id: string;
+    status: string;
+    parentId?: string | null;
+  }[];
+}
+
+export default function TodoListPage({
   params,
 }: {
   params: Promise<{ id: string; todoListId: string }>;
 }) {
-  const session = await auth();
+  const router = useRouter();
+  const { id, todoListId } = use(params);
+  const [todoList, setTodoList] = useState<TodoList | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!session?.user?.id) {
-    notFound();
+  useEffect(() => {
+    fetchData();
+  }, [todoListId]);
+
+  async function fetchData() {
+    try {
+      const response = await fetch(`/api/todo/lists/${todoListId}`);
+
+      if (!response.ok) {
+        router.push("/projects");
+        return;
+      }
+
+      const data = await response.json();
+      setTodoList(data);
+    } catch (error) {
+      console.error("Error fetching todo list:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  const { id: projectId, todoListId } = await params;
+  async function handleDelete() {
+    try {
+      const response = await fetch(`/api/todo/lists/${todoListId}`, {
+        method: "DELETE",
+      });
 
-  const todoList = await prisma.todoList.findFirst({
-    where: {
-      id: todoListId,
-      userId: session.user.id,
-    },
-    include: {
-      project: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
-      _count: {
-        select: { items: true },
-      },
-    },
-  });
-
-  if (!todoList) {
-    notFound();
+      if (response.ok) {
+        router.push(`/projects/${id}`);
+      }
+    } catch (error) {
+      console.error("Error deleting todo list:", error);
+    }
   }
+
+  if (isLoading || !todoList) {
+    return (
+      <DashboardLayout breadcrumbs={[{ title: "Projects", href: "/projects" }]}>
+        <div className="flex items-center justify-center min-h-[400px">
+          <div className="animate-pulse space-y-4 w-full max-w-2xl">
+            <div className="h-8 bg-muted rounded w-1/3" />
+            <div className="h-4 bg-muted rounded w-1/2" />
+            <div className="h-64 bg-muted rounded" />
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Calculate stats
+  const topLevelItems = todoList.items.filter((item) => !item.parentId);
+  const completedItems = todoList.items.filter((item) => item.status === "done");
+  const progress = topLevelItems.length > 0
+    ? Math.round((completedItems.length / todoList.items.length) * 100)
+    : 0;
 
   return (
     <DashboardLayout
       breadcrumbs={[
         { title: "Projects", href: "/projects" },
-        { title: todoList.project.name, href: `/projects/${projectId}` },
+        { title: todoList.project.name, href: `/projects/${id}` },
         { title: todoList.name },
       ]}
     >
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{todoList.name}</h1>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+              <ListTodo className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{todoList.name}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{todoList.project.name}</span>
+              </div>
+            </div>
+          </div>
           {todoList.description && (
-            <p className="text-muted-foreground mt-1">{todoList.description}</p>
+            <p className="text-muted-foreground mt-2 ml-[52px]">
+              {todoList.description}
+            </p>
           )}
         </div>
+
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-destructive">
+            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4" />
             </Button>
           </DialogTrigger>
@@ -78,35 +141,72 @@ export default async function TodoListPage({
               <DialogTitle>Delete Todo List</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete &quot;{todoList.name}&quot;? This will
-                also delete all items in this list. This action cannot be undone.
+                also delete all items. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <form
-                action={async () => {
-                  "use server";
-                  await fetch(
-                    `${process.env.AUTH_URL}/api/todo-lists/${todoListId}`,
-                    {
-                      method: "DELETE",
-                    }
-                  );
-                }}
-              >
-                <Button type="submit" variant="destructive">
-                  Delete
-                </Button>
-              </form>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <TodoListContainer todoListId={todoListId} />
-        </CardContent>
-      </Card>
+      {/* Stats Bar */}
+      <div className="flex items-center gap-6 mb-6 p-4 rounded-xl bg-muted/30 border">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-background">
+            <ListTodo className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{todoList.items.length}</p>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </div>
+        </div>
+
+        <div className="w-px h-10 bg-border" />
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30">
+            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{completedItems.length}</p>
+            <p className="text-xs text-muted-foreground">Done</p>
+          </div>
+        </div>
+
+        <div className="w-px h-10 bg-border" />
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30">
+            <Circle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{todoList.items.length - completedItems.length}</p>
+            <p className="text-xs text-muted-foreground">Remaining</p>
+          </div>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Progress bar */}
+        <div className="flex items-center gap-3">
+          <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-sm font-medium text-muted-foreground">{progress}%</span>
+        </div>
+      </div>
+
+      {/* Todo List */}
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <TodoListContainer todoListId={todoListId} />
+      </div>
     </DashboardLayout>
   );
 }
