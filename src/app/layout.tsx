@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import { SessionProvider } from "@/components/auth/session-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +27,11 @@ export default function RootLayout({
       className={`${geistSans.variable} antialiased`}
     >
       <body>
-        {children}
+        <SessionProvider>
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
+        </SessionProvider>
       </body>
     </html>
   );
