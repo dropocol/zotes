@@ -6,7 +6,7 @@ import { ProjectsTable } from "@/components/projects/projects-table";
 import { Loader2 } from "lucide-react";
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -16,10 +16,15 @@ export default function ProjectsPage() {
   async function fetchProjects() {
     try {
       const response = await fetch("/api/projects");
-      const data = await response.json();
-      setProjects(data);
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(Array.isArray(data) ? data : []);
+      } else {
+        setProjects([]);
+      }
     } catch (error) {
       console.error("Error fetching projects:", error);
+      setProjects([]);
     } finally {
       setIsLoading(false);
     }

@@ -25,6 +25,13 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { updatedAt: "desc" },
       include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
         _count: {
           select: { items: true },
         },
@@ -58,31 +65,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!projectId) {
-      return NextResponse.json(
-        { error: "Project ID is required" },
-        { status: 400 }
-      );
-    }
+    // If projectId is provided, verify it belongs to user
+    if (projectId) {
+      const project = await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          userId: session.user.id,
+        },
+      });
 
-    // Verify project belongs to user
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
-    });
-
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      if (!project) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
     }
 
     const todoList = await prisma.todoList.create({
       data: {
         name,
         description: description || null,
-        projectId,
+        projectId: projectId || null,
         userId: session.user.id,
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
       },
     });
 

@@ -79,7 +79,7 @@ CREATE TABLE "todo_lists" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "projectId" TEXT NOT NULL,
+    "project_id" TEXT,
     "user_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -130,7 +130,7 @@ CREATE INDEX "notes_user_id_idx" ON "notes"("user_id");
 CREATE INDEX "notes_project_id_idx" ON "notes"("project_id");
 
 -- CreateIndex
-CREATE INDEX "todo_lists_projectId_idx" ON "todo_lists"("projectId");
+CREATE INDEX "todo_lists_project_id_idx" ON "todo_lists"("project_id");
 
 -- CreateIndex
 CREATE INDEX "todo_lists_user_id_idx" ON "todo_lists"("user_id");
@@ -160,7 +160,7 @@ ALTER TABLE "notes" ADD CONSTRAINT "notes_user_id_fkey" FOREIGN KEY ("user_id") 
 ALTER TABLE "notes" ADD CONSTRAINT "notes_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "todo_lists" ADD CONSTRAINT "todo_lists_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "todo_lists" ADD CONSTRAINT "todo_lists_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "todo_lists" ADD CONSTRAINT "todo_lists_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

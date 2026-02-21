@@ -133,11 +133,29 @@ export default async function DashboardPage() {
     <DashboardLayout
       breadcrumbs={[{ title: "Dashboard", href: "/dashboard" }]}
     >
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome back, {session.user.name || "User"}</h1>
-        <p className="text-muted-foreground mt-1">
-          Here&apos;s what&apos;s happening with your work
-        </p>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Welcome back, {session.user.name || "User"}</h1>
+          <p className="text-muted-foreground mt-1">
+            Here&apos;s what&apos;s happening with your work
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href="/projects"
+            className={buttonVariants({ size: "sm" })}
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            New Project
+          </Link>
+          <Link
+            href="/notes/new"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            New Note
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -304,24 +322,6 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Quick Actions */}
-      <div className="mt-6 flex flex-wrap gap-2">
-        <Link
-          href="/projects"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
-          New Project
-        </Link>
-        <Link
-          href="/notes/new"
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
-          New Note
-        </Link>
-      </div>
     </DashboardLayout>
   );
 }

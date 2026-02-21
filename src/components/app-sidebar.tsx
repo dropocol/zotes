@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FolderKanban, FileText, Home } from "lucide-react";
+import { FolderKanban, FileText, Home, CheckSquare } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -39,6 +39,12 @@ const data = {
       title: "Notes",
       url: "/notes",
       icon: FileText,
+      isActive: false,
+    },
+    {
+      title: "Todos",
+      url: "/todos",
+      icon: CheckSquare,
       isActive: false,
     },
   ],

@@ -64,7 +64,8 @@ export function getSortedValue<T>(item: T, key: string): string | number | null 
   return (value as string | number | null) ?? null;
 }
 
-export function sortItems<T>(items: T[], sortConfig: SortConfig): T[] {
+export function sortItems<T>(items: T[] | undefined | null, sortConfig: SortConfig): T[] {
+  if (!items || !Array.isArray(items)) return [];
   if (!sortConfig.direction) return items;
 
   const sorted = [...items].sort((a, b) => {
