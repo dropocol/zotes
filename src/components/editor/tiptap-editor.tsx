@@ -38,7 +38,7 @@ export function TiptapEditor({
     >
       {editable && <Toolbar editor={editor} />}
       <div className="flex-1 overflow-y-auto">
-        <EditorContent editor={editor} className="h-full" />
+        <EditorContent editor={editor} className="h-full p-4 pt-2" />
       </div>
     </div>
   );
