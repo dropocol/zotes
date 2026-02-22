@@ -84,7 +84,7 @@ export default function NewNotePage() {
         { title: "New Note" },
       ]}
     >
-      <div className="max-w-[1000px] flex flex-col h-[calc(100vh-120px)]">
+      <div className="max-w-[1000px] mx-auto flex flex-col h-[calc(100vh-120px)]">
         <div className="flex items-center gap-4 mb-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/notes">

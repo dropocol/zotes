@@ -27,14 +27,15 @@ export function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        class:
-          "prose prose-sm max-w-none focus:outline-none p-4",
+        class: "prose prose-sm max-w-none focus:outline-none p-4",
       },
     },
   });
 
   return (
-    <div className={`overflow-hidden flex flex-col ${className}`}>
+    <div
+      className={`overflow-hidden flex flex-col border rounded-lg ${className}`}
+    >
       {editable && <Toolbar editor={editor} />}
       <div className="flex-1 overflow-y-auto">
         <EditorContent editor={editor} className="h-full" />

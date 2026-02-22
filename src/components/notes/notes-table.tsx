@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,9 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SortableTableHead, sortItems, type SortConfig } from "@/components/ui/sortable-table-head";
-import { Plus, MoreHorizontal, Trash2, Pin, PinOff } from "lucide-react";
+import { MoreHorizontal, Trash2, Pin, PinOff } from "lucide-react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 
 interface Note {
   id: string;
@@ -38,11 +36,11 @@ interface Note {
 
 interface NotesTableProps {
   notes: Note[];
+  searchQuery: string;
   onRefresh: () => void;
 }
 
-export function NotesTable({ notes, onRefresh }: NotesTableProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+export function NotesTable({ notes, searchQuery, onRefresh }: NotesTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "pinned", direction: "desc" });
 
   const filteredNotes = useMemo(() => {
@@ -129,144 +127,122 @@ export function NotesTable({ notes, onRefresh }: NotesTableProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Input
-          placeholder="Search notes..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
-        />
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">
-            {sortedNotes.length} note{sortedNotes.length !== 1 ? "s" : ""}
-          </span>
-          <Button asChild>
-            <Link href="/notes/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Note
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
+    <div className="rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <SortableTableHead
+              column="pinned"
+              label=""
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              className="w-[40px]"
+            />
+            <SortableTableHead
+              column="title"
+              label="Title"
+              sortConfig={sortConfig}
+              onSort={handleSort}
+            />
+            <TableHead>Preview</TableHead>
+            <TableHead>Project</TableHead>
+            <SortableTableHead
+              column="updatedAt"
+              label="Updated"
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              className="w-[150px]"
+            />
+            <TableHead className="w-[60px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedNotes.length === 0 ? (
             <TableRow>
-              <SortableTableHead
-                column="pinned"
-                label=""
-                sortConfig={sortConfig}
-                onSort={handleSort}
-                className="w-[40px]"
-              />
-              <SortableTableHead
-                column="title"
-                label="Title"
-                sortConfig={sortConfig}
-                onSort={handleSort}
-              />
-              <TableHead>Preview</TableHead>
-              <TableHead>Project</TableHead>
-              <SortableTableHead
-                column="updatedAt"
-                label="Updated"
-                sortConfig={sortConfig}
-                onSort={handleSort}
-                className="w-[150px]"
-              />
-              <TableHead className="w-[60px]"></TableHead>
+              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                {searchQuery ? "No notes found matching your search" : "No notes yet. Create your first note to get started."}
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedNotes.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {searchQuery ? "No notes found matching your search" : "No notes yet. Create your first note to get started."}
+          ) : (
+            sortedNotes.map((note) => (
+              <TableRow key={note.id} className="group">
+                <TableCell>
+                  {note.pinned && (
+                    <Pin className="h-4 w-4 text-primary fill-primary" />
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Link
+                    href={`/notes/${note.id}`}
+                    className="font-medium hover:text-primary transition-colors"
+                  >
+                    {note.title}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground max-w-[300px] truncate">
+                  {getPreview(note.content) || "-"}
+                </TableCell>
+                <TableCell>
+                  {note.project ? (
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: note.project.color || "#f97316" }}
+                      />
+                      <Link
+                        href={`/projects/${note.project.id}`}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {note.project.name}
+                      </Link>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {new Date(note.updatedAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleTogglePin(note)}>
+                        {note.pinned ? (
+                          <>
+                            <PinOff className="mr-2 h-4 w-4" />
+                            Unpin
+                          </>
+                        ) : (
+                          <>
+                            <Pin className="mr-2 h-4 w-4" />
+                            Pin
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDelete(note.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ) : (
-              sortedNotes.map((note) => (
-                <TableRow key={note.id} className="group">
-                  <TableCell>
-                    {note.pinned && (
-                      <Pin className="h-4 w-4 text-primary fill-primary" />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/notes/${note.id}`}
-                      className="font-medium hover:text-primary transition-colors"
-                    >
-                      {note.title}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-w-[300px] truncate">
-                    {getPreview(note.content) || "-"}
-                  </TableCell>
-                  <TableCell>
-                    {note.project ? (
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: note.project.color || "#f97316" }}
-                        />
-                        <Link
-                          href={`/projects/${note.project.id}`}
-                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {note.project.name}
-                        </Link>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(note.updatedAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleTogglePin(note)}>
-                          {note.pinned ? (
-                            <>
-                              <PinOff className="mr-2 h-4 w-4" />
-                              Unpin
-                            </>
-                          ) : (
-                            <>
-                              <Pin className="mr-2 h-4 w-4" />
-                              Pin
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDelete(note.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

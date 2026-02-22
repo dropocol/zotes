@@ -151,7 +151,7 @@ export default function TodosPage() {
 
   return (
     <DashboardLayout breadcrumbs={[{ title: "Todos", href: "/todos" }]}>
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Todo Lists</h1>
           <p className="text-muted-foreground mt-1">
@@ -206,7 +206,9 @@ export default function TodosPage() {
                         <div className="flex items-center gap-2">
                           <div
                             className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: project.color || "#6b7280" }}
+                            style={{
+                              backgroundColor: project.color || "#6b7280",
+                            }}
                           />
                           {project.name}
                         </div>
@@ -217,10 +219,7 @@ export default function TodosPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
@@ -290,7 +289,8 @@ export default function TodosPage() {
                         <div
                           className="w-2 h-2 rounded-full"
                           style={{
-                            backgroundColor: todoList.project.color || "#6b7280",
+                            backgroundColor:
+                              todoList.project.color || "#6b7280",
                           }}
                         />
                         {todoList.project.name}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,7 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SortableTableHead, sortItems, type SortConfig } from "@/components/ui/sortable-table-head";
-import { Plus, MoreHorizontal, Pencil, Trash2, FileText, CheckSquare } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, FileText, CheckSquare } from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
 import { ProjectForm } from "./project-form";
 import { RoleBadge } from "./role-badge";
@@ -40,11 +40,11 @@ interface Project {
 
 interface ProjectsTableProps {
   projects: Project[];
+  searchQuery: string;
   onRefresh: () => void;
 }
 
-export function ProjectsTable({ projects, onRefresh }: ProjectsTableProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "updatedAt", direction: "desc" });
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -101,25 +101,7 @@ export function ProjectsTable({ projects, onRefresh }: ProjectsTableProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Input
-          placeholder="Search projects..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
-        />
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">
-            {sortedProjects.length} project{sortedProjects.length !== 1 ? "s" : ""}
-          </span>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Project
-          </Button>
-        </div>
-      </div>
-
+    <>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -246,6 +228,6 @@ export function ProjectsTable({ projects, onRefresh }: ProjectsTableProps) {
         }}
         project={editingProject}
       />
-    </div>
+    </>
   );
 }

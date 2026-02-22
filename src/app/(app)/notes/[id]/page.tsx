@@ -179,19 +179,25 @@ export default function NotePage({
     <DashboardLayout
       breadcrumbs={[{ title: "Notes", href: "/notes" }, { title: note.title }]}
     >
-      <div className="max-w-[1000px] flex flex-col h-[calc(100vh-120px)]">
+      <div className="max-w-[1200px] mx-auto w-full flex flex-col h-[calc(100vh-100px)]">
         <div className="flex items-center gap-4 mb-4">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/notes">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
+
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled"
-            className="text-2xl font-bold border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-1"
+            className="text-3xl font-semibold border-0 shadow-none focus-visible:ring-0 p-0 h-12 flex-1"
           />
+          {hasChanges && (
+            <Badge variant="outline" className="text-muted-foreground">
+              Unsaved changes
+            </Badge>
+          )}
           <Select value={selectedProject} onValueChange={setSelectedProject}>
             <SelectTrigger className="w-[180px] h-9">
               <SelectValue placeholder="Select a project" />
@@ -206,14 +212,13 @@ export default function NotePage({
             </SelectContent>
           </Select>
           {note.pinned && <Badge variant="secondary">Pinned</Badge>}
-          {hasChanges && (
-            <Badge variant="outline" className="text-muted-foreground">
-              Unsaved changes
-            </Badge>
-          )}
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-destructive">
+              <Button
+                variant="outline"
+                size="icon"
+                className="text-destructive bg-red-50"
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </DialogTrigger>
@@ -250,7 +255,11 @@ export default function NotePage({
         </div>
 
         <div className="flex-1 overflow-hidden">
-          <TiptapEditor content={content} onChange={setContent} className="h-full" />
+          <TiptapEditor
+            content={content}
+            onChange={setContent}
+            className="h-full"
+          />
         </div>
       </div>
     </DashboardLayout>

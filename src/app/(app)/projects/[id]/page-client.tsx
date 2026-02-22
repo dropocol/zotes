@@ -4,7 +4,13 @@ import { useState } from "react";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, FileText, CheckSquare, MoreHorizontal, Users } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  CheckSquare,
+  MoreHorizontal,
+  Settings,
+} from "lucide-react";
 import { TodoListForm } from "@/components/todos/todo-list-form";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import {
@@ -22,9 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { ProjectForm } from "@/components/projects/project-form";
 import { RoleBadge } from "@/components/projects/role-badge";
-import { CollaboratorsList } from "@/components/projects/collaborators-list";
 
 interface Project {
   id: string;
@@ -53,26 +57,10 @@ interface TodoList {
   };
 }
 
-interface Collaborator {
-  id: string;
-  name?: string | null;
-  email: string;
-  image?: string | null;
-  role: string;
-  isOwner: boolean;
-  collaborationId?: string;
-}
-
-interface CollaboratorsData {
-  owner: Collaborator;
-  collaborators: Collaborator[];
-}
-
 interface ProjectPageClientProps {
   project: Project | null;
   notes: Note[];
   todoLists: TodoList[];
-  collaboratorsData: CollaboratorsData | null;
   onRefresh: () => void;
 }
 
@@ -80,11 +68,9 @@ export function ProjectPageClient({
   project,
   notes,
   todoLists,
-  collaboratorsData,
   onRefresh,
 }: ProjectPageClientProps) {
   const [isTodoListFormOpen, setIsTodoListFormOpen] = useState(false);
-  const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
 
   if (!project) {
     notFound();
@@ -121,14 +107,16 @@ export function ProjectPageClient({
         { title: project.name },
       ]}
     >
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
             <div
               className="h-4 w-1 rounded-full"
               style={{ backgroundColor: project.color || "#f97316" }}
             />
-            <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {project.name}
+            </h1>
             <RoleBadge role={project.userRole as "admin" | "collaborator"} />
           </div>
           {project.description && (
@@ -137,26 +125,15 @@ export function ProjectPageClient({
             </p>
           )}
         </div>
-        {canModify && (
-          <Button variant="outline" size="sm" onClick={() => setIsProjectFormOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit Project
+        {project.isOwner && (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/projects/${project.id}/settings`}>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </Link>
           </Button>
         )}
       </div>
-
-      {/* Collaborators Section */}
-      {collaboratorsData && (
-        <div className="mb-8 p-4 rounded-lg border">
-          <CollaboratorsList
-            projectId={project.id}
-            owner={collaboratorsData.owner}
-            collaborators={collaboratorsData.collaborators}
-            isOwner={project.isOwner}
-            onRefresh={onRefresh}
-          />
-        </div>
-      )}
 
       {/* Todo Lists Table */}
       <div className="mb-8">
@@ -184,8 +161,12 @@ export function ProjectPageClient({
             <TableBody>
               {todoLists.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canModify ? 5 : 4} className="text-center text-muted-foreground py-8">
-                    No todo lists yet. {canModify ? "Create your first list to get started." : ""}
+                  <TableCell
+                    colSpan={canModify ? 5 : 4}
+                    className="text-center text-muted-foreground py-8"
+                  >
+                    No todo lists yet.{" "}
+                    {canModify ? "Create your first list to get started." : ""}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -267,8 +248,12 @@ export function ProjectPageClient({
             <TableBody>
               {notes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    No notes yet. {canModify ? "Create your first note to get started." : ""}
+                  <TableCell
+                    colSpan={4}
+                    className="text-center text-muted-foreground py-8"
+                  >
+                    No notes yet.{" "}
+                    {canModify ? "Create your first note to get started." : ""}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -277,7 +262,11 @@ export function ProjectPageClient({
                     <TableCell>
                       {note.pinned && (
                         <Badge variant="secondary" className="p-1">
-                          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                          <svg
+                            className="h-3 w-3"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
                             <path d="M16 3H8c-1.1 0-2 .9-2 2v3c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 10H8c-1.1 0-2 .9-2 2v3c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-3c0-1.1-.9-2-2-2z" />
                           </svg>
                         </Badge>
@@ -309,12 +298,6 @@ export function ProjectPageClient({
         open={isTodoListFormOpen}
         onOpenChange={setIsTodoListFormOpen}
         projectId={project.id}
-      />
-
-      <ProjectForm
-        open={isProjectFormOpen}
-        onOpenChange={setIsProjectFormOpen}
-        project={project}
       />
     </DashboardLayout>
   );

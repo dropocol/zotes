@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ProjectPageClient } from "./page-client";
-import { Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { ProjectSettingsClient } from "./page-client";
 
 interface Project {
   id: string;
@@ -16,32 +16,28 @@ interface Project {
   isOwner: boolean;
 }
 
-interface Note {
+interface Collaborator {
   id: string;
-  title: string;
-  content?: string | null;
-  pinned: boolean;
-  updatedAt: string;
+  name?: string | null;
+  email: string;
+  image?: string | null;
+  role: string;
+  isOwner: boolean;
+  collaborationId?: string;
 }
 
-interface TodoList {
-  id: string;
-  name: string;
-  description?: string | null;
-  updatedAt: string;
-  _count: {
-    items: number;
-  };
+interface CollaboratorsData {
+  owner: Collaborator;
+  collaborators: Collaborator[];
 }
 
-export default function ProjectPage({
+export default function ProjectSettingsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const [project, setProject] = useState<Project | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [todoLists, setTodoLists] = useState<TodoList[]>([]);
+  const [collaboratorsData, setCollaboratorsData] = useState<CollaboratorsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -58,8 +54,15 @@ export default function ProjectPage({
 
         const data = await response.json();
         setProject(data);
-        setNotes(data.notes || []);
-        setTodoLists(data.todoLists || []);
+
+        // Fetch collaborators
+        const collabResponse = await fetch(
+          `/api/projects/${resolvedParams.id}/collaborators`
+        );
+        if (collabResponse.ok) {
+          const collabData = await collabResponse.json();
+          setCollaboratorsData(collabData);
+        }
       } catch (err) {
         console.error("Error fetching project:", err);
         setError(true);
@@ -79,8 +82,15 @@ export default function ProjectPage({
       if (response.ok) {
         const data = await response.json();
         setProject(data);
-        setNotes(data.notes || []);
-        setTodoLists(data.todoLists || []);
+      }
+
+      // Refresh collaborators
+      const collabResponse = await fetch(
+        `/api/projects/${resolvedParams.id}/collaborators`
+      );
+      if (collabResponse.ok) {
+        const collabData = await collabResponse.json();
+        setCollaboratorsData(collabData);
       }
     } catch (err) {
       console.error("Error refreshing project:", err);
@@ -113,11 +123,33 @@ export default function ProjectPage({
     );
   }
 
+  // Only owners can access settings
+  if (!project.isOwner) {
+    return (
+      <DashboardLayout
+        breadcrumbs={[
+          { title: "Projects", href: "/projects" },
+          { title: project.name, href: `/projects/${project.id}` },
+          { title: "Settings" },
+        ]}
+      >
+        <div className="text-center py-12">
+          <h2 className="text-lg font-medium">Access denied</h2>
+          <p className="text-muted-foreground mt-1">
+            Only project owners can access project settings.
+          </p>
+          <Button asChild className="mt-4">
+            <Link href={`/projects/${project.id}`}>Go back to project</Link>
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <ProjectPageClient
+    <ProjectSettingsClient
       project={project}
-      notes={notes}
-      todoLists={todoLists}
+      collaboratorsData={collaboratorsData}
       onRefresh={handleRefresh}
     />
   );

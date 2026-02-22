@@ -96,10 +96,13 @@ export default function TodoListPage({
 
   // Calculate stats
   const topLevelItems = todoList.items.filter((item) => !item.parentId);
-  const completedItems = todoList.items.filter((item) => item.status === "done");
-  const progress = topLevelItems.length > 0
-    ? Math.round((completedItems.length / todoList.items.length) * 100)
-    : 0;
+  const completedItems = todoList.items.filter(
+    (item) => item.status === "done",
+  );
+  const progress =
+    topLevelItems.length > 0
+      ? Math.round((completedItems.length / todoList.items.length) * 100)
+      : 0;
 
   return (
     <DashboardLayout
@@ -110,14 +113,16 @@ export default function TodoListPage({
       ]}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
               <ListTodo className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">{todoList.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {todoList.name}
+              </h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>{todoList.project.name}</span>
               </div>
@@ -132,7 +137,11 @@ export default function TodoListPage({
 
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive"
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </DialogTrigger>
@@ -140,8 +149,8 @@ export default function TodoListPage({
             <DialogHeader>
               <DialogTitle>Delete Todo List</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete &quot;{todoList.name}&quot;? This will
-                also delete all items. This action cannot be undone.
+                Are you sure you want to delete &quot;{todoList.name}&quot;?
+                This will also delete all items. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -184,7 +193,9 @@ export default function TodoListPage({
             <Circle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <p className="text-sm font-medium">{todoList.items.length - completedItems.length}</p>
+            <p className="text-sm font-medium">
+              {todoList.items.length - completedItems.length}
+            </p>
             <p className="text-xs text-muted-foreground">Remaining</p>
           </div>
         </div>
@@ -199,7 +210,9 @@ export default function TodoListPage({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <span className="text-sm font-medium text-muted-foreground">{progress}%</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            {progress}%
+          </span>
         </div>
       </div>
 
