@@ -4,6 +4,7 @@ import * as React from "react";
 import { FolderKanban, FileText, Home, CheckSquare } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
+import { NavRecent } from "@/components/nav-recent";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -11,6 +12,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { TeamSwitcher } from "@/components/team-switcher";
 
@@ -56,8 +58,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="overflow-x-hidden">
         <NavMain items={data.navMain} />
+        <SidebarSeparator />
+        <NavRecent />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
