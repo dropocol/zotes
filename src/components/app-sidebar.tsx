@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FolderKanban, FileText, Home, CheckSquare } from "lucide-react";
+import { Layers, StickyNote, Home, CheckSquare } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavRecent } from "@/components/nav-recent";
@@ -20,7 +20,7 @@ const data = {
   teams: [
     {
       name: "Zotes",
-      logo: FileText,
+      logo: StickyNote,
       plan: "Personal",
     },
   ],
@@ -34,13 +34,13 @@ const data = {
     {
       title: "Projects",
       url: "/projects",
-      icon: FolderKanban,
+      icon: Layers,
       isActive: false,
     },
     {
       title: "Notes",
       url: "/notes",
-      icon: FileText,
+      icon: StickyNote,
       isActive: false,
     },
     {
