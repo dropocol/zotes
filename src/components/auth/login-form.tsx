@@ -10,7 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 
-export function LoginForm() {
+interface LoginFormProps {
+  showSignupLink?: boolean;
+}
+
+export function LoginForm({ showSignupLink = true }: LoginFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,12 +81,14 @@ export function LoginForm() {
         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Sign In
       </Button>
-      <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-primary hover:underline">
-          Sign up
-        </Link>
-      </p>
+      {showSignupLink && (
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="text-primary hover:underline">
+            Sign up
+          </Link>
+        </p>
+      )}
     </form>
   );
 }
