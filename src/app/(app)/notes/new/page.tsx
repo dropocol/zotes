@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -155,15 +154,12 @@ export default function NewNotePage() {
   }, []);
 
   const headerContent = (
-    <>
-      <Separator orientation="vertical" className="h-4 mx-2" />
-      <Input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Untitled"
-        className="text-sm font-medium border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-1 min-w-0 bg-transparent"
-      />
-    </>
+    <Input
+      value={title}
+      onChange={(e) => setTitle(e.target.value)}
+      placeholder="Untitled"
+      className="text-sm font-medium border-0 shadow-none focus-visible:ring-0 p-2 h-9 flex-1 min-w-0 bg-muted/30 hover:bg-muted/50 transition-colors rounded-md"
+    />
   );
 
   const headerActions = (
@@ -206,10 +202,6 @@ export default function NewNotePage() {
 
   return (
     <DashboardLayout
-      breadcrumbs={[
-        { title: "Notes", href: "/notes" },
-        { title: "New Note" },
-      ]}
       headerContent={headerContent}
       headerActions={headerActions}
       fullHeight

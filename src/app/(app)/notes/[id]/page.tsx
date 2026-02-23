@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -238,7 +237,7 @@ export default function NotePage({
 
   if (isLoading) {
     return (
-      <DashboardLayout breadcrumbs={[{ title: "Notes", href: "/notes" }]}>
+      <DashboardLayout>
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -248,7 +247,7 @@ export default function NotePage({
 
   if (!note) {
     return (
-      <DashboardLayout breadcrumbs={[{ title: "Notes", href: "/notes" }]}>
+      <DashboardLayout>
         <div className="text-center py-12">
           <h2 className="text-lg font-medium">Note not found</h2>
           <Button asChild className="mt-4">
@@ -260,15 +259,12 @@ export default function NotePage({
   }
 
   const headerContent = (
-    <>
-      <Separator orientation="vertical" className="h-4 mx-2" />
-      <Input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Untitled"
-        className="text-sm font-medium border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-1 min-w-0 bg-transparent"
-      />
-    </>
+    <Input
+      value={title}
+      onChange={(e) => setTitle(e.target.value)}
+      placeholder="Untitled"
+      className="text-sm font-medium border-0 shadow-none focus-visible:ring-0 p-2 h-9 flex-1 min-w-0 bg-muted/30 hover:bg-muted/50 transition-colors rounded-md"
+    />
   );
 
   const headerActions = (
@@ -349,7 +345,6 @@ export default function NotePage({
 
   return (
     <DashboardLayout
-      breadcrumbs={[{ title: "Notes", href: "/notes" }]}
       headerContent={headerContent}
       headerActions={headerActions}
       fullHeight
