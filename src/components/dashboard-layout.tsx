@@ -20,18 +20,22 @@ import { AppSidebar } from "@/components/app-sidebar";
 export function DashboardLayout({
   children,
   breadcrumbs,
+  headerContent,
+  headerActions,
 }: {
   children: React.ReactNode;
   breadcrumbs?: { title: string; href?: string }[];
+  headerContent?: React.ReactNode;
+  headerActions?: React.ReactNode;
 }) {
   return (
     <SidebarProvider suppressHydrationWarning>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+        <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <SidebarTrigger className="-ml-1 shrink-0" />
+            <Separator orientation="vertical" className="mr-2 h-4 shrink-0" />
             {breadcrumbs && (
               <Breadcrumb>
                 <BreadcrumbList>
@@ -58,7 +62,13 @@ export function DashboardLayout({
                 </BreadcrumbList>
               </Breadcrumb>
             )}
+            {headerContent}
           </div>
+          {headerActions && (
+            <div className="flex items-center gap-2 shrink-0 ml-4">
+              {headerActions}
+            </div>
+          )}
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
       </SidebarInset>

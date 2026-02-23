@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Loader2, Save, Trash2, ArrowLeft, Check } from "lucide-react";
+import { Loader2, Save, Trash2, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Toolbar } from "@/components/editor/toolbar";
+import type { Editor } from "@tiptap/react";
 
 interface Note {
   id: string;
@@ -62,6 +65,7 @@ export default function NotePage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -228,6 +232,10 @@ export default function NotePage({
     }
   }
 
+  const handleEditorReady = useCallback((editorInstance: Editor | null) => {
+    setEditor(editorInstance);
+  }, []);
+
   if (isLoading) {
     return (
       <DashboardLayout breadcrumbs={[{ title: "Notes", href: "/notes" }]}>
@@ -251,104 +259,111 @@ export default function NotePage({
     );
   }
 
+  const headerContent = (
+    <>
+      <Separator orientation="vertical" className="h-4 mx-2" />
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Untitled"
+        className="text-sm font-medium border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-1 min-w-0 bg-transparent"
+      />
+    </>
+  );
+
+  const headerActions = (
+    <>
+      {autoSaveStatus === "saving" && (
+        <Badge variant="outline" className="text-muted-foreground">
+          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          Saving...
+        </Badge>
+      )}
+      {autoSaveStatus === "saved" && (
+        <Badge variant="outline" className="text-green-600 border-green-200">
+          <Check className="mr-1 h-3 w-3" />
+          Saved
+        </Badge>
+      )}
+      {hasChanges && autoSaveStatus === "idle" && (
+        <Badge variant="outline" className="text-muted-foreground">
+          Unsaved changes
+        </Badge>
+      )}
+      <Select value={selectedProject} onValueChange={setSelectedProject}>
+        <SelectTrigger className="w-[140px] h-8 text-sm">
+          <SelectValue placeholder="Select a project" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">No project</SelectItem>
+          {projects.map((project) => (
+            <SelectItem key={project.id} value={project.id}>
+              {project.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {note.pinned && <Badge variant="secondary">Pinned</Badge>}
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="text-destructive bg-red-50 h-8 w-8"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Note</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this note? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Button onClick={handleSave} disabled={!title.trim() || isSaving} size="sm" className="h-8">
+        {isSaving ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Save className="mr-2 h-4 w-4" />
+        )}
+        Save
+      </Button>
+    </>
+  );
+
   return (
     <DashboardLayout
-      breadcrumbs={[{ title: "Notes", href: "/notes" }, { title: note.title }]}
+      breadcrumbs={[{ title: "Notes", href: "/notes" }]}
+      headerContent={headerContent}
+      headerActions={headerActions}
     >
-      <div className="max-w-[1200px] mx-auto w-full flex flex-col h-[calc(100vh-100px)]">
-        <div className="flex items-center gap-4 mb-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/notes">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled"
-            className="text-3xl font-semibold border-0 shadow-none focus-visible:ring-0 p-0 h-12 flex-1"
-          />
-          {autoSaveStatus === "saving" && (
-            <Badge variant="outline" className="text-muted-foreground">
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-              Saving...
-            </Badge>
-          )}
-          {autoSaveStatus === "saved" && (
-            <Badge variant="outline" className="text-green-600 border-green-200">
-              <Check className="mr-1 h-3 w-3" />
-              Saved
-            </Badge>
-          )}
-          {hasChanges && autoSaveStatus === "idle" && (
-            <Badge variant="outline" className="text-muted-foreground">
-              Unsaved changes
-            </Badge>
-          )}
-          <Select value={selectedProject} onValueChange={setSelectedProject}>
-            <SelectTrigger className="w-[180px] h-9">
-              <SelectValue placeholder="Select a project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No project</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {note.pinned && <Badge variant="secondary">Pinned</Badge>}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="text-destructive bg-red-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Delete Note</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to delete this note? This action cannot
-                  be undone.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Delete
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <Button onClick={handleSave} disabled={!title.trim() || isSaving}>
-            {isSaving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            Save
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-hidden">
-          <TiptapEditor
-            content={content}
-            onChange={setContent}
-            className="h-full"
-          />
-        </div>
+      <div className="-mx-4 -mt-4">
+        <Toolbar editor={editor} />
+      </div>
+      <div className="flex-1 overflow-hidden mt-0">
+        <TiptapEditor
+          content={content}
+          onChange={setContent}
+          className="h-full"
+          hideToolbar
+          onEditorReady={handleEditorReady}
+        />
       </div>
     </DashboardLayout>
   );

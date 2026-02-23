@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -13,9 +14,10 @@ import {
 } from "@/components/ui/select";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Loader2, Save, ArrowLeft, Check } from "lucide-react";
-import Link from "next/link";
+import { Loader2, Save, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Toolbar } from "@/components/editor/toolbar";
+import type { Editor } from "@tiptap/react";
 
 interface Project {
   id: string;
@@ -37,6 +39,7 @@ export default function NewNotePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingProjects, setIsFetchingProjects] = useState(true);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasTitleRef = useRef(false);
@@ -147,64 +150,80 @@ export default function NewNotePage() {
     }
   }
 
+  const handleEditorReady = useCallback((editorInstance: Editor | null) => {
+    setEditor(editorInstance);
+  }, []);
+
+  const headerContent = (
+    <>
+      <Separator orientation="vertical" className="h-4 mx-2" />
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Untitled"
+        className="text-sm font-medium border-0 shadow-none focus-visible:ring-0 p-0 h-auto flex-1 min-w-0 bg-transparent"
+      />
+    </>
+  );
+
+  const headerActions = (
+    <>
+      {autoSaveStatus === "saving" && (
+        <Badge variant="outline" className="text-muted-foreground">
+          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          Saving...
+        </Badge>
+      )}
+      {autoSaveStatus === "saved" && (
+        <Badge variant="outline" className="text-green-600 border-green-200">
+          <Check className="mr-1 h-3 w-3" />
+          Saved
+        </Badge>
+      )}
+      <Select value={selectedProject} onValueChange={setSelectedProject}>
+        <SelectTrigger className="w-[140px] h-8 text-sm">
+          <SelectValue placeholder="Select a project" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">No project</SelectItem>
+          {projects.map((project) => (
+            <SelectItem key={project.id} value={project.id}>
+              {project.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button onClick={handleSave} disabled={!title.trim() || isLoading || autoSaveStatus === "saving"} size="sm" className="h-8">
+        {isLoading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Save className="mr-2 h-4 w-4" />
+        )}
+        Save
+      </Button>
+    </>
+  );
+
   return (
     <DashboardLayout
       breadcrumbs={[
         { title: "Notes", href: "/notes" },
         { title: "New Note" },
       ]}
+      headerContent={headerContent}
+      headerActions={headerActions}
     >
-      <div className="max-w-[1200px] mx-auto w-full flex flex-col h-[calc(100vh-100px)]">
-        <div className="flex items-center gap-4 mb-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/notes">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled"
-            className="text-3xl font-semibold border-0 shadow-none focus-visible:ring-0 p-0 h-12 flex-1"
-          />
-          {autoSaveStatus === "saving" && (
-            <Badge variant="outline" className="text-muted-foreground">
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-              Saving...
-            </Badge>
-          )}
-          {autoSaveStatus === "saved" && (
-            <Badge variant="outline" className="text-green-600 border-green-200">
-              <Check className="mr-1 h-3 w-3" />
-              Saved
-            </Badge>
-          )}
-          <Select value={selectedProject} onValueChange={setSelectedProject}>
-            <SelectTrigger className="w-[180px] h-9">
-              <SelectValue placeholder="Select a project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No project</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={handleSave} disabled={!title.trim() || isLoading || autoSaveStatus === "saving"}>
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            Save
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-hidden">
-          <TiptapEditor content={content} onChange={setContent} className="h-full" />
-        </div>
+      <div className="-mx-4 -mt-4">
+        <Toolbar editor={editor} />
+      </div>
+      <div className="flex-1 overflow-hidden mt-0">
+        <TiptapEditor
+          content={content}
+          onChange={setContent}
+          className="h-full"
+          hideToolbar
+          onEditorReady={handleEditorReady}
+        />
       </div>
     </DashboardLayout>
   );
