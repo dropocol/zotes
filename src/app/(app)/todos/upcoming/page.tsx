@@ -13,7 +13,8 @@ interface TodoItemWithList extends TodoItem {
   todoList: TodoList;
 }
 
-function isOverdue(dueDate: Date | string): boolean {
+function isOverdue(dueDate: Date | string | null | undefined): boolean {
+  if (!dueDate) return false;
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const due = new Date(dueDate);
@@ -21,7 +22,8 @@ function isOverdue(dueDate: Date | string): boolean {
   return due < now;
 }
 
-function isDueToday(dueDate: Date | string): boolean {
+function isDueToday(dueDate: Date | string | null | undefined): boolean {
+  if (!dueDate) return false;
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const due = new Date(dueDate);
@@ -29,7 +31,8 @@ function isDueToday(dueDate: Date | string): boolean {
   return due.getTime() === now.getTime();
 }
 
-function isDueTomorrow(dueDate: Date | string): boolean {
+function isDueTomorrow(dueDate: Date | string | null | undefined): boolean {
+  if (!dueDate) return false;
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
@@ -38,7 +41,8 @@ function isDueTomorrow(dueDate: Date | string): boolean {
   return due.getTime() === tomorrow.getTime();
 }
 
-function getDueDateLabel(dueDate: Date | string): string {
+function getDueDateLabel(dueDate: Date | string | null | undefined): string {
+  if (!dueDate) return "";
   if (isDueToday(dueDate)) return "Today";
   if (isDueTomorrow(dueDate)) return "Tomorrow";
   return new Date(dueDate).toLocaleDateString("en-US", {
@@ -102,8 +106,8 @@ export default function UpcomingTodosPage() {
     }
   }
 
-  function handleSelectItem(item: TodoItemWithList) {
-    setSelectedItem(item);
+  function handleSelectItem(item: TodoItem) {
+    setSelectedItem(item as TodoItemWithList);
     setIsDrawerOpen(true);
   }
 

@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
     const where: {
       userId: string;
       parentId?: null;
-      status?: string;
-      dueDate?: {};
+      status?: string | { not: string };
+      dueDate?: { not: null };
     } = {
       userId: session.user.id,
       parentId: null, // Only top-level items

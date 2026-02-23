@@ -85,8 +85,8 @@ export function TodoItemDetailDrawer({
     if (item) {
       setTitle(item.title);
       setNotes(item.notes || "");
-      setStatus(item.status);
-      setPriority(item.priority);
+      setStatus(item.status as TodoItemStatus);
+      setPriority(item.priority as TodoItemPriority);
       setDueDate(item.dueDate ? new Date(item.dueDate) : undefined);
     }
   }, [item]);
@@ -150,7 +150,7 @@ export function TodoItemDetailDrawer({
             <Label className="text-sm font-medium">Status</Label>
             <RadioGroup
               value={status}
-              onValueChange={setStatus}
+              onValueChange={(value) => setStatus(value as TodoItemStatus)}
               className="grid grid-cols-3 gap-2"
             >
               {statusOptions.map((option) => {
@@ -188,7 +188,7 @@ export function TodoItemDetailDrawer({
             <Label className="text-sm font-medium">Priority</Label>
             <RadioGroup
               value={priority}
-              onValueChange={setPriority}
+              onValueChange={(value) => setPriority(value as TodoItemPriority)}
               className="flex flex-wrap gap-2"
             >
               {priorityOptions.map((option) => (

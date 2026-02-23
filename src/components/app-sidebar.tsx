@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Layers, StickyNote, Home, CheckSquare, CalendarDays } from "lucide-react";
+import { Layers, StickyNote, Home, CheckSquare, CalendarDays, Moon } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavRecent } from "@/components/nav-recent";
@@ -53,6 +53,12 @@ const data = {
       title: "Upcoming",
       url: "/todos/upcoming",
       icon: CalendarDays,
+      isActive: false,
+    },
+    {
+      title: "Prayers",
+      url: "/prayers",
+      icon: Moon,
       isActive: false,
     },
   ],

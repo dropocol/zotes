@@ -6,6 +6,21 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PrayerType {
+  FAJR
+  ZOHAR
+  ASR
+  MAGHRIB
+  ISHA
+  JUMAH
+}
+
+enum PrayerStatus {
+  YES
+  NO
+  QAZAA
+}
+
 // Auth.js User model
 model User {
   id            String    @id @default(cuid())
@@ -24,6 +39,7 @@ model User {
   todoLists             TodoList[]
   todoItems             TodoItem[]
   projectCollaborations ProjectCollaborator[]
+  prayerRecords         PrayerRecord[]
 
   @@map("users")
 }
@@ -172,4 +188,22 @@ model TodoItem {
   @@index([userId])
   @@index([parentId])
   @@map("todo_items")
+}
+
+// Prayer Records - track daily prayer completion
+model PrayerRecord {
+  id        String       @id @default(cuid())
+  date      DateTime     @db.Date
+  prayer    PrayerType
+  status    PrayerStatus @default(NO)
+  userId    String       @map("user_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, prayer])
+  @@index([userId])
+  @@index([date])
+  @@map("prayer_records")
 }
