@@ -161,6 +161,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Todo list not found" }, { status: 404 });
     }
 
+    // Prevent deleting the default todo list
+    if (existingTodoList.isDefault) {
+      return NextResponse.json(
+        { error: "Cannot delete the default todo list" },
+        { status: 400 }
+      );
+    }
+
     // Check if user can modify
     const isListOwner = existingTodoList.userId === session.user.id;
     let canModify = isListOwner;

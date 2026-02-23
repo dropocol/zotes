@@ -14,18 +14,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
-
-interface Project {
-  id: string;
-  name: string;
-  description?: string | null;
-  color?: string | null;
-}
+import { Project } from "@/types";
 
 interface ProjectFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  project?: Project | null;
+  project?: Partial<Project> | null;
 }
 
 export function ProjectForm({ open, onOpenChange, project }: ProjectFormProps) {

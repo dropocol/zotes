@@ -38,6 +38,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Ensure only one list is marked as default per user
+    const defaultLists = todoLists.filter((list) => list.isDefault);
+    if (defaultLists.length > 1) {
+      // Keep only the first one as default, unset others
+      for (const list of defaultLists.slice(1)) {
+        await prisma.todoList.update({
+          where: { id: list.id },
+          data: { isDefault: false },
+        });
+      }
+    }
+
     return NextResponse.json(todoLists);
   } catch (error) {
     console.error("Error fetching todo lists:", error);

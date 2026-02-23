@@ -25,18 +25,7 @@ import {
 import { CalendarIcon, Loader2, Circle, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-
-interface TodoItem {
-  id: string;
-  title: string;
-  notes?: string | null;
-  status: string;
-  priority: string;
-  dueDate?: Date | null;
-  order?: number;
-  parentId?: string | null;
-  subItems?: TodoItem[];
-}
+import { TodoItem, TodoItemStatus, TodoItemPriority } from "@/types";
 
 interface TodoItemDetailDrawerProps {
   item: TodoItem | null;
@@ -47,7 +36,7 @@ interface TodoItemDetailDrawerProps {
 
 const statusOptions = [
   {
-    value: "todo",
+    value: TodoItemStatus.TODO,
     label: "To Do",
     icon: Circle,
     iconColor: "text-slate-400",
@@ -55,7 +44,7 @@ const statusOptions = [
     textColor: "text-slate-700 dark:text-slate-300"
   },
   {
-    value: "in-progress",
+    value: TodoItemStatus.IN_PROGRESS,
     label: "In Progress",
     icon: Clock,
     iconColor: "text-blue-500",
@@ -63,7 +52,7 @@ const statusOptions = [
     textColor: "text-blue-700 dark:text-blue-300"
   },
   {
-    value: "done",
+    value: TodoItemStatus.DONE,
     label: "Done",
     icon: CheckCircle2,
     iconColor: "text-green-500",
@@ -73,10 +62,10 @@ const statusOptions = [
 ];
 
 const priorityOptions = [
-  { value: "low", label: "Low", color: "bg-slate-200 dark:bg-slate-700" },
-  { value: "medium", label: "Medium", color: "bg-blue-200 dark:bg-blue-800" },
-  { value: "high", label: "High", color: "bg-orange-200 dark:bg-orange-800" },
-  { value: "urgent", label: "Urgent", color: "bg-red-200 dark:bg-red-800" },
+  { value: TodoItemPriority.LOW, label: "Low", color: "bg-slate-200 dark:bg-slate-700" },
+  { value: TodoItemPriority.MEDIUM, label: "Medium", color: "bg-blue-200 dark:bg-blue-800" },
+  { value: TodoItemPriority.HIGH, label: "High", color: "bg-orange-200 dark:bg-orange-800" },
+  { value: TodoItemPriority.URGENT, label: "Urgent", color: "bg-red-200 dark:bg-red-800" },
 ];
 
 export function TodoItemDetailDrawer({
@@ -87,8 +76,8 @@ export function TodoItemDetailDrawer({
 }: TodoItemDetailDrawerProps) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
-  const [status, setStatus] = useState("todo");
-  const [priority, setPriority] = useState("medium");
+  const [status, setStatus] = useState(TodoItemStatus.TODO);
+  const [priority, setPriority] = useState(TodoItemPriority.MEDIUM);
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [isLoading, setIsLoading] = useState(false);
 

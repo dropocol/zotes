@@ -11,21 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Pencil, Trash2, FileText, CheckSquare } from "lucide-react";
-
-interface Project {
-  id: string;
-  name: string;
-  description?: string | null;
-  color?: string | null;
-  _count?: {
-    notes: number;
-    todoLists: number;
-  };
-}
+import { ProjectWithCounts } from "@/types";
 
 interface ProjectCardProps {
-  project: Project;
-  onEdit: (project: Project) => void;
+  project: ProjectWithCounts;
+  onEdit: (project: ProjectWithCounts) => void;
   onDelete: (id: string) => void;
 }
 

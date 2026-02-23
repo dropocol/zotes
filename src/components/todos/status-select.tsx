@@ -9,28 +9,29 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Circle, Loader2, CheckCircle2 } from "lucide-react";
+import { TodoItemStatus } from "@/types";
 
 interface StatusSelectProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: TodoItemStatus | string;
+  onChange: (value: TodoItemStatus) => void;
   className?: string;
 }
 
 const statusConfig: Record<
-  string,
+  TodoItemStatus,
   { label: string; icon: typeof Circle; color: string }
 > = {
-  todo: {
+  [TodoItemStatus.TODO]: {
     label: "To Do",
     icon: Circle,
     color: "text-gray-400",
   },
-  "in-progress": {
+  [TodoItemStatus.IN_PROGRESS]: {
     label: "In Progress",
     icon: Loader2,
     color: "text-blue-500",
   },
-  done: {
+  [TodoItemStatus.DONE]: {
     label: "Done",
     icon: CheckCircle2,
     color: "text-green-500",
@@ -38,7 +39,7 @@ const statusConfig: Record<
 };
 
 export function StatusSelect({ value, onChange, className }: StatusSelectProps) {
-  const currentStatus = statusConfig[value] || statusConfig.todo;
+  const currentStatus = statusConfig[value as TodoItemStatus] || statusConfig[TodoItemStatus.TODO];
   const Icon = currentStatus.icon;
 
   return (

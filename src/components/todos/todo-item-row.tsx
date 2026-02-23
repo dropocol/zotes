@@ -14,18 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
-
-interface TodoItem {
-  id: string;
-  title: string;
-  notes?: string | null;
-  status: string;
-  priority: string;
-  dueDate?: Date | null;
-  order?: number;
-  parentId?: string | null;
-  subItems?: TodoItem[];
-}
+import { TodoItem } from "@/types";
 
 interface TodoItemRowProps {
   item: TodoItem;
@@ -34,6 +23,9 @@ interface TodoItemRowProps {
   onAddSubItem: (parentId: string) => void;
   onDelete: (id: string) => void;
   onSelect: (item: TodoItem) => void;
+  hideSubTasks?: boolean;
+  listLink?: React.ReactNode;
+  dueDateBadge?: React.ReactNode;
 }
 
 const priorityColors: Record<string, string> = {
@@ -50,11 +42,15 @@ export function TodoItemRow({
   onAddSubItem,
   onDelete,
   onSelect,
+  hideSubTasks,
+  listLink,
+  dueDateBadge,
 }: TodoItemRowProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const isDone = item.status === "done";
   const hasSubItems = item.subItems && item.subItems.length > 0;
   const isTopLevel = level === 0;
+  const showExpanded = !hideSubTasks && isExpanded;
 
   async function handleToggle() {
     const newStatus = isDone ? "todo" : "done";
@@ -136,19 +132,26 @@ export function TodoItemRow({
         />
 
         {/* Title */}
-        <button
-          className="flex-1 text-left min-w-0"
-          onClick={() => onSelect(item)}
-        >
-          <span
-            className={cn(
-              "text-sm font-medium transition-all",
-              isDone && "line-through text-muted-foreground"
-            )}
+        <div className="flex-1 min-w-0">
+          <button
+            className="text-left w-full"
+            onClick={() => onSelect(item)}
           >
-            {item.title}
-          </span>
-        </button>
+            <span
+              className={cn(
+                "text-sm font-medium transition-all",
+                isDone && "line-through text-muted-foreground"
+              )}
+            >
+              {item.title}
+            </span>
+          </button>
+          {listLink && (
+            <div className="mt-0.5">
+              {listLink}
+            </div>
+          )}
+        </div>
 
         {/* Meta info */}
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -157,8 +160,10 @@ export function TodoItemRow({
             <FileText className="h-3.5 w-3.5 text-muted-foreground" />
           )}
 
-          {/* Due date */}
-          {item.dueDate && (
+          {/* Due date - custom badge or default */}
+          {dueDateBadge ? (
+            <>{dueDateBadge}</>
+          ) : item.dueDate ? (
             <div
               className={cn(
                 "flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
@@ -170,7 +175,7 @@ export function TodoItemRow({
               <Calendar className="h-3 w-3" />
               <span>{formatDueDate(item.dueDate as Date)}</span>
             </div>
-          )}
+          ) : null}
 
           {/* Priority badge for high/urgent */}
           {(item.priority === "high" || item.priority === "urgent") && !isDone && (
@@ -204,7 +209,7 @@ export function TodoItemRow({
       </div>
 
       {/* Sub-items */}
-      {isExpanded && hasSubItems && (
+      {showExpanded && hasSubItems && (
         <div className="relative mt-0.5">
           {/* Vertical line connector */}
           <div className="absolute left-3 top-0 bottom-2 w-px bg-border" />

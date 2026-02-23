@@ -30,35 +30,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Loader2, ListTodo, ExternalLink, Trash2 } from "lucide-react";
+import { TodoItemRow } from "@/components/todos/todo-item-row";
+import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
+import { TodoItemInput } from "@/components/todos/todo-item-input";
+import {
+  Loader2,
+  ListTodo,
+  ExternalLink,
+  Trash2,
+  CalendarDays,
+} from "lucide-react";
 import Link from "next/link";
-interface Project {
-  id: string;
-  name: string;
-  color?: string | null;
-}
+import { Project, TodoList, TodoItem } from "@/types";
 
-interface TodoList {
-  id: string;
-  name: string;
-  description?: string | null;
-  projectId?: string | null;
-  project?: Project | null;
-  updatedAt: string;
-  _count: {
-    items: number;
-  };
-}
+const DEFAULT_LIST_ITEMS_LIMIT = 10;
 
 export default function TodosPage() {
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [defaultListItems, setDefaultListItems] = useState<TodoItem[]>([]);
+  const [defaultList, setDefaultList] = useState<TodoList | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newProjectId, setNewProjectId] = useState<string>("none");
+  const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -74,6 +73,12 @@ export default function TodosPage() {
       if (todoListsRes.ok) {
         const data = await todoListsRes.json();
         setTodoLists(data);
+        // Set the list marked as isDefault
+        const defaultL = data.find((list: TodoList) => list.isDefault);
+        if (defaultL) {
+          setDefaultList(defaultL);
+          await fetchDefaultListItems(defaultL.id);
+        }
       }
 
       if (projectsRes.ok) {
@@ -84,6 +89,19 @@ export default function TodosPage() {
       console.error("Error fetching data:", error);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function fetchDefaultListItems(listId: string) {
+    try {
+      const response = await fetch(`/api/todo/lists/${listId}/items`);
+      if (response.ok) {
+        const data = await response.json();
+        // Limit to DEFAULT_LIST_ITEMS_LIMIT items
+        setDefaultListItems(data.slice(0, DEFAULT_LIST_ITEMS_LIMIT));
+      }
+    } catch (error) {
+      console.error("Error fetching items:", error);
     }
   }
 
@@ -134,6 +152,52 @@ export default function TodosPage() {
     }
   }
 
+  async function toggleStatus(id: string, status: string) {
+    await fetch(`/api/todo/items/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+    if (defaultList) {
+      fetchDefaultListItems(defaultList.id);
+    }
+  }
+
+  async function deleteItem(id: string) {
+    await fetch(`/api/todo/items/${id}`, {
+      method: "DELETE",
+    });
+    if (defaultList) {
+      fetchDefaultListItems(defaultList.id);
+    }
+  }
+
+  async function addItem(title: string) {
+    if (!defaultList) return;
+
+    await fetch(`/api/todo/lists/${defaultList.id}/items`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title }),
+    });
+    fetchDefaultListItems(defaultList.id);
+  }
+
+  function handleSelectItem(item: TodoItem) {
+    setSelectedItem(item);
+    setIsDrawerOpen(true);
+  }
+
+  function handleUpdateItem() {
+    if (defaultList) {
+      fetchDefaultListItems(defaultList.id);
+    }
+  }
+
   function formatDate(date: string) {
     return new Date(date).toLocaleDateString("en-US", {
       month: "short",
@@ -149,194 +213,282 @@ export default function TodosPage() {
     return `/todos/${todoList.id}`;
   }
 
+  // Filter out the default list from the other lists
+  const otherLists = defaultList
+    ? todoLists.filter((list) => list.id !== defaultList.id)
+    : todoLists;
+
   return (
     <DashboardLayout breadcrumbs={[{ title: "Todos", href: "/todos" }]}>
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Todo Lists</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Todos</h1>
           <p className="text-muted-foreground mt-1">
             Manage your tasks and to-do lists
           </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-1.5 h-4 w-4" />
-              New Todo List
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Todo List</DialogTitle>
-              <DialogDescription>
-                Create a new todo list to organize your tasks
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Enter todo list name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (optional)</Label>
-                <Textarea
-                  id="description"
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Enter description"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="project">Project (optional)</Label>
-                <Select value={newProjectId} onValueChange={setNewProjectId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No project</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{
-                              backgroundColor: project.color || "#6b7280",
-                            }}
-                          />
-                          {project.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/todos/upcoming">
+              <CalendarDays className="mr-1.5 h-4 w-4" />
+              Upcoming
+            </Link>
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                Add New List
               </Button>
-              <Button
-                onClick={handleCreate}
-                disabled={!newName.trim() || isCreating}
-              >
-                {isCreating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Create
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Todo List</DialogTitle>
+                <DialogDescription>
+                  Create a new todo list to organize your tasks
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Enter todo list name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description (optional)</Label>
+                  <Textarea
+                    id="description"
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                    placeholder="Enter description"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="project">Project (optional)</Label>
+                  <Select value={newProjectId} onValueChange={setNewProjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No project</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{
+                                backgroundColor: project.color || "#6b7280",
+                              }}
+                            />
+                            {project.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  disabled={!newName.trim() || isCreating}
+                >
+                  {isCreating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Create
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="rounded-lg border bg-card">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : todoLists.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4">
-              <ListTodo className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">
-              No todo lists yet
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Create your first todo list to get started
-            </p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead className="text-center">Tasks</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead className="w-[70px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {todoLists.map((todoList) => (
-                <TableRow key={todoList.id} className="group">
-                  <TableCell>
-                    <Link
-                      href={getTodoListUrl(todoList)}
-                      className="font-medium hover:text-primary transition-colors"
-                    >
-                      {todoList.name}
-                    </Link>
-                    {todoList.description && (
-                      <p className="text-xs text-muted-foreground truncate max-w-[300px]">
-                        {todoList.description}
-                      </p>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {todoList.project ? (
-                      <Link
-                        href={`/projects/${todoList.project.id}`}
-                        className="inline-flex items-center gap-1.5 text-sm hover:text-primary transition-colors"
-                      >
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{
-                            backgroundColor:
-                              todoList.project.color || "#6b7280",
-                          }}
-                        />
-                        {todoList.project.name}
-                      </Link>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">
-                        No project
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-1.5 rounded-full bg-muted text-xs font-medium">
-                      {todoList._count.items}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(todoList.updatedAt)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        asChild
-                      >
-                        <Link href={getTodoListUrl(todoList)}>
-                          <ExternalLink className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(todoList.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Default List Section */}
+          {defaultList && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h2 className="text-lg font-semibold">{defaultList.name}</h2>
+                  {defaultList.description && (
+                    <p className="text-sm text-muted-foreground">
+                      {defaultList.description}
+                    </p>
+                  )}
+                </div>
+                <Button variant="ghost" size="sm" asChild className="gap-1">
+                  <Link href={getTodoListUrl(defaultList)}>
+                    View all
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="rounded-lg border bg-card">
+                {/* Add item input */}
+                <div className="flex items-center gap-2 p-3 border-b">
+                  <TodoItemInput onAdd={addItem} />
+                </div>
+
+                <div className="divide-y divide-border/50">
+                {defaultListItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted mb-3">
+                      <ListTodo className="h-5 w-5 text-muted-foreground" />
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+                    <p className="text-sm text-muted-foreground">
+                      No tasks yet
+                    </p>
+                  </div>
+                ) : (
+                  defaultListItems.map((item) => (
+                    <TodoItemRow
+                      key={item.id}
+                      item={item}
+                      onToggleStatus={toggleStatus}
+                      onAddSubItem={() => {}}
+                      onDelete={deleteItem}
+                      onSelect={handleSelectItem}
+                    />
+                  ))
+                )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Other Lists */}
+          {otherLists.length > 0 && (
+            <section>
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3">
+                Other Lists
+              </h2>
+              <div className="rounded-lg border bg-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Project</TableHead>
+                      <TableHead className="text-center">Tasks</TableHead>
+                      <TableHead>Last Updated</TableHead>
+                      <TableHead className="w-[70px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {otherLists.map((todoList) => (
+                      <TableRow key={todoList.id} className="group">
+                        <TableCell>
+                          <Link
+                            href={getTodoListUrl(todoList)}
+                            className="font-medium hover:text-primary transition-colors"
+                          >
+                            {todoList.name}
+                          </Link>
+                          {todoList.description && (
+                            <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                              {todoList.description}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {todoList.project ? (
+                            <Link
+                              href={`/projects/${todoList.project.id}`}
+                              className="inline-flex items-center gap-1.5 text-sm hover:text-primary transition-colors"
+                            >
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    todoList.project.color || "#6b7280",
+                                }}
+                              />
+                              {todoList.project.name}
+                            </Link>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              No project
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-1.5 rounded-full bg-muted text-xs font-medium">
+                            {todoList._count?.items ?? 0}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDate(todoList.updatedAt as string)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              asChild
+                            >
+                              <Link href={getTodoListUrl(todoList)}>
+                                <ExternalLink className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            {!todoList.isDefault && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => handleDelete(todoList.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
+          )}
+
+          {/* Empty state */}
+          {!defaultList && otherLists.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4">
+                <ListTodo className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">
+                No todo lists yet
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Create your first todo list to get started
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Detail drawer */}
+      <TodoItemDetailDrawer
+        item={selectedItem}
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+        onUpdate={handleUpdateItem}
+      />
     </DashboardLayout>
   );
 }

@@ -41,6 +41,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create a default todo list for the new user
+    await prisma.todoList.create({
+      data: {
+        name: "My Tasks",
+        description: "Your personal task list",
+        userId: user.id,
+        isDefault: true,
+      },
+    });
+
     return NextResponse.json(
       {
         id: user.id,
