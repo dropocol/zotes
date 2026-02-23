@@ -41,7 +41,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
       },
       editorProps: {
         attributes: {
-          class: "prose prose-sm max-w-none focus:outline-none p-4",
+          class: "prose prose-sm max-w-none focus:outline-none p-6",
         },
       },
     });
@@ -57,12 +57,12 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
     }));
 
     return (
-      <div
-        className={`overflow-hidden flex flex-col border rounded-lg ${className}`}
-      >
+      <div className={`flex flex-col h-full overflow-y-auto ${className}`}>
         {editable && !hideToolbar && <Toolbar editor={editor} />}
-        <div className="flex-1 overflow-y-auto">
-          <EditorContent editor={editor} className="h-full p-4 pt-2" />
+        <div className="flex-1">
+          <div className="max-w-[720px] mx-auto">
+            <EditorContent editor={editor} />
+          </div>
         </div>
       </div>
     );

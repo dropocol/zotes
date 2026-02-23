@@ -352,19 +352,16 @@ export default function NotePage({
       breadcrumbs={[{ title: "Notes", href: "/notes" }]}
       headerContent={headerContent}
       headerActions={headerActions}
+      fullHeight
     >
-      <div className="-mx-4 -mt-4">
-        <Toolbar editor={editor} />
-      </div>
-      <div className="flex-1 overflow-hidden mt-0">
-        <TiptapEditor
-          content={content}
-          onChange={setContent}
-          className="h-full"
-          hideToolbar
-          onEditorReady={handleEditorReady}
-        />
-      </div>
+      <Toolbar editor={editor} />
+      <TiptapEditor
+        content={content}
+        onChange={setContent}
+        className="flex-1"
+        hideToolbar
+        onEditorReady={handleEditorReady}
+      />
     </DashboardLayout>
   );
 }
