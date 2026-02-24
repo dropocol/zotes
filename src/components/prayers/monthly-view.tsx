@@ -92,12 +92,14 @@ export function MonthlyView({
 
     // Background based on completion
     const getDayBackground = () => {
-      if (!isCurrentMonth || !dayRecords) return "";
-      if (dayIsFuture) return "";
-      if (completionRate === 100) return "bg-emerald-100 dark:bg-emerald-900/30";
+      if (!isCurrentMonth) return "bg-transparent";
+      if (dayIsFuture) return "bg-muted/30";
+      if (isSelectedDay) return "bg-primary/10";
+      if (!dayRecords) return "bg-muted/30"; // Subtle default background
+      if (completionRate === 100) return "bg-emerald-100 dark:bg-emerald-900/40";
       if (completionRate >= 60) return "bg-emerald-50 dark:bg-emerald-900/20";
       if (completionRate > 0) return "bg-amber-50 dark:bg-amber-900/20";
-      return "";
+      return "bg-muted/30"; // Default for days with all "NO" status
     };
 
     return (
@@ -108,51 +110,45 @@ export function MonthlyView({
           handleDayClick(day.date);
         }}
         className={cn(
-          "relative flex flex-col items-center justify-center gap-0.5 rounded-lg p-1 text-sm transition-all w-full aspect-square",
-          "hover:ring-2 hover:ring-primary/30",
+          // Base styles
+          "relative flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 transition-all w-full aspect-square",
+          "hover:ring-2 hover:ring-primary/40 hover:scale-[1.02]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          !isCurrentMonth && "text-muted-foreground opacity-40",
-          dayIsToday && "ring-2 ring-primary",
-          isSelectedDay && "bg-primary/10 ring-2 ring-primary",
-          !isSelectedDay && getDayBackground(),
+          // States
+          !isCurrentMonth && "text-muted-foreground opacity-30 bg-transparent",
+          dayIsToday && "ring-2 ring-primary ring-offset-1",
+          isSelectedDay && "ring-2 ring-primary bg-primary/15",
+          // Background
+          getDayBackground(),
+          // Merge with any additional className
           props.className
         )}
+        style={props.style}
       >
-        {/* Date number */}
+        {/* Date number - larger */}
         <span className={cn(
-          "text-xs font-medium z-10",
-          dayIsToday && "text-primary font-bold"
+          "text-base font-semibold leading-none z-10",
+          dayIsToday && "text-primary",
+          !isCurrentMonth && "text-xs"
         )}>
           {format(day.date, "d")}
         </span>
 
         {/* Prayer dots */}
-        {isCurrentMonth && !dayIsFuture && (
-          <div className="flex gap-0.5 mt-0.5">
+        {isCurrentMonth && (
+          <div className="flex gap-1">
             {prayersForDay.map((prayer) => {
               const status = dayRecords?.get(prayer) || "NO";
               return (
                 <span
                   key={prayer}
                   className={cn(
-                    "size-1.5 rounded-full transition-colors",
+                    "size-2 rounded-full transition-colors",
                     getStatusDotColor(status as PrayerStatus)
                   )}
                 />
               );
             })}
-          </div>
-        )}
-
-        {/* Future indicator */}
-        {isCurrentMonth && dayIsFuture && (
-          <div className="flex gap-0.5 mt-0.5">
-            {prayersForDay.map((prayer) => (
-              <span
-                key={prayer}
-                className="size-1.5 rounded-full bg-muted-foreground/30"
-              />
-            ))}
           </div>
         )}
       </button>
@@ -186,14 +182,18 @@ export function MonthlyView({
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Calendar - Takes up remaining space */}
         <div className="flex-1 min-w-0">
-          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden p-4">
             <Calendar
               mode="single"
               selected={selected}
               onSelect={(day) => day && handleDayClick(day)}
               month={date}
               onMonthChange={onDateChange}
-              className="border-0 w-full"
+              className="border-0 w-full bg-transparent"
+              classNames={{
+                weekday: "text-xs font-medium text-muted-foreground",
+                caption_label: "text-base font-semibold",
+              }}
               components={{
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 DayButton: CustomDayButton as any,
