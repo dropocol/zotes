@@ -1,9 +1,89 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { format, parseISO, startOfMonth, endOfMonth, subDays, addDays } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, subDays, addDays, startOfDay, getDay, differenceInDays } from "date-fns";
 import { PrayerType, PrayerStatus } from "@prisma/client";
-import { getPrayersForDate } from "@/types/prayers";
+
+/**
+ * Get the prayers for a specific date, respecting Friday/Jumah logic
+ */
+function getPrayersForDate(date: Date): PrayerType[] {
+  const dayOfWeek = getDay(date);
+  const isFriday = dayOfWeek === 5;
+
+  return [
+    PrayerType.FAJR,
+    isFriday ? PrayerType.JUMAH : PrayerType.ZOHAR,
+    PrayerType.ASR,
+    PrayerType.MAGHRIB,
+    PrayerType.ISHA,
+  ];
+}
+
+/**
+ * Ensure prayers exist for a specific date
+ * Returns true if any new records were created
+ */
+async function ensurePrayersForDate(
+  userId: string,
+  date: Date
+): Promise<boolean> {
+  const dayStart = startOfDay(date);
+  const prayers = getPrayersForDate(dayStart);
+
+  // Check which prayers already exist
+  const existingRecords = await prisma.prayerRecord.findMany({
+    where: {
+      userId,
+      date: dayStart,
+    },
+    select: { prayer: true },
+  });
+
+  const existingPrayers = new Set(existingRecords.map((r) => r.prayer));
+  const toCreate = prayers.filter((p) => !existingPrayers.has(p));
+
+  if (toCreate.length > 0) {
+    await prisma.prayerRecord.createMany({
+      data: toCreate.map((prayer) => ({
+        date: dayStart,
+        prayer,
+        status: "NO",
+        userId,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  return toCreate.length > 0;
+}
+
+/**
+ * Ensure prayers exist for a date range
+ * Useful when user hasn't opened the app in a while
+ */
+async function ensurePrayersForDateRange(
+  userId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<void> {
+  const start = startOfDay(startDate);
+  const end = startOfDay(endDate);
+  const daysDiff = differenceInDays(end, start);
+
+  // Process each day in the range
+  // Limit to 90 days to prevent excessive operations
+  const maxDays = 90;
+  const daysToProcess = Math.min(daysDiff, maxDays);
+
+  for (let i = 0; i <= daysToProcess; i++) {
+    const currentDate = addDays(start, i);
+    // Only populate past dates and today, not future dates
+    if (currentDate <= startOfDay(new Date())) {
+      await ensurePrayersForDate(userId, currentDate);
+    }
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,15 +96,30 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const populate = searchParams.get("populate") !== "false"; // Default to true
 
+    let start: Date | undefined;
+    let end: Date | undefined;
+
+    if (startDate && endDate) {
+      start = parseISO(startDate);
+      end = parseISO(endDate);
+
+      // Populate missing prayers in the date range
+      if (populate) {
+        await ensurePrayersForDateRange(session.user.id, start, end);
+      }
+    }
+
+    // Build where clause
     const where: { userId: string; date?: { gte: Date; lte: Date } } = {
       userId: session.user.id,
     };
 
-    if (startDate && endDate) {
+    if (start && end) {
       where.date = {
-        gte: parseISO(startDate),
-        lte: parseISO(endDate),
+        gte: start,
+        lte: end,
       };
     }
 

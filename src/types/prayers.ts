@@ -102,7 +102,7 @@ export function getStatusDisplayName(status: PrayerStatus): string {
 export function getStatusBgColor(status: PrayerStatus): string {
   const colors: Record<PrayerStatus, string> = {
     YES: "bg-emerald-500",
-    NO: "bg-slate-300 dark:bg-slate-600",
+    NO: "bg-muted",
     QAZAA: "bg-amber-500",
   };
   return colors[status];
@@ -113,9 +113,9 @@ export function getStatusBgColor(status: PrayerStatus): string {
  */
 export function getStatusTextColor(status: PrayerStatus): string {
   const colors: Record<PrayerStatus, string> = {
-    YES: "text-emerald-600 dark:text-emerald-400",
-    NO: "text-slate-500 dark:text-slate-400",
-    QAZAA: "text-amber-600 dark:text-amber-400",
+    YES: "text-emerald-700 dark:text-emerald-400",
+    NO: "text-muted-foreground",
+    QAZAA: "text-amber-700 dark:text-amber-400",
   };
   return colors[status];
 }
@@ -125,9 +125,9 @@ export function getStatusTextColor(status: PrayerStatus): string {
  */
 export function getStatusRingColor(status: PrayerStatus): string {
   const colors: Record<PrayerStatus, string> = {
-    YES: "ring-emerald-500/20 border-emerald-200 dark:border-emerald-800",
-    NO: "ring-slate-200 dark:ring-slate-700 border-slate-200 dark:border-slate-700",
-    QAZAA: "ring-amber-500/20 border-amber-200 dark:border-amber-800",
+    YES: "border-emerald-200 dark:border-emerald-800/50",
+    NO: "border-border",
+    QAZAA: "border-amber-200 dark:border-amber-800/50",
   };
   return colors[status];
 }
@@ -138,7 +138,7 @@ export function getStatusRingColor(status: PrayerStatus): string {
 export function getStatusDotColor(status: PrayerStatus): string {
   const colors: Record<PrayerStatus, string> = {
     YES: "bg-emerald-500",
-    NO: "bg-slate-300 dark:bg-slate-600",
+    NO: "bg-muted-foreground/40",
     QAZAA: "bg-amber-500",
   };
   return colors[status];

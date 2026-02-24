@@ -32,11 +32,11 @@ export function MonthlyView({
   selectedDay,
   onDaySelect,
 }: MonthlyViewProps) {
-  const [internalSelectedDay, setInternalSelectedDay] = React.useState<Date | undefined>(
+  const [internalSelectedDay, setInternalSelectedDay] = React.useState<Date>(
     selectedDay || new Date()
   );
 
-  const selected = selectedDay || internalSelectedDay || new Date();
+  const selected = selectedDay || internalSelectedDay;
   const selectedIsFuture = isFuture(startOfDay(selected));
 
   // Create a map for quick lookup by date
@@ -53,7 +53,7 @@ export function MonthlyView({
   }, [records]);
 
   // Get records for selected day
-  const selectedDateKey = selected ? format(selected, "yyyy-MM-dd") : null;
+  const selectedDateKey = format(selected, "yyyy-MM-dd");
   const selectedDayRecords = selectedDateKey
     ? recordsByDate.get(selectedDateKey) || new Map()
     : new Map();
@@ -82,7 +82,7 @@ export function MonthlyView({
     const dayRecords = recordsByDate.get(dateKey);
     const prayersForDay = getPrayersForDate(day.date);
     const isCurrentMonth = isSameMonth(day.date, date);
-    const isSelectedDay = selected ? isSameDay(day.date, selected) : false;
+    const isSelectedDay = isSameDay(day.date, selected);
     const dayIsToday = isToday(day.date);
     const dayIsFuture = isFuture(startOfDay(day.date));
 
@@ -150,7 +150,7 @@ export function MonthlyView({
             {prayersForDay.map((prayer) => (
               <span
                 key={prayer}
-                className="size-1.5 rounded-full bg-slate-200 dark:bg-slate-700"
+                className="size-1.5 rounded-full bg-muted-foreground/30"
               />
             ))}
           </div>
@@ -182,25 +182,28 @@ export function MonthlyView({
         </Button>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr,280px] gap-6">
-        {/* Calendar */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <Calendar
-            mode="single"
-            selected={selected}
-            onSelect={(day) => day && handleDayClick(day)}
-            month={date}
-            onMonthChange={onDateChange}
-            className="border-0"
-            components={{
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              DayButton: CustomDayButton as any,
-            }}
-          />
+      {/* Main Content - Side by Side */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Calendar - Takes up remaining space */}
+        <div className="flex-1 min-w-0">
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+            <Calendar
+              mode="single"
+              selected={selected}
+              onSelect={(day) => day && handleDayClick(day)}
+              month={date}
+              onMonthChange={onDateChange}
+              className="border-0 w-full"
+              components={{
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                DayButton: CustomDayButton as any,
+              }}
+            />
+          </div>
         </div>
 
-        {/* Selected Day Details */}
-        <div className="space-y-4">
+        {/* Selected Day Details - Fixed width sidebar */}
+        <div className="lg:w-72 shrink-0 space-y-4">
           {/* Date Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -235,9 +238,9 @@ export function MonthlyView({
               <AlertCircle className="size-3.5 text-amber-500" />
               <span className="text-sm font-medium text-amber-600 dark:text-amber-400">{qazaaCount}</span>
             </div>
-            <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1.5">
-              <XCircle className="size-3.5 text-slate-400" />
-              <span className="text-sm font-medium text-slate-500">{missedCount}</span>
+            <div className="flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1.5">
+              <XCircle className="size-3.5 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">{missedCount}</span>
             </div>
           </div>
 
@@ -274,7 +277,7 @@ export function MonthlyView({
                 <span>Qazaa</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <span className="size-2 rounded-full bg-muted-foreground/40" />
                 <span>Missed</span>
               </div>
             </div>

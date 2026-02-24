@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths, subDays, addDays, subWeeks, addWeeks, subYears, addYears, isFuture, startOfDay } from "date-fns";
 import { Moon } from "lucide-react";
 import { DailyView } from "./daily-view";
@@ -22,24 +23,72 @@ interface PrayerCalendarProps {
 }
 
 export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
-  const [view, setView] = React.useState<CalendarViewType>(CalendarView.MONTHLY);
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-  const [selectedDay, setSelectedDay] = React.useState<Date>(new Date());
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Read initial state from URL params
+  const getViewFromParams = (): CalendarViewType => {
+    const viewParam = searchParams.get("view");
+    if (viewParam && Object.values(CalendarView).includes(viewParam as CalendarViewType)) {
+      return viewParam as CalendarViewType;
+    }
+    return CalendarView.MONTHLY;
+  };
+
+  const getDateFromParams = (param: string, fallback: Date): Date => {
+    const dateParam = searchParams.get(param);
+    if (dateParam) {
+      try {
+        return parseISO(dateParam);
+      } catch {
+        return fallback;
+      }
+    }
+    return fallback;
+  };
+
+  const [view, setView] = React.useState<CalendarViewType>(getViewFromParams);
+  const [currentDate, setCurrentDate] = React.useState<Date>(() =>
+    getDateFromParams("month", new Date())
+  );
+  const [selectedDay, setSelectedDay] = React.useState<Date>(() =>
+    getDateFromParams("day", new Date())
+  );
   const [records, setRecords] = React.useState<PrayerRecord[]>(initialRecords);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  // Update URL when state changes
+  const updateUrl = React.useCallback(
+    (newView: CalendarViewType, newMonth: Date, newDay: Date) => {
+      const params = new URLSearchParams();
+      params.set("view", newView);
+      params.set("month", format(newMonth, "yyyy-MM-dd"));
+      params.set("day", format(newDay, "yyyy-MM-dd"));
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router]
+  );
 
   // Fetch records when view/date changes
   React.useEffect(() => {
     fetchRecords();
   }, [currentDate, view]);
 
+  // Update URL when state changes
+  React.useEffect(() => {
+    updateUrl(view, currentDate, selectedDay);
+  }, [view, currentDate, selectedDay, updateUrl]);
+
   const fetchRecords = async () => {
+    setIsLoading(true);
     try {
       let startDate: string;
       let endDate: string;
 
       switch (view) {
         case CalendarView.DAILY:
-          startDate = format(currentDate, "yyyy-MM-dd");
+          startDate = format(selectedDay, "yyyy-MM-dd");
           endDate = startDate;
           break;
         case CalendarView.WEEKLY:
@@ -74,6 +123,8 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
       }
     } catch (error) {
       console.error("Error fetching prayer records:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -87,24 +138,69 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
       return;
     }
 
+    const dateKey = format(date, "yyyy-MM-dd");
+
+    // Optimistic update - immediately update local state
+    setRecords((prevRecords) => {
+      // Check if record exists for this date/prayer
+      const existingIndex = prevRecords.findIndex(
+        (r) => format(r.date, "yyyy-MM-dd") === dateKey && r.prayer === prayer
+      );
+
+      if (existingIndex >= 0) {
+        // Update existing record
+        const updated = [...prevRecords];
+        updated[existingIndex] = { ...updated[existingIndex], status };
+        return updated;
+      } else {
+        // Add new record
+        return [
+          ...prevRecords,
+          {
+            id: `temp-${Date.now()}`,
+            date,
+            prayer,
+            status,
+          },
+        ];
+      }
+    });
+
+    // Send to server in background
     try {
-      const response = await fetch("/api/prayers", {
+      await fetch("/api/prayers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date: format(date, "yyyy-MM-dd"),
+          date: dateKey,
           prayer,
           status,
         }),
       });
-
-      if (response.ok) {
-        // Update local state
-        fetchRecords();
-      }
+      // Optionally re-fetch to get the server-assigned ID
+      // fetchRecords();
     } catch (error) {
       console.error("Error updating prayer record:", error);
+      // On error, revert by re-fetching
+      fetchRecords();
     }
+  };
+
+  const handleViewChange = (newView: CalendarViewType) => {
+    setView(newView);
+  };
+
+  const handleDateChange = (newDate: Date) => {
+    setCurrentDate(newDate);
+  };
+
+  const handleDaySelect = (day: Date) => {
+    setSelectedDay(day);
+  };
+
+  const handleMonthClick = (month: Date) => {
+    setCurrentDate(month);
+    setView(CalendarView.MONTHLY);
   };
 
   // Convert records to map format for views
@@ -137,7 +233,7 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
             <p className="text-sm text-muted-foreground">Track your daily prayers</p>
           </div>
         </div>
-        <ViewSwitcher view={view} onViewChange={setView} />
+        <ViewSwitcher view={view} onViewChange={handleViewChange} />
       </div>
 
       {/* Views */}
@@ -146,7 +242,7 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
           <DailyView
             date={selectedDay}
             records={currentDayRecords}
-            onDateChange={setSelectedDay}
+            onDateChange={handleDaySelect}
             onStatusChange={(prayer, status) =>
               handleStatusChange(selectedDay, prayer, status)
             }
@@ -157,8 +253,10 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
           <WeeklyView
             date={currentDate}
             records={recordsMapByDate}
-            onDateChange={setCurrentDate}
+            onDateChange={handleDateChange}
             onStatusChange={handleStatusChange}
+            selectedDay={selectedDay}
+            onDaySelect={handleDaySelect}
           />
         )}
 
@@ -170,10 +268,10 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
               prayer: r.prayer,
               status: r.status,
             }))}
-            onDateChange={setCurrentDate}
+            onDateChange={handleDateChange}
             onStatusChange={handleStatusChange}
             selectedDay={selectedDay}
-            onDaySelect={setSelectedDay}
+            onDaySelect={handleDaySelect}
           />
         )}
 
@@ -185,11 +283,8 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
               prayer: r.prayer,
               status: r.status,
             }))}
-            onDateChange={setCurrentDate}
-            onMonthClick={(month) => {
-              setCurrentDate(month);
-              setView(CalendarView.MONTHLY);
-            }}
+            onDateChange={handleDateChange}
+            onMonthClick={handleMonthClick}
           />
         )}
       </div>

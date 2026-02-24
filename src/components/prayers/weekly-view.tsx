@@ -19,7 +19,6 @@ import {
   PrayerStatus,
   getPrayersForDate,
   getPrayerDisplayName,
-  getStatusBgColor,
 } from "@/types/prayers";
 import { cn } from "@/lib/utils";
 import {
@@ -35,6 +34,8 @@ interface WeeklyViewProps {
   records: Map<string, Map<string, PrayerStatus>>; // outer key: date string, inner key: prayer type
   onDateChange: (date: Date) => void;
   onStatusChange: (date: Date, prayer: PrayerType, status: PrayerStatus) => void;
+  selectedDay?: Date;
+  onDaySelect?: (date: Date) => void;
 }
 
 const STATUS_OPTIONS: PrayerStatus[] = ["YES", "NO", "QAZAA"];
@@ -62,29 +63,51 @@ function CompactPrayerButton({
 }) {
   const Icon = PRAYER_ICONS[prayer];
 
+  // Get status-based styles
+  const getButtonStyles = () => {
+    switch (status) {
+      case "YES":
+        return "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-800/30";
+      case "QAZAA":
+        return "bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30";
+      default:
+        return "bg-transparent hover:bg-muted/50";
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center gap-1.5 w-full rounded px-1.5 py-1 text-xs transition-colors",
-            "hover:bg-slate-100 dark:hover:bg-slate-800",
-            disabled && "opacity-50 cursor-not-allowed pointer-events-none"
+            "flex items-center gap-1.5 w-full rounded-md px-1.5 py-1 text-xs transition-colors border border-transparent",
+            "hover:bg-muted/50",
+            disabled && "opacity-50 cursor-not-allowed pointer-events-none",
+            getButtonStyles()
           )}
           disabled={disabled}
         >
           <div className={cn(
-            "size-3.5 rounded-sm flex items-center justify-center",
-            getStatusBgColor(status)
+            "size-3.5 rounded flex items-center justify-center",
+            status === "YES" && "bg-emerald-500",
+            status === "QAZAA" && "bg-amber-500",
+            status === "NO" && "bg-muted"
           )}>
-            <Icon className={cn("size-2.5", status === "YES" ? "text-white" : "text-slate-600 dark:text-slate-300")} />
+            <Icon className={cn(
+              "size-2.5",
+              status === "YES" && "text-white",
+              status === "QAZAA" && "text-white",
+              status === "NO" && "text-muted-foreground"
+            )} />
           </div>
-          <span className="truncate flex-1 text-left font-medium">
+          <span className="truncate flex-1 text-left font-medium text-muted-foreground">
             {getPrayerDisplayName(prayer)}
           </span>
           <div className={cn(
             "size-2 rounded-full",
-            getStatusBgColor(status)
+            status === "YES" && "bg-emerald-500",
+            status === "QAZAA" && "bg-amber-500",
+            status === "NO" && "bg-muted-foreground/40"
           )} />
         </button>
       </DropdownMenuTrigger>
@@ -95,7 +118,12 @@ function CompactPrayerButton({
             onClick={() => onStatusChange(option)}
             className="flex items-center gap-2 cursor-pointer text-xs"
           >
-            <div className={cn("size-2.5 rounded-full", getStatusBgColor(option))} />
+            <div className={cn(
+              "size-2.5 rounded-full",
+              option === "YES" && "bg-emerald-500",
+              option === "QAZAA" && "bg-amber-500",
+              option === "NO" && "bg-muted-foreground/40"
+            )} />
             <span className="flex-1">
               {option === "YES" ? "Prayed" : option === "NO" ? "Missed" : "Qazaa"}
             </span>
@@ -112,6 +140,8 @@ export function WeeklyView({
   records,
   onDateChange,
   onStatusChange,
+  selectedDay,
+  onDaySelect,
 }: WeeklyViewProps) {
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
