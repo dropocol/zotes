@@ -117,8 +117,11 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
         setRecords(
           data.map((r: { date: string | Date; prayer: PrayerType; status: PrayerStatus; id: string }) => ({
             ...r,
-            // Parse as noon UTC to avoid timezone day-shifting issues
-            date: typeof r.date === "string" ? new Date(r.date + "T12:00:00Z") : r.date,
+            // Parse date as noon UTC to avoid timezone day-shifting issues
+            // Handle both "2026-02-26" and "2026-02-26T00:00:00.000Z" formats
+            date: typeof r.date === "string"
+              ? new Date(r.date.split("T")[0] + "T12:00:00Z")
+              : r.date,
           }))
         );
       }

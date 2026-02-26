@@ -172,9 +172,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse date string and set to noon UTC to avoid timezone day-shifting issues
-    // "2026-02-24" should be stored as Feb 24, not shifted by timezone
+    // Handle both "2026-02-24" and "2026-02-24T00:00:00.000Z" formats
     const prayerDate = typeof date === "string"
-      ? new Date(date + "T12:00:00Z") // Use noon UTC to avoid day boundary issues
+      ? new Date(date.split("T")[0] + "T12:00:00Z")
       : new Date(date);
 
     // Upsert the prayer record
