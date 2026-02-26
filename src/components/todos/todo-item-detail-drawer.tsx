@@ -26,6 +26,9 @@ import { CalendarIcon, Loader2, Circle, CheckCircle2, Clock } from "lucide-react
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TodoItem, TodoItemStatus, TodoItemPriority } from "@/types";
+import { RecurringSettingsDialog } from "@/components/recurring/recurring-settings-dialog";
+import { RecurringBadge } from "@/components/recurring/recurring-badge";
+import { RecurringItemProgress } from "@/components/recurring/recurring-item-progress";
 
 interface TodoItemDetailDrawerProps {
   item: TodoItem | null;
@@ -217,33 +220,35 @@ export function TodoItemDetailDrawer({
             </RadioGroup>
           </div>
 
-          {/* Due Date - Custom styled */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Due Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start font-normal h-10 px-3 text-left",
-                    !dueDate && "text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dueDate ? format(dueDate, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={setDueDate}
-                  initialFocus
-                  className="rounded-lg border"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          {/* Due Date - Only show for non-recurring items */}
+          {!item?.isRecurring && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start font-normal h-10 px-3 text-left",
+                      !dueDate && "text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    initialFocus
+                    className="rounded-lg border"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-2">
@@ -259,6 +264,47 @@ export function TodoItemDetailDrawer({
               className="bg-muted/30 min-h-[100px] resize-none"
             />
           </div>
+
+          {/* Recurrence Settings */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Recurrence</Label>
+            <div className="flex items-center gap-2">
+              {item?.isRecurring && <RecurringBadge showLabel />}
+              <RecurringSettingsDialog
+                todoItem={item || { id: "" }}
+                onUpdate={async (data) => {
+                  if (!item) return;
+                  const response = await fetch(`/api/todo/items/${item.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data),
+                  });
+                  if (response.ok) {
+                    const updatedItem = await response.json();
+                    onUpdate(updatedItem);
+                  }
+                }}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    {item?.isRecurring ? "Edit Recurrence" : "Make Recurring"}
+                  </Button>
+                }
+              />
+            </div>
+          </div>
+
+          {/* Recurring Progress - Only show for recurring items */}
+          {item?.isRecurring && item.id && (
+            <div className="space-y-2 pt-2 border-t">
+              <RecurringItemProgress
+                todoItemId={item.id}
+                frequency={item.frequency}
+                daysOfWeek={item.daysOfWeek}
+                recurrenceStart={item.recurrenceStart}
+                recurrenceEnd={item.recurrenceEnd}
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-2 pt-4 border-t">

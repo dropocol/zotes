@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProjectAccess, canModifyProject } from "@/lib/permissions";
+import { RecurringCompletionStatus, getTodayDate } from "@/types/recurring";
 
 export async function GET(
   request: NextRequest,
@@ -59,7 +60,18 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { title, notes, status, priority, dueDate } = await request.json();
+    const {
+      title,
+      notes,
+      status,
+      priority,
+      dueDate,
+      isRecurring,
+      frequency,
+      daysOfWeek,
+      recurrenceStart,
+      recurrenceEnd,
+    } = await request.json();
 
     const existingItem = await prisma.todoItem.findFirst({
       where: {
@@ -96,6 +108,46 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Handle recurring items: status changes go to completion records
+    if (existingItem.isRecurring && status !== undefined && status !== existingItem.status) {
+      const today = getTodayDate();
+
+      // Create or update completion record for today
+      const existingCompletion = await prisma.recurringCompletion.findUnique({
+        where: {
+          userId_date_todoItemId: {
+            userId: session.user.id,
+            date: today,
+            todoItemId: id,
+          },
+        },
+      });
+
+      if (existingCompletion) {
+        await prisma.recurringCompletion.update({
+          where: { id: existingCompletion.id },
+          data: { status },
+        });
+      } else {
+        await prisma.recurringCompletion.create({
+          data: {
+            userId: session.user.id,
+            todoItemId: id,
+            date: today,
+            status,
+          },
+        });
+      }
+
+      // Return the item with the effective status
+      return NextResponse.json({
+        ...existingItem,
+        status,
+        dueDate: today,
+      });
+    }
+
+    // For non-recurring items or other field updates, proceed normally
     const item = await prisma.todoItem.update({
       where: { id },
       data: {
@@ -104,6 +156,15 @@ export async function PUT(
         status: status ?? existingItem.status,
         priority: priority ?? existingItem.priority,
         dueDate: dueDate ? new Date(dueDate) : existingItem.dueDate,
+        isRecurring: isRecurring !== undefined ? isRecurring : existingItem.isRecurring,
+        frequency: frequency !== undefined ? frequency : existingItem.frequency,
+        daysOfWeek: daysOfWeek !== undefined ? daysOfWeek : existingItem.daysOfWeek,
+        recurrenceStart: recurrenceStart !== undefined
+          ? recurrenceStart ? new Date(recurrenceStart) : null
+          : existingItem.recurrenceStart,
+        recurrenceEnd: recurrenceEnd !== undefined
+          ? recurrenceEnd ? new Date(recurrenceEnd) : null
+          : existingItem.recurrenceEnd,
       },
       include: {
         subItems: true,

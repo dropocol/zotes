@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
+import { shouldAppearOnDate, getTodayDate } from "@/types/recurring";
 
 export async function GET(
   request: NextRequest,
@@ -31,6 +32,9 @@ export async function GET(
       return NextResponse.json({ error: "Todo list not found" }, { status: 404 });
     }
 
+    // Get today's date for recurring item processing
+    const today = getTodayDate();
+
     const items = await prisma.todoItem.findMany({
       where: {
         todoListId: id,
@@ -41,10 +45,41 @@ export async function GET(
         subItems: {
           orderBy: { order: "asc" },
         },
+        completions: {
+          where: {
+            date: today,
+          },
+        },
       },
     });
 
-    return NextResponse.json(items);
+    // Process recurring items to show today's status
+    const processedItems = items.map((item) => {
+      if (!item.isRecurring) {
+        return item;
+      }
+
+      // Check if this recurring item should appear today
+      const shouldShowToday = shouldAppearOnDate(item, today);
+
+      if (!shouldShowToday) {
+        // Filter out items that shouldn't appear today
+        return null;
+      }
+
+      // For recurring items, use today's completion status
+      const todayCompletion = item.completions[0];
+      const effectiveStatus = todayCompletion?.status || "todo";
+
+      return {
+        ...item,
+        status: effectiveStatus,
+        dueDate: today, // Set due date to today for recurring items
+        _isRecurringToday: true,
+      };
+    }).filter(Boolean);
+
+    return NextResponse.json(processedItems);
   } catch (error) {
     console.error("Error fetching todo items:", error);
     return NextResponse.json(

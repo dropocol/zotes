@@ -49,6 +49,12 @@ export interface TodoItem {
   createdAt: Date | string;
   updatedAt: Date | string;
   subItems?: TodoItem[];
+  // Recurrence fields
+  isRecurring?: boolean;
+  frequency?: string | null;
+  daysOfWeek?: string | null;
+  recurrenceStart?: Date | string | null;
+  recurrenceEnd?: Date | string | null;
 }
 
 // ============================================================================

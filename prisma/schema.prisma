@@ -40,6 +40,7 @@ model User {
   todoItems             TodoItem[]
   projectCollaborations ProjectCollaborator[]
   prayerRecords         PrayerRecord[]
+  recurringCompletions  RecurringCompletion[]
 
   @@map("users")
 }
@@ -179,10 +180,18 @@ model TodoItem {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
-  parent   TodoItem?  @relation("SubItems", fields: [parentId], references: [id], onDelete: Cascade)
-  subItems TodoItem[] @relation("SubItems")
-  todoList TodoList   @relation(fields: [todoListId], references: [id], onDelete: Cascade)
-  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Recurrence fields
+  isRecurring     Boolean   @default(false) @map("is_recurring")
+  frequency       String?   // DAILY, WEEKLY, MONTHLY, CUSTOM
+  daysOfWeek      String?   @map("days_of_week") @db.Text // JSON [0,1,2,3,4,5,6]
+  recurrenceStart DateTime? @map("recurrence_start")
+  recurrenceEnd   DateTime? @map("recurrence_end")
+
+  parent      TodoItem?             @relation("SubItems", fields: [parentId], references: [id], onDelete: Cascade)
+  subItems    TodoItem[]            @relation("SubItems")
+  todoList    TodoList              @relation(fields: [todoListId], references: [id], onDelete: Cascade)
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions RecurringCompletion[]
 
   @@index([todoListId])
   @@index([userId])
@@ -206,4 +215,23 @@ model PrayerRecord {
   @@index([userId])
   @@index([date])
   @@map("prayer_records")
+}
+
+// Recurring Completion - track daily completion status for recurring todos
+model RecurringCompletion {
+  id         String   @id @default(cuid())
+  date       DateTime @db.Date
+  status     String   @default("todo") // todo, done, skipped
+  todoItemId String   @map("todo_item_id")
+  userId     String   @map("user_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  todoItem TodoItem @relation(fields: [todoItemId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, todoItemId])
+  @@index([userId])
+  @@index([date])
+  @@map("recurring_completions")
 }

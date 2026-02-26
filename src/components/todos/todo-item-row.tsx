@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "./priority-badge";
+import { RecurringBadge } from "@/components/recurring/recurring-badge";
 import {
   ChevronRight,
   ChevronDown,
@@ -155,6 +156,9 @@ export function TodoItemRow({
 
         {/* Meta info */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Recurring badge */}
+          {item.isRecurring && <RecurringBadge />}
+
           {/* Has notes indicator */}
           {item.notes && (
             <FileText className="h-3.5 w-3.5 text-muted-foreground" />
