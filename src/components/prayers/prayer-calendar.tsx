@@ -2,14 +2,36 @@
 
 import * as React from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, addMonths, subDays, addDays, subWeeks, addWeeks, subYears, addYears, isFuture, startOfDay } from "date-fns";
+import {
+  format,
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  subMonths,
+  addMonths,
+  subDays,
+  addDays,
+  subWeeks,
+  addWeeks,
+  subYears,
+  addYears,
+  isFuture,
+  startOfDay,
+} from "date-fns";
 import { Moon } from "lucide-react";
 import { DailyView } from "./daily-view";
 import { WeeklyView } from "./weekly-view";
 import { MonthlyView } from "./monthly-view";
 import { YearlyView } from "./yearly-view";
 import { ViewSwitcher } from "./view-switcher";
-import { CalendarViewType, CalendarView, PrayerType, PrayerStatus } from "@/types/prayers";
+import {
+  CalendarViewType,
+  CalendarView,
+  PrayerType,
+  PrayerStatus,
+} from "@/types/prayers";
 
 interface PrayerRecord {
   id: string;
@@ -30,7 +52,10 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
   // Read initial state from URL params
   const getViewFromParams = (): CalendarViewType => {
     const viewParam = searchParams.get("view");
-    if (viewParam && Object.values(CalendarView).includes(viewParam as CalendarViewType)) {
+    if (
+      viewParam &&
+      Object.values(CalendarView).includes(viewParam as CalendarViewType)
+    ) {
       return viewParam as CalendarViewType;
     }
     return CalendarView.MONTHLY;
@@ -50,10 +75,10 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
 
   const [view, setView] = React.useState<CalendarViewType>(getViewFromParams);
   const [currentDate, setCurrentDate] = React.useState<Date>(() =>
-    getDateFromParams("month", new Date())
+    getDateFromParams("month", new Date()),
   );
   const [selectedDay, setSelectedDay] = React.useState<Date>(() =>
-    getDateFromParams("day", new Date())
+    getDateFromParams("day", new Date()),
   );
   const [records, setRecords] = React.useState<PrayerRecord[]>(initialRecords);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -67,7 +92,7 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
       params.set("day", format(newDay, "yyyy-MM-dd"));
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [pathname, router]
+    [pathname, router],
   );
 
   // Fetch records when view/date changes
@@ -92,8 +117,14 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
           endDate = startDate;
           break;
         case CalendarView.WEEKLY:
-          startDate = format(startOfWeek(currentDate, { weekStartsOn: 0 }), "yyyy-MM-dd");
-          endDate = format(endOfWeek(currentDate, { weekStartsOn: 0 }), "yyyy-MM-dd");
+          startDate = format(
+            startOfWeek(currentDate, { weekStartsOn: 0 }),
+            "yyyy-MM-dd",
+          );
+          endDate = format(
+            endOfWeek(currentDate, { weekStartsOn: 0 }),
+            "yyyy-MM-dd",
+          );
           break;
         case CalendarView.MONTHLY:
           startDate = format(startOfMonth(currentDate), "yyyy-MM-dd");
@@ -109,20 +140,28 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
       }
 
       const response = await fetch(
-        `/api/prayers?startDate=${startDate}&endDate=${endDate}`
+        `/api/prayers?startDate=${startDate}&endDate=${endDate}`,
       );
 
       if (response.ok) {
         const data = await response.json();
         setRecords(
-          data.map((r: { date: string | Date; prayer: PrayerType; status: PrayerStatus; id: string }) => ({
-            ...r,
-            // Parse date as noon UTC to avoid timezone day-shifting issues
-            // Handle both "2026-02-26" and "2026-02-26T00:00:00.000Z" formats
-            date: typeof r.date === "string"
-              ? new Date(r.date.split("T")[0] + "T12:00:00Z")
-              : r.date,
-          }))
+          data.map(
+            (r: {
+              date: string | Date;
+              prayer: PrayerType;
+              status: PrayerStatus;
+              id: string;
+            }) => ({
+              ...r,
+              // Parse date as noon UTC to avoid timezone day-shifting issues
+              // Handle both "2026-02-26" and "2026-02-26T00:00:00.000Z" formats
+              date:
+                typeof r.date === "string"
+                  ? new Date(r.date.split("T")[0] + "T12:00:00Z")
+                  : r.date,
+            }),
+          ),
         );
       }
     } catch (error) {
@@ -135,7 +174,7 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
   const handleStatusChange = async (
     date: Date,
     prayer: PrayerType,
-    status: PrayerStatus
+    status: PrayerStatus,
   ) => {
     // Prevent changing future dates
     if (isFuture(startOfDay(date))) {
@@ -148,7 +187,7 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
     setRecords((prevRecords) => {
       // Check if record exists for this date/prayer
       const existingIndex = prevRecords.findIndex(
-        (r) => format(r.date, "yyyy-MM-dd") === dateKey && r.prayer === prayer
+        (r) => format(r.date, "yyyy-MM-dd") === dateKey && r.prayer === prayer,
       );
 
       if (existingIndex >= 0) {
@@ -184,7 +223,11 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error("Failed to update prayer record:", response.status, errorData);
+        console.error(
+          "Failed to update prayer record:",
+          response.status,
+          errorData,
+        );
         // On error, revert by re-fetching
         fetchRecords();
       }
@@ -238,8 +281,12 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
             <Moon className="size-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Prayer Tracker</h1>
-            <p className="text-sm text-muted-foreground">Track your daily prayers</p>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Prayer Tracker
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Track your daily prayers
+            </p>
           </div>
         </div>
         <ViewSwitcher view={view} onViewChange={handleViewChange} />

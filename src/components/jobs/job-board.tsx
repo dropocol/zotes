@@ -45,11 +45,17 @@ interface JobBoardProps {
     bySource: Record<string, number>;
     byMethod: Record<string, number>;
     applicationsOverTime: Record<string, number>;
-    responseRateBySource: Record<string, { total: number; responded: number; rate: number }>;
+    responseRateBySource: Record<
+      string,
+      { total: number; responded: number; rate: number }
+    >;
   } | null;
 }
 
-export function JobBoard({ initialJobs = [], initialStats = null }: JobBoardProps) {
+export function JobBoard({
+  initialJobs = [],
+  initialStats = null,
+}: JobBoardProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -75,10 +81,13 @@ export function JobBoard({ initialJobs = [], initialStats = null }: JobBoardProp
 
   // Form state
   const [showJobForm, setShowJobForm] = React.useState(false);
-  const [editingJob, setEditingJob] = React.useState<JobWithInterviews | null>(null);
+  const [editingJob, setEditingJob] = React.useState<JobWithInterviews | null>(
+    null,
+  );
 
   // Details sheet state
-  const [selectedJob, setSelectedJob] = React.useState<JobWithInterviews | null>(null);
+  const [selectedJob, setSelectedJob] =
+    React.useState<JobWithInterviews | null>(null);
 
   // Track previous view to avoid unnecessary URL updates
   const previousViewRef = React.useRef(view);
@@ -126,7 +135,14 @@ export function JobBoard({ initialJobs = [], initialStats = null }: JobBoardProp
         fetchStats(statsRange);
       }
     }
-  }, [hasInitiallyFetched, initialJobs.length, initialStats, fetchJobs, fetchStats, statsRange]);
+  }, [
+    hasInitiallyFetched,
+    initialJobs.length,
+    initialStats,
+    fetchJobs,
+    fetchStats,
+    statsRange,
+  ]);
 
   // Fetch stats when range changes
   React.useEffect(() => {
@@ -186,12 +202,15 @@ export function JobBoard({ initialJobs = [], initialStats = null }: JobBoardProp
     fetchStats(statsRange);
   };
 
-  const handleStatusChange = async (jobId: string, newStatus: JobApplicationStatus) => {
+  const handleStatusChange = async (
+    jobId: string,
+    newStatus: JobApplicationStatus,
+  ) => {
     // Optimistic update
     setJobs((prevJobs) =>
       prevJobs.map((job) =>
-        job.id === jobId ? { ...job, status: newStatus } : job
-      )
+        job.id === jobId ? { ...job, status: newStatus } : job,
+      ),
     );
 
     try {
@@ -220,7 +239,7 @@ export function JobBoard({ initialJobs = [], initialStats = null }: JobBoardProp
           jobTitle: job.jobTitle,
           companyName: job.companyName,
         },
-      }))
+      })),
     );
   }, [jobs]);
 
@@ -233,7 +252,9 @@ export function JobBoard({ initialJobs = [], initialStats = null }: JobBoardProp
             <Briefcase className="size-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Job Applications</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Job Applications
+            </h1>
             <p className="text-sm text-muted-foreground">
               Track your job search progress
             </p>
@@ -249,39 +270,39 @@ export function JobBoard({ initialJobs = [], initialStats = null }: JobBoardProp
       </div>
 
       {/* Views */}
-      <div className="rounded-xl bg-card border shadow-sm p-4 md:p-6">
-        {isLoading && jobs.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        ) : (
-          <>
-            {view === JobBoardView.LIST && (
-              <ListView jobs={jobs} onJobClick={handleJobClick} />
-            )}
+      {/* <div className="rounded-xl bg-card border shadow-sm p-4 md:p-6"> */}
+      {isLoading && jobs.length === 0 ? (
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      ) : (
+        <>
+          {view === JobBoardView.LIST && (
+            <ListView jobs={jobs} onJobClick={handleJobClick} />
+          )}
 
-            {view === JobBoardView.KANBAN && (
-              <KanbanView
-                jobs={jobs}
-                onJobClick={handleJobClick}
-                onStatusChange={handleStatusChange}
-              />
-            )}
+          {view === JobBoardView.KANBAN && (
+            <KanbanView
+              jobs={jobs}
+              onJobClick={handleJobClick}
+              onStatusChange={handleStatusChange}
+            />
+          )}
 
-            {view === JobBoardView.CALENDAR && (
-              <CalendarView interviews={allInterviews} />
-            )}
+          {view === JobBoardView.CALENDAR && (
+            <CalendarView interviews={allInterviews} />
+          )}
 
-            {view === JobBoardView.STATS && (
-              <StatsView
-                stats={stats}
-                range={statsRange}
-                onRangeChange={setStatsRange}
-              />
-            )}
-          </>
-        )}
-      </div>
+          {view === JobBoardView.STATS && (
+            <StatsView
+              stats={stats}
+              range={statsRange}
+              onRangeChange={setStatsRange}
+            />
+          )}
+        </>
+      )}
+      {/* </div> */}
 
       {/* Job Form Dialog */}
       <JobForm
