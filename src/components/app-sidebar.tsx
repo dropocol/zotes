@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Layers, StickyNote, Home, CheckSquare, CalendarDays, Moon, Repeat, Briefcase } from "lucide-react";
+import { Layers, StickyNote, Home, CheckSquare, CalendarDays, Moon, Repeat, Briefcase, List, Kanban, BarChart3 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavRecent } from "@/components/nav-recent";
@@ -29,7 +29,7 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: Home,
-      isActive: true,
+      isActive: false,
     },
     {
       title: "Projects",
@@ -72,6 +72,24 @@ const data = {
       url: "/jobs",
       icon: Briefcase,
       isActive: false,
+      items: [
+        {
+          title: "List",
+          url: "/jobs/list",
+        },
+        {
+          title: "Kanban",
+          url: "/jobs/kanban",
+        },
+        {
+          title: "Calendar",
+          url: "/jobs/calendar",
+        },
+        {
+          title: "Stats",
+          url: "/jobs/stats",
+        },
+      ],
     },
   ],
 };
