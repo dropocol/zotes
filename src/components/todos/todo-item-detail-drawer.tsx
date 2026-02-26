@@ -99,18 +99,25 @@ export function TodoItemDetailDrawer({
 
     setIsLoading(true);
     try {
+      // For recurring items, don't send status - it's managed through completion records
+      const body: Record<string, unknown> = {
+        title,
+        notes,
+        priority,
+        dueDate: dueDate?.toISOString(),
+      };
+
+      // Only include status for non-recurring items
+      if (!item.isRecurring) {
+        body.status = status;
+      }
+
       const response = await fetch(`/api/todo/items/${item.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title,
-          notes,
-          status,
-          priority,
-          dueDate: dueDate?.toISOString(),
-        }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
@@ -148,43 +155,45 @@ export function TodoItemDetailDrawer({
             />
           </div>
 
-          {/* Status - Radio buttons for better visual */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Status</Label>
-            <RadioGroup
-              value={status}
-              onValueChange={(value) => setStatus(value as TodoItemStatus)}
-              className="grid grid-cols-3 gap-2"
-            >
-              {statusOptions.map((option) => {
-                const Icon = option.icon;
-                return (
-                  <Label
-                    key={option.value}
-                    htmlFor={option.value}
-                    className="cursor-pointer"
-                  >
-                    <RadioGroupItem
-                      value={option.value}
-                      id={option.value}
-                      className="peer sr-only"
-                    />
-                    <div
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-md border-2 transition-all cursor-pointer",
-                        status === option.value
-                          ? `${option.bgColor} ${option.textColor} border-transparent`
-                          : "bg-background hover:bg-muted border-border"
-                      )}
+          {/* Status - Radio buttons for better visual (hidden for recurring items) */}
+          {!item?.isRecurring && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Status</Label>
+              <RadioGroup
+                value={status}
+                onValueChange={(value) => setStatus(value as TodoItemStatus)}
+                className="grid grid-cols-3 gap-2"
+              >
+                {statusOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <Label
+                      key={option.value}
+                      htmlFor={option.value}
+                      className="cursor-pointer"
                     >
-                      <Icon className={cn("h-4 w-4", option.iconColor)} />
-                      <span className="text-sm font-medium">{option.label}</span>
-                    </div>
-                  </Label>
-                );
-              })}
-            </RadioGroup>
-          </div>
+                      <RadioGroupItem
+                        value={option.value}
+                        id={option.value}
+                        className="peer sr-only"
+                      />
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-md border-2 transition-all cursor-pointer",
+                          status === option.value
+                            ? `${option.bgColor} ${option.textColor} border-transparent`
+                            : "bg-background hover:bg-muted border-border"
+                        )}
+                      >
+                        <Icon className={cn("h-4 w-4", option.iconColor)} />
+                        <span className="text-sm font-medium">{option.label}</span>
+                      </div>
+                    </Label>
+                  );
+                })}
+              </RadioGroup>
+            </div>
+          )}
 
           {/* Priority - Chips selection */}
           <div className="space-y-2">

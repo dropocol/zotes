@@ -24,10 +24,12 @@ interface RecurringItem {
 
 interface RecurringWeeklyViewClientProps {
   initialItems: RecurringItem[];
+  singleTaskMode?: boolean;
 }
 
 export function RecurringWeeklyViewClient({
   initialItems,
+  singleTaskMode = false,
 }: RecurringWeeklyViewClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,15 +37,25 @@ export function RecurringWeeklyViewClient({
 
   // Get initial date from URL or use today
   const dateParam = searchParams.get("date");
+  const taskIdParam = searchParams.get("taskId");
   const initialDate = dateParam ? toUTCDate(dateParam) : new Date();
+
+  // Sync items when initialItems changes
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
 
   // Update URL when date changes
   const handleDateChange = useCallback((date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const url = new URL(window.location.href);
     url.searchParams.set("date", dateStr);
+    // Preserve taskId if present
+    if (taskIdParam) {
+      url.searchParams.set("taskId", taskIdParam);
+    }
     router.replace(url.pathname + url.search, { scroll: false });
-  }, [router]);
+  }, [router, taskIdParam]);
 
   const handleToggleCompletion = useCallback(
     async (todoItemId: string, date: Date) => {
@@ -112,6 +124,7 @@ export function RecurringWeeklyViewClient({
       onToggleCompletion={handleToggleCompletion}
       initialDate={initialDate}
       onDateChange={handleDateChange}
+      showTaskNames={!singleTaskMode}
     />
   );
 }

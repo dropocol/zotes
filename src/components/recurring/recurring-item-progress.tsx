@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CompletionCell } from "./completion-cell";
 import {
@@ -11,6 +10,7 @@ import {
   shouldAppearOnDate,
   isFutureDate,
   toUTCDate,
+  getTodayDate,
 } from "@/types/recurring";
 
 interface RecurringItemProgressProps {
@@ -35,6 +35,7 @@ export function RecurringItemProgress({
 
   const item = { frequency, daysOfWeek, recurrenceStart, recurrenceEnd };
   const weekDates = getWeekDates(new Date());
+  const today = getTodayDate();
 
   // Fetch completions for this item
   useEffect(() => {
@@ -87,6 +88,22 @@ export function RecurringItemProgress({
   }, [todoItemId]);
 
   const getCompletionStatus = (date: Date): string => {
+    // Check if date is before recurrence start
+    if (recurrenceStart) {
+      const startDate = toUTCDate(recurrenceStart);
+      if (date < startDate && !isSameDay(date, startDate)) {
+        return "before_start";
+      }
+    }
+
+    // Check if date is after recurrence end
+    if (recurrenceEnd) {
+      const endDate = toUTCDate(recurrenceEnd);
+      if (date > endDate && !isSameDay(date, endDate)) {
+        return "after_end";
+      }
+    }
+
     if (!shouldAppearOnDate(item, date)) {
       return "inactive";
     }
@@ -98,20 +115,24 @@ export function RecurringItemProgress({
   };
 
   const canToggleDate = (date: Date): boolean => {
-    return !isFutureDate(date);
+    const status = getCompletionStatus(date);
+    return !isFutureDate(date) && !["before_start", "after_end", "inactive"].includes(status);
   };
 
-  // Calculate stats
+  // Calculate stats (only active days)
   const doneCount = completions.filter((c) => c.status === "done").length;
-  const totalCount = completions.length;
+  const activeDays = weekDates.filter((date) => {
+    const status = getCompletionStatus(date);
+    return !["inactive", "future", "before_start", "after_end"].includes(status);
+  }).length;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">This Week</span>
-        {totalCount > 0 && (
+        {activeDays > 0 && (
           <span className="text-xs text-muted-foreground">
-            {doneCount}/{totalCount} completed
+            {doneCount}/{activeDays} completed
           </span>
         )}
       </div>
@@ -129,46 +150,73 @@ export function RecurringItemProgress({
             {weekDates.map((date, i) => (
               <div
                 key={i}
-                className="w-8 text-center text-xs text-muted-foreground"
+                className={cn(
+                  "w-8 text-center text-xs",
+                  isSameDay(date, today) ? "text-primary font-medium" : "text-muted-foreground"
+                )}
               >
                 {DAY_NAMES[i]}
               </div>
             ))}
           </div>
 
-          {/* Completion cells */}
+          {/* Completion cells - always show all 7 */}
           <div className="flex gap-1">
             {weekDates.map((date, i) => {
               const status = getCompletionStatus(date);
               const canToggle = canToggleDate(date);
+              const isTodayDate = isSameDay(date, today);
 
-              if (status === "inactive") {
+              // Before start or after end - grayed out, not clickable
+              if (status === "before_start" || status === "after_end") {
                 return (
                   <div
                     key={i}
-                    className="w-8 h-8 rounded bg-muted/20"
-                  />
-                );
-              }
-
-              if (status === "future") {
-                return (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded bg-muted/10 flex items-center justify-center text-muted-foreground/40 text-xs"
-                    title="Future date"
+                    className="w-8 h-8 rounded-md bg-muted-foreground/15 flex items-center justify-center"
+                    title={status === "before_start" ? "Before start date" : "After end date"}
                   >
-                    ○
+                    <span className="text-[10px] text-muted-foreground/50">-</span>
                   </div>
                 );
               }
 
+              // Inactive (not scheduled based on frequency)
+              if (status === "inactive") {
+                return (
+                  <div
+                    key={i}
+                    className="w-8 h-8 rounded-md bg-muted-foreground/25 flex items-center justify-center"
+                    title="Not scheduled"
+                  >
+                    <span className="text-[10px] text-muted-foreground/60">○</span>
+                  </div>
+                );
+              }
+
+              // Future - show but not clickable
+              if (status === "future") {
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      "w-8 h-8 rounded-md bg-muted-foreground/35 flex items-center justify-center",
+                      isTodayDate && "ring-2 ring-primary/50"
+                    )}
+                    title="Future date"
+                  >
+                    <span className="text-xs text-muted-foreground/60">○</span>
+                  </div>
+                );
+              }
+
+              // Active and toggleable
               return (
                 <CompletionCell
                   key={i}
                   status={status}
                   onClick={() => canToggle && handleToggle(date)}
                   size="sm"
+                  className={cn(isTodayDate && status !== "done" && "ring-2 ring-primary")}
                 />
               );
             })}

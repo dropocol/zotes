@@ -67,15 +67,19 @@ export async function GET(
         return null;
       }
 
-      // For recurring items, use today's completion status
+      // For recurring items, keep the item status as "todo" (recurring items are never "done")
+      // The completion status for today is provided separately for the progress indicator
       const todayCompletion = item.completions[0];
       const effectiveStatus = todayCompletion?.status || "todo";
 
       return {
         ...item,
-        status: effectiveStatus,
+        // Keep status as the actual item status (always "todo" for recurring items)
+        // The UI should use _effectiveStatus for displaying today's completion
+        status: item.status, // Don't overwrite with completion status
         dueDate: today, // Set due date to today for recurring items
         _isRecurringToday: true,
+        _effectiveStatus: effectiveStatus, // Today's completion status for progress display
       };
     }).filter(Boolean);
 

@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "./priority-badge";
 import { RecurringBadge } from "@/components/recurring/recurring-badge";
+import { RecurringMiniProgress } from "@/components/recurring/recurring-mini-progress";
 import {
   ChevronRight,
   ChevronDown,
@@ -48,13 +49,21 @@ export function TodoItemRow({
   dueDateBadge,
 }: TodoItemRowProps) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const isDone = item.status === "done";
+
+  // For recurring items, use _effectiveStatus for checkbox display
+  // but don't apply strikethrough (recurring items are never "fully done")
+  const effectiveStatus = (item as TodoItem & { _effectiveStatus?: string })._effectiveStatus || item.status;
+  const isRecurring = item.isRecurring;
+  const isCheckboxChecked = isRecurring ? effectiveStatus === "done" : item.status === "done";
+  // Only show strikethrough for non-recurring items that are done
+  const showStrikethrough = !isRecurring && item.status === "done";
+
   const hasSubItems = item.subItems && item.subItems.length > 0;
   const isTopLevel = level === 0;
   const showExpanded = !hideSubTasks && isExpanded;
 
   async function handleToggle() {
-    const newStatus = isDone ? "todo" : "done";
+    const newStatus = isCheckboxChecked ? "todo" : "done";
     onToggleStatus(item.id, newStatus);
   }
 
@@ -73,7 +82,7 @@ export function TodoItemRow({
   };
 
   // Check if overdue
-  const isOverdue = item.dueDate && isPast(new Date(item.dueDate)) && !isDone;
+  const isOverdue = item.dueDate && isPast(new Date(item.dueDate)) && !isCheckboxChecked;
 
   // Calculate indentation offset to align sub-items properly
   // Top level has: expand button (24px) + checkbox (24px) = 48px occupied
@@ -90,7 +99,7 @@ export function TodoItemRow({
       <div
         className={cn(
           "flex items-center gap-2 py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-150",
-          isDone && "opacity-50",
+          showStrikethrough && "opacity-50",
           !isTopLevel && "bg-muted/20 hover:bg-muted/40"
         )}
       >
@@ -116,11 +125,11 @@ export function TodoItemRow({
 
         {/* Checkbox - fixed width */}
         <Checkbox
-          checked={isDone}
+          checked={isCheckboxChecked}
           onCheckedChange={handleToggle}
           className={cn(
             "w-5 h-5 rounded-full border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground",
-            !isDone && item.status === "in-progress" && "border-blue-500 bg-blue-100 dark:bg-blue-900/30"
+            !isCheckboxChecked && item.status === "in-progress" && "border-blue-500 bg-blue-100 dark:bg-blue-900/30"
           )}
         />
 
@@ -134,19 +143,31 @@ export function TodoItemRow({
 
         {/* Title */}
         <div className="flex-1 min-w-0">
-          <button
-            className="text-left w-full"
-            onClick={() => onSelect(item)}
-          >
-            <span
-              className={cn(
-                "text-sm font-medium transition-all",
-                isDone && "line-through text-muted-foreground"
-              )}
+          <div className="flex items-center gap-2">
+            <button
+              className="text-left flex-1 min-w-0"
+              onClick={() => onSelect(item)}
             >
-              {item.title}
-            </span>
-          </button>
+              <span
+                className={cn(
+                  "text-sm font-medium transition-all",
+                  showStrikethrough && "line-through text-muted-foreground"
+                )}
+              >
+                {item.title}
+              </span>
+            </button>
+            {/* Show weekly progress for recurring items inline */}
+            {item.isRecurring && item.id && (
+              <RecurringMiniProgress
+                todoItemId={item.id}
+                frequency={item.frequency}
+                daysOfWeek={item.daysOfWeek}
+                recurrenceStart={item.recurrenceStart}
+                recurrenceEnd={item.recurrenceEnd}
+              />
+            )}
+          </div>
           {listLink && (
             <div className="mt-0.5">
               {listLink}
@@ -182,7 +203,7 @@ export function TodoItemRow({
           ) : null}
 
           {/* Priority badge for high/urgent */}
-          {(item.priority === "high" || item.priority === "urgent") && !isDone && (
+          {(item.priority === "high" || item.priority === "urgent") && !isCheckboxChecked && (
             <PriorityBadge priority={item.priority} className="text-[10px] px-1.5 py-0" />
           )}
         </div>

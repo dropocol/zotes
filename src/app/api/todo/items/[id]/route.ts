@@ -108,12 +108,15 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Handle recurring items: status changes go to completion records
-    if (existingItem.isRecurring && status !== undefined && status !== existingItem.status) {
+    // Determine if this item is or will be recurring
+    const willBeRecurring = isRecurring === true || (isRecurring === undefined && existingItem.isRecurring);
+
+    // For recurring items, handle status separately from other updates
+    if (willBeRecurring && status !== undefined) {
       const today = getTodayDate();
 
-      // Create or update completion record for today
-      const existingCompletion = await prisma.recurringCompletion.findUnique({
+      // Create or update completion record for today (status goes here, not on the item)
+      await prisma.recurringCompletion.upsert({
         where: {
           userId_date_todoItemId: {
             userId: session.user.id,
@@ -121,39 +124,34 @@ export async function PUT(
             todoItemId: id,
           },
         },
-      });
-
-      if (existingCompletion) {
-        await prisma.recurringCompletion.update({
-          where: { id: existingCompletion.id },
-          data: { status },
-        });
-      } else {
-        await prisma.recurringCompletion.create({
-          data: {
-            userId: session.user.id,
-            todoItemId: id,
-            date: today,
-            status,
-          },
-        });
-      }
-
-      // Return the item with the effective status
-      return NextResponse.json({
-        ...existingItem,
-        status,
-        dueDate: today,
+        create: {
+          userId: session.user.id,
+          todoItemId: id,
+          date: today,
+          status,
+        },
+        update: {
+          status,
+        },
       });
     }
 
-    // For non-recurring items or other field updates, proceed normally
+    // Determine what status to save on the item itself
+    // For recurring items, always keep status as "todo" (completion records track daily status)
+    let itemStatusToUpdate = status ?? existingItem.status;
+    if (willBeRecurring) {
+      // Recurring items should always have "todo" as base status
+      // The effective status for each day comes from completion records, not the item itself
+      itemStatusToUpdate = "todo";
+    }
+
+    // Update the item (for non-recurring: all fields including status; for recurring: all fields except status)
     const item = await prisma.todoItem.update({
       where: { id },
       data: {
         title: title ?? existingItem.title,
         notes: notes ?? existingItem.notes,
-        status: status ?? existingItem.status,
+        status: itemStatusToUpdate,
         priority: priority ?? existingItem.priority,
         dueDate: dueDate ? new Date(dueDate) : existingItem.dueDate,
         isRecurring: isRecurring !== undefined ? isRecurring : existingItem.isRecurring,
@@ -171,6 +169,16 @@ export async function PUT(
         parent: true,
       },
     });
+
+    // For recurring items with status update, return the effective status
+    if (willBeRecurring && status !== undefined) {
+      const today = getTodayDate();
+      return NextResponse.json({
+        ...item,
+        status, // Return the effective status from completion
+        dueDate: today,
+      });
+    }
 
     return NextResponse.json(item);
   } catch (error) {
