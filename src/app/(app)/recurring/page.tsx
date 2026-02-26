@@ -3,12 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { PageHeader } from "@/components/page-header";
 import { RecurringWeeklyViewClient } from "./client";
 import { getWeekStart, getWeekEnd } from "@/types/recurring";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft, Repeat } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 
 interface PageProps {
   searchParams: Promise<{ taskId?: string; date?: string }>;
@@ -89,17 +89,15 @@ export default async function RecurringPage({ searchParams }: PageProps) {
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
       <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {taskTitle || "Recurring Tasks"}
-            </h1>
-            <p className="text-muted-foreground">
-              {taskTitle
-                ? "Track progress and navigate through weeks"
-                : "Track your recurring tasks throughout the week"}
-            </p>
-          </div>
+        <PageHeader
+          title={taskTitle || "Recurring"}
+          description={
+            taskTitle
+              ? "Track progress and navigate through weeks"
+              : "Track your recurring tasks throughout the week"
+          }
+          icon={Repeat}
+        >
           {taskId && (
             <Link href="/recurring">
               <Button variant="outline" size="sm">
@@ -108,7 +106,7 @@ export default async function RecurringPage({ searchParams }: PageProps) {
               </Button>
             </Link>
           )}
-        </div>
+        </PageHeader>
         <Suspense fallback={
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { PageHeader } from "@/components/page-header";
 import { TodoItemRow } from "@/components/todos/todo-item-row";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import { CalendarDays, Loader2, AlertCircle } from "lucide-react";
@@ -133,12 +134,12 @@ export default function UpcomingTodosPage() {
         { title: "Upcoming", href: "/todos/upcoming" },
       ]}
     >
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Upcoming Todos</h1>
-        <p className="text-muted-foreground mt-1">
-          Tasks with due dates that need your attention
-        </p>
-      </div>
+      <PageHeader
+        title="Upcoming"
+        description="Tasks with due dates that need your attention"
+        icon={CalendarDays}
+        className="mb-6"
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">

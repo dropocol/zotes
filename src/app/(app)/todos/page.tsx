@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,8 @@ import {
   ExternalLink,
   Trash2,
   CalendarDays,
+  CheckSquare,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { Project, TodoList, TodoItem } from "@/types";
@@ -220,27 +223,25 @@ export default function TodosPage() {
 
   return (
     <DashboardLayout breadcrumbs={[{ title: "Todos", href: "/todos" }]}>
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Todos</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your tasks and to-do lists
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/todos/upcoming">
-              <CalendarDays className="mr-1.5 h-4 w-4" />
-              Upcoming
-            </Link>
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                Add New List
-              </Button>
-            </DialogTrigger>
+      <PageHeader
+        title="Todos"
+        description="Manage your tasks and to-do lists"
+        icon={CheckSquare}
+        className="mb-6"
+      >
+        <Button variant="outline" asChild>
+          <Link href="/todos/upcoming">
+            <CalendarDays className="mr-1.5 h-4 w-4" />
+            Upcoming
+          </Link>
+        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add New List
+            </Button>
+          </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create Todo List</DialogTitle>
@@ -309,8 +310,7 @@ export default function TodosPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+      </PageHeader>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">

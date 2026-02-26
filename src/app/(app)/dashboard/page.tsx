@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { FolderKanban, FileText, CheckSquare, Plus, Clock, ChevronRight } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { FolderKanban, FileText, CheckSquare, Plus, Clock, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -133,30 +134,27 @@ export default async function DashboardPage() {
     <DashboardLayout
       breadcrumbs={[{ title: "Dashboard", href: "/dashboard" }]}
     >
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome back, {session.user.name || "User"}</h1>
-          <p className="text-muted-foreground mt-1">
-            Here&apos;s what&apos;s happening with your work
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/projects"
-            className={buttonVariants({ size: "sm" })}
-          >
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Project
-          </Link>
-          <Link
-            href="/notes/new"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Note
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description={`Welcome back, ${session.user.name || "User"}`}
+        icon={Home}
+        className="mb-8"
+      >
+        <Link
+          href="/projects"
+          className={buttonVariants({ size: "sm" })}
+        >
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          New Project
+        </Link>
+        <Link
+          href="/notes/new"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          New Note
+        </Link>
+      </PageHeader>
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-3 mb-8">

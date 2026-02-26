@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { PageHeader } from "@/components/page-header";
 import { NotesTable } from "@/components/notes/notes-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Plus, Search } from "lucide-react";
+import { Loader2, Plus, Search, StickyNote } from "lucide-react";
 import Link from "next/link";
 
 export default function NotesPage() {
@@ -31,32 +32,28 @@ export default function NotesPage() {
 
   return (
     <DashboardLayout breadcrumbs={[{ title: "Notes", href: "/notes" }]}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Notes</h1>
-          <p className="text-muted-foreground mt-1">
-            All your notes in one place
-          </p>
+      <PageHeader
+        title="Notes"
+        description="All your notes in one place"
+        icon={StickyNote}
+        className="mb-6"
+      >
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 w-[200px]"
+          />
         </div>
-
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-[200px]"
-            />
-          </div>
-          <Button asChild>
-            <Link href="/notes/new">
-              <Plus className="mr-1.5 h-4 w-4" />
-              New Note
-            </Link>
-          </Button>
-        </div>
-      </div>
+        <Button asChild>
+          <Link href="/notes/new">
+            <Plus className="mr-1.5 h-4 w-4" />
+            New Note
+          </Link>
+        </Button>
+      </PageHeader>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
