@@ -21,6 +21,50 @@ enum PrayerStatus {
   QAZAA
 }
 
+enum JobSource {
+  LINKEDIN
+  SLACK
+  FACEBOOK
+  X
+  COMPANY_WEBSITE
+  REFERRAL
+  JOB_BOARD
+  OTHER
+}
+
+enum ApplicationMethod {
+  EMAIL
+  WEB_PORTAL
+  LINKEDIN_EASY_APPLY
+  REFERRAL
+}
+
+enum JobApplicationStatus {
+  SAVED        // Found but not applied yet
+  APPLIED      // Submitted application
+  PHONE_SCREEN // Initial phone call scheduled
+  INTERVIEW    // In interview process
+  OFFER        // Received offer
+  REJECTED     // Declined
+  WITHDRAWN    // Withdrew application
+  NO_RESPONSE  // Applied, no response
+}
+
+enum ResponseStatus {
+  YES
+  NO
+  PENDING
+}
+
+enum InterviewType {
+  PHONE
+  VIDEO
+  ONSITE
+  TECHNICAL
+  BEHAVIORAL
+  FINAL
+}
+
 // Auth.js User model
 model User {
   id            String    @id @default(cuid())
@@ -41,6 +85,7 @@ model User {
   projectCollaborations ProjectCollaborator[]
   prayerRecords         PrayerRecord[]
   recurringCompletions  RecurringCompletion[]
+  jobApplications       JobApplication[]
 
   @@map("users")
 }
@@ -234,4 +279,55 @@ model RecurringCompletion {
   @@index([userId])
   @@index([date])
   @@map("recurring_completions")
+}
+
+// Job Application - track job hunting progress
+model JobApplication {
+  id                String                @id @default(cuid())
+  jobTitle          String                @map("job_title")
+  companyName       String                @map("company_name")
+  source            JobSource
+  applicationMethod ApplicationMethod     @map("application_method")
+  jobPostingUrl     String?               @map("job_posting_url")
+  salaryMin         Int?                  @map("salary_min")
+  salaryMax         Int?                  @map("salary_max")
+  salaryCurrency    String?               @default("USD") @map("salary_currency")
+  location          String?
+  isRemote          Boolean               @default(false) @map("is_remote")
+  status            JobApplicationStatus  @default(SAVED)
+  responseReceived  ResponseStatus        @default(PENDING) @map("response_received")
+  notes             String?               @db.Text // Rich text HTML
+  dateFound         DateTime?             @map("date_found") @db.Date
+  dateApplied       DateTime?             @map("date_applied") @db.Date
+  userId            String                @map("user_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interviews JobInterview[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("job_applications")
+}
+
+// Job Interview - track interview details for job applications
+model JobInterview {
+  id               String        @id @default(cuid())
+  jobApplicationId String        @map("job_application_id")
+  interviewType    InterviewType @map("interview_type")
+  roundNumber      Int           @map("round_number")
+  scheduledAt      DateTime?     @map("scheduled_at")
+  completedAt      DateTime?     @map("completed_at")
+  notes            String?       @db.Text
+  location         String?
+  interviewerNames String?       @map("interviewer_names")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  jobApplication JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([jobApplicationId])
+  @@index([scheduledAt])
+  @@map("job_interviews")
 }
