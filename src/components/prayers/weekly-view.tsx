@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, XCircle, Clock, Sun, Sunrise, Sunset, Moon, CloudSun, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sunrise, Sun, CloudSun, Sunset, Moon, Users } from "lucide-react";
 import {
   format,
   addWeeks,
@@ -21,13 +21,6 @@ import {
   getPrayerDisplayName,
 } from "@/types/prayers";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Check } from "lucide-react";
 
 interface WeeklyViewProps {
   date: Date;
@@ -38,7 +31,7 @@ interface WeeklyViewProps {
   onDaySelect?: (date: Date) => void;
 }
 
-const STATUS_OPTIONS: PrayerStatus[] = ["YES", "NO", "QAZAA"];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const PRAYER_ICONS: Record<PrayerType, React.ComponentType<{ className?: string }>> = {
   FAJR: Sunrise,
@@ -49,89 +42,60 @@ const PRAYER_ICONS: Record<PrayerType, React.ComponentType<{ className?: string 
   JUMAH: Users,
 };
 
-// Compact prayer status button for weekly view
-function CompactPrayerButton({
-  prayer,
-  status,
-  onStatusChange,
-  disabled,
-}: {
-  prayer: PrayerType;
-  status: PrayerStatus;
-  onStatusChange: (status: PrayerStatus) => void;
-  disabled: boolean;
-}) {
-  const Icon = PRAYER_ICONS[prayer];
+const STATUS_CYCLE: PrayerStatus[] = ["NO", "YES", "QAZAA"];
 
-  // Get status-based styles
-  const getButtonStyles = () => {
+// Prayer status cell - click to cycle through statuses
+function PrayerStatusCell({
+  status,
+  onClick,
+  disabled,
+  isLoading,
+}: {
+  status: PrayerStatus;
+  onClick: () => void;
+  disabled: boolean;
+  isLoading?: boolean;
+}) {
+  const getStyles = () => {
     switch (status) {
       case "YES":
-        return "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-800/30";
+        return {
+          bg: "bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-900/60",
+          icon: "✓",
+          text: "text-emerald-600 dark:text-emerald-400",
+        };
       case "QAZAA":
-        return "bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30";
+        return {
+          bg: "bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-900/60",
+          icon: "⊙",
+          text: "text-amber-600 dark:text-amber-400",
+        };
       default:
-        return "bg-transparent hover:bg-muted/50";
+        return {
+          bg: "bg-muted hover:bg-muted/80",
+          icon: "○",
+          text: "text-muted-foreground",
+        };
     }
   };
 
+  const styles = getStyles();
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            "flex items-center gap-1.5 w-full rounded-md px-1.5 py-1 text-xs transition-colors border border-transparent",
-            "hover:bg-muted/50",
-            disabled && "opacity-50 cursor-not-allowed pointer-events-none",
-            getButtonStyles()
-          )}
-          disabled={disabled}
-        >
-          <div className={cn(
-            "size-3.5 rounded flex items-center justify-center",
-            status === "YES" && "bg-emerald-500",
-            status === "QAZAA" && "bg-amber-500",
-            status === "NO" && "bg-muted"
-          )}>
-            <Icon className={cn(
-              "size-2.5",
-              status === "YES" && "text-white",
-              status === "QAZAA" && "text-white",
-              status === "NO" && "text-muted-foreground"
-            )} />
-          </div>
-          <span className="truncate flex-1 text-left font-medium text-muted-foreground">
-            {getPrayerDisplayName(prayer)}
-          </span>
-          <div className={cn(
-            "size-2 rounded-full",
-            status === "YES" && "bg-emerald-500",
-            status === "QAZAA" && "bg-amber-500",
-            status === "NO" && "bg-muted-foreground/40"
-          )} />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-32">
-        {STATUS_OPTIONS.map((option) => (
-          <DropdownMenuItem
-            key={option}
-            onClick={() => onStatusChange(option)}
-            className="flex items-center gap-2 cursor-pointer text-xs"
-          >
-            <div className={cn(
-              "size-2.5 rounded-full",
-              option === "YES" && "bg-emerald-500",
-              option === "QAZAA" && "bg-amber-500",
-              option === "NO" && "bg-muted-foreground/40"
-            )} />
-            <span className="flex-1">
-              {option === "YES" ? "Prayed" : option === "NO" ? "Missed" : "Qazaa"}
-            </span>
-            {status === option && <Check className="size-3" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "w-8 h-8 rounded-md flex items-center justify-center font-medium transition-colors",
+        styles.bg,
+        styles.text,
+        disabled && "opacity-40 cursor-not-allowed",
+        isLoading && "opacity-50"
+      )}
+      title={status === "YES" ? "Prayed" : status === "QAZAA" ? "Qazaa" : "Missed"}
+    >
+      {styles.icon}
+    </button>
   );
 }
 
@@ -143,156 +107,202 @@ export function WeeklyView({
   selectedDay,
   onDaySelect,
 }: WeeklyViewProps) {
+  const [loadingCells, setLoadingCells] = React.useState<Set<string>>(new Set());
+
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+  // Get all unique prayers that could appear in this week
+  const allPrayersThisWeek = React.useMemo(() => {
+    const prayerSet = new Set<PrayerType>();
+    days.forEach((day) => {
+      getPrayersForDate(day).forEach((p) => prayerSet.add(p));
+    });
+    // Return in a consistent order
+    const orderedPrayers: PrayerType[] = ["FAJR", "ZOHAR", "ASR", "MAGHRIB", "ISHA", "JUMAH"];
+    return orderedPrayers.filter((p) => prayerSet.has(p));
+  }, [days]);
 
   const goToPrevious = () => onDateChange(subWeeks(date, 1));
   const goToNext = () => onDateChange(addWeeks(date, 1));
   const goToToday = () => onDateChange(new Date());
 
+  const formatWeekRange = () => {
+    const startMonth = format(weekStart, "MMM");
+    const endMonth = format(weekEnd, "MMM");
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${format(weekStart, "d")} - ${format(weekEnd, "d")}, ${format(weekStart, "yyyy")}`;
+    }
+    return `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d")}, ${format(weekEnd, "yyyy")}`;
+  };
+
+  const handleToggle = async (prayer: PrayerType, day: Date, currentStatus: PrayerStatus) => {
+    const cellKey = `${prayer}-${format(day, "yyyy-MM-dd")}`;
+    setLoadingCells((prev) => new Set(prev).add(cellKey));
+
+    try {
+      const currentIndex = STATUS_CYCLE.indexOf(currentStatus);
+      const nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length];
+      onStatusChange(day, prayer, nextStatus);
+    } finally {
+      setLoadingCells((prev) => {
+        const next = new Set(prev);
+        next.delete(cellKey);
+        return next;
+      });
+    }
+  };
+
+  const getPrayerStatus = (prayer: PrayerType, day: Date): PrayerStatus => {
+    const dateKey = format(day, "yyyy-MM-dd");
+    const dayRecords = records.get(dateKey);
+    return dayRecords?.get(prayer) || "NO";
+  };
+
+  const isPrayerOnDay = (prayer: PrayerType, day: Date): boolean => {
+    return getPrayersForDate(day).includes(prayer);
+  };
+
   return (
     <div className="space-y-4">
       {/* Week Navigation */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={goToPrevious}
-          className="h-8 w-8"
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold">
-            {format(weekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}
-          </h2>
-          <Button variant="ghost" size="sm" onClick={goToToday}>
-            This Week
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={goToPrevious}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={goToNext}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" onClick={goToToday}>
+            Today
           </Button>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={goToNext}
-          className="h-8 w-8"
-        >
-          <ChevronRight className="size-4" />
-        </Button>
+        <h2 className="text-lg font-semibold">{formatWeekRange()}</h2>
       </div>
 
-      {/* Days Grid */}
-      <div className="grid grid-cols-7 gap-2">
-        {/* Day Headers */}
-        {days.map((day) => {
-          const dayIsToday = isToday(day);
-          return (
+      {/* Weekly Grid */}
+      <div className="border rounded-lg overflow-hidden">
+        {/* Header Row */}
+        <div className="grid grid-cols-8 bg-muted/50">
+          <div className="p-3 font-medium text-sm border-r">Prayer</div>
+          {days.map((day, i) => (
             <div
-              key={`header-${day.toISOString()}`}
+              key={i}
               className={cn(
-                "text-center py-2 rounded-t-lg",
-                dayIsToday && "bg-primary/10"
+                "p-3 text-center font-medium text-sm border-r last:border-r-0",
+                isToday(day) && "bg-primary/10"
               )}
             >
-              <div className={cn(
-                "text-xs font-medium",
-                dayIsToday ? "text-primary" : "text-muted-foreground"
-              )}>
-                {format(day, "EEE")}
-              </div>
-              <div className={cn(
-                "text-lg font-bold mt-0.5",
-                dayIsToday && "text-primary"
-              )}>
+              <div className="text-muted-foreground">{DAY_NAMES[i]}</div>
+              <div className={cn(isToday(day) && "text-primary font-bold")}>
                 {format(day, "d")}
               </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
 
-        {/* Day Cells */}
-        {days.map((day) => {
-          const dateKey = format(day, "yyyy-MM-dd");
-          const dayRecords = records.get(dateKey) || new Map();
-          const prayers = getPrayersForDate(day);
-          const dayIsToday = isToday(day);
-          const dayIsFuture = isFuture(startOfDay(day));
-
-          // Calculate completion
-          const prayed = prayers.filter((p) => dayRecords.get(p) === "YES").length;
-          const completionRate = (prayed / prayers.length) * 100;
-
-          return (
-            <div
-              key={day.toISOString()}
-              className={cn(
-                "rounded-lg border bg-card shadow-sm overflow-hidden",
-                dayIsToday && "border-primary ring-1 ring-primary/20",
-                dayIsFuture && "opacity-60"
-              )}
-            >
-              {/* Completion bar */}
-              <div className="h-1 bg-slate-100 dark:bg-slate-800">
-                <div
-                  className={cn(
-                    "h-full transition-all",
-                    completionRate === 100 ? "bg-emerald-500" : "bg-emerald-400"
-                  )}
-                  style={{ width: `${completionRate}%` }}
-                />
-              </div>
-
-              {/* Mini stats */}
-              <div className="flex items-center justify-center gap-2 py-1.5 border-b bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 className="size-3 text-emerald-500" />
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">{prayed}</span>
+        {/* Prayer Rows */}
+        {allPrayersThisWeek.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">
+            No prayers found for this week.
+          </div>
+        ) : (
+          allPrayersThisWeek.map((prayer) => {
+            const Icon = PRAYER_ICONS[prayer];
+            return (
+              <div
+                key={prayer}
+                className="grid grid-cols-8 border-t first:border-t-0"
+              >
+                {/* Prayer Name Cell */}
+                <div className="p-3 text-sm font-medium border-r flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="truncate">{getPrayerDisplayName(prayer)}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <AlertCircle className="size-3 text-amber-500" />
-                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                    {prayers.filter((p) => dayRecords.get(p) === "QAZAA").length}
-                  </span>
-                </div>
-              </div>
 
-              {/* Prayers */}
-              <div className="p-1.5 space-y-0.5 min-h-[140px]">
-                {dayIsFuture ? (
-                  <div className="flex flex-col items-center justify-center h-full py-4 gap-1">
-                    <Clock className="size-4 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">Future</span>
-                  </div>
-                ) : (
-                  prayers.map((prayer) => (
-                    <CompactPrayerButton
-                      key={prayer}
-                      prayer={prayer}
-                      status={dayRecords.get(prayer) || "NO"}
-                      onStatusChange={(s) => onStatusChange(day, prayer, s)}
-                      disabled={dayIsFuture}
-                    />
-                  ))
-                )}
+                {/* Day Cells */}
+                {days.map((day, i) => {
+                  const dateKey = format(day, "yyyy-MM-dd");
+                  const cellKey = `${prayer}-${dateKey}`;
+                  const dayIsFuture = isFuture(startOfDay(day));
+                  const prayerOnDay = isPrayerOnDay(prayer, day);
+
+                  // Prayer doesn't occur on this day (e.g., Jumah only on Friday)
+                  if (!prayerOnDay) {
+                    return (
+                      <div
+                        key={i}
+                        className="p-2 border-r last:border-r-0 bg-muted/20"
+                      />
+                    );
+                  }
+
+                  // Future dates - show as disabled
+                  if (dayIsFuture) {
+                    return (
+                      <div
+                        key={i}
+                        className={cn(
+                          "p-2 border-r last:border-r-0 flex items-center justify-center",
+                          "bg-muted/10"
+                        )}
+                        title="Cannot mark future dates"
+                      >
+                        <div className="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground/50 text-sm">
+                          ○
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const status = getPrayerStatus(prayer, day);
+                  const isLoading = loadingCells.has(cellKey);
+
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        "p-2 border-r last:border-r-0 flex items-center justify-center",
+                        isToday(day) && "bg-primary/5"
+                      )}
+                    >
+                      <PrayerStatusCell
+                        status={status}
+                        onClick={() => handleToggle(prayer, day, status)}
+                        disabled={dayIsFuture}
+                        isLoading={isLoading}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground pt-2">
+      <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="size-3 rounded-sm bg-emerald-500" />
+          <div className="w-4 h-4 rounded bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs">
+            ✓
+          </div>
           <span>Prayed</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="size-3 rounded-sm bg-amber-500" />
-          <span>Qazaa</span>
+          <div className="w-4 h-4 rounded bg-muted flex items-center justify-center text-muted-foreground text-xs">
+            ○
+          </div>
+          <span>Missed</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="size-3 rounded-sm bg-slate-300 dark:bg-slate-600" />
-          <span>Missed</span>
+          <div className="w-4 h-4 rounded bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-amber-600 dark:text-amber-400 text-xs">
+            ⊙
+          </div>
+          <span>Qazaa</span>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths, subDays, addDays, subWeeks, addWeeks, subYears, addYears, isFuture, startOfDay } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, addMonths, subDays, addDays, subWeeks, addWeeks, subYears, addYears, isFuture, startOfDay } from "date-fns";
 import { Moon } from "lucide-react";
 import { DailyView } from "./daily-view";
 import { WeeklyView } from "./weekly-view";
@@ -92,8 +92,8 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
           endDate = startDate;
           break;
         case CalendarView.WEEKLY:
-          startDate = format(subDays(currentDate, 7), "yyyy-MM-dd");
-          endDate = format(addDays(currentDate, 7), "yyyy-MM-dd");
+          startDate = format(startOfWeek(currentDate, { weekStartsOn: 0 }), "yyyy-MM-dd");
+          endDate = format(endOfWeek(currentDate, { weekStartsOn: 0 }), "yyyy-MM-dd");
           break;
         case CalendarView.MONTHLY:
           startDate = format(startOfMonth(currentDate), "yyyy-MM-dd");
@@ -117,7 +117,8 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
         setRecords(
           data.map((r: { date: string | Date; prayer: PrayerType; status: PrayerStatus; id: string }) => ({
             ...r,
-            date: typeof r.date === "string" ? parseISO(r.date) : r.date,
+            // Parse as noon UTC to avoid timezone day-shifting issues
+            date: typeof r.date === "string" ? new Date(r.date + "T12:00:00Z") : r.date,
           }))
         );
       }
@@ -168,7 +169,7 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
 
     // Send to server in background
     try {
-      await fetch("/api/prayers", {
+      const response = await fetch("/api/prayers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -177,8 +178,13 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
           status,
         }),
       });
-      // Optionally re-fetch to get the server-assigned ID
-      // fetchRecords();
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to update prayer record:", response.status, errorData);
+        // On error, revert by re-fetching
+        fetchRecords();
+      }
     } catch (error) {
       console.error("Error updating prayer record:", error);
       // On error, revert by re-fetching

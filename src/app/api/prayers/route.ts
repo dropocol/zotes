@@ -171,7 +171,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prayerDate = typeof date === "string" ? parseISO(date) : new Date(date);
+    // Parse date string and set to noon UTC to avoid timezone day-shifting issues
+    // "2026-02-24" should be stored as Feb 24, not shifted by timezone
+    const prayerDate = typeof date === "string"
+      ? new Date(date + "T12:00:00Z") // Use noon UTC to avoid day boundary issues
+      : new Date(date);
 
     // Upsert the prayer record
     const record = await prisma.prayerRecord.upsert({
