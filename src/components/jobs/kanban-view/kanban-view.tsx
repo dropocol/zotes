@@ -78,7 +78,7 @@ export function KanbanView({
           onDrop={(e) => handleDrop(e, column.statuses)}
         >
           {/* Column Header */}
-          <div className="flex items-center justify-between mb-3 px-1 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3 px-1 shrink-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-sm">{column.title}</h3>
               <Badge variant="secondary" className="font-normal h-5 px-1.5">
@@ -103,7 +103,7 @@ export function KanbanView({
                 <CardContent className="p-3 space-y-2">
                   {/* Header: Drag handle + Job Title */}
                   <div className="flex items-start gap-2">
-                    <GripVertical className="size-4 text-muted-foreground/50 mt-0.5 flex-shrink-0 cursor-grab hover:text-muted-foreground transition-colors" />
+                    <GripVertical className="size-4 text-muted-foreground/50 mt-0.5 shrink-0 cursor-grab hover:text-muted-foreground transition-colors" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm leading-tight line-clamp-2">
                         {job.jobTitle}
@@ -113,7 +113,7 @@ export function KanbanView({
 
                   {/* Company */}
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground pl-6">
-                    <Building2 className="size-3 flex-shrink-0" />
+                    <Building2 className="size-3 shrink-0" />
                     <span className="truncate">{job.companyName}</span>
                   </div>
 
@@ -152,7 +152,7 @@ export function KanbanView({
                   </div>
 
                   {/* Footer: Date and Interviews */}
-                  <div className="flex items-center justify-between pl-6 pt-1 border-t border-border/30 mt-2 pt-2">
+                  <div className="flex items-center justify-between pl-6 border-t border-border/30 mt-2 pt-2">
                     {job.dateApplied ? (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="size-3" />

@@ -31,7 +31,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
   SheetDescription,
   SheetClose,
@@ -63,7 +62,11 @@ import {
   getInterviewTypeDisplayName,
 } from "@/types/jobs";
 import { cn } from "@/lib/utils";
-import type { JobApplication, JobInterview, ResponseStatus } from "@prisma/client";
+import type {
+  JobApplication,
+  JobInterview,
+  ResponseStatus,
+} from "@prisma/client";
 
 interface JobWithInterviews extends JobApplication {
   interviews: JobInterview[];
@@ -100,8 +103,8 @@ function CompanyAvatar({ name }: { name: string }) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center size-14 rounded-xl bg-gradient-to-br shadow-lg",
-        colors[index]
+        "flex items-center justify-center size-14 rounded-xl bg-linear-to-br shadow-lg",
+        colors[index],
       )}
     >
       <span className="text-white font-bold text-lg">{initials}</span>
@@ -145,8 +148,6 @@ function ResponseIndicator({ status }: { status: ResponseStatus }) {
 // Interview card with timeline styling
 function InterviewCard({
   interview,
-  jobTitle,
-  companyName,
   onClick,
   isLast,
 }: {
@@ -189,7 +190,7 @@ function InterviewCard({
               ? "bg-emerald-100 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700"
               : isUpcoming
                 ? "bg-blue-100 dark:bg-blue-950/50 border-blue-300 dark:border-blue-700"
-                : "bg-muted border-border"
+                : "bg-muted border-border",
           )}
         >
           <Icon
@@ -199,7 +200,7 @@ function InterviewCard({
                 ? "text-emerald-600 dark:text-emerald-400"
                 : isUpcoming
                   ? "text-blue-600 dark:text-blue-400"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground",
             )}
           />
         </div>
@@ -207,7 +208,7 @@ function InterviewCard({
           <div
             className={cn(
               "w-0.5 flex-1 my-2",
-              isCompleted ? "bg-emerald-300 dark:bg-emerald-700" : "bg-border"
+              isCompleted ? "bg-emerald-300 dark:bg-emerald-700" : "bg-border",
             )}
           />
         )}
@@ -215,24 +216,19 @@ function InterviewCard({
 
       {/* Content */}
       <div
-        className={cn(
-          "flex-1 pb-6 cursor-pointer",
-          !isLast && "pb-6"
-        )}
+        className={cn("flex-1 pb-6 cursor-pointer", !isLast && "pb-6")}
         onClick={onClick}
       >
         <div
           className={cn(
             "p-4 rounded-xl border transition-all hover:shadow-md hover:border-primary/30",
-            isTodayInterview && "ring-2 ring-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20"
+            isTodayInterview &&
+              "ring-2 ring-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20",
           )}
         >
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Badge
-                variant="secondary"
-                className="font-mono text-xs"
-              >
+              <Badge variant="secondary" className="font-mono text-xs">
                 Round {interview.roundNumber}
               </Badge>
               <span className="font-semibold text-sm">
@@ -313,7 +309,10 @@ export function JobDetailsSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto p-0" showCloseButton={false}>
+        <SheetContent
+          className="w-full sm:max-w-lg overflow-y-auto p-0"
+          showCloseButton={false}
+        >
           {/* Header with subtle background */}
           <div className="relative px-6 pt-6 pb-8 bg-muted/30">
             {/* Actions - close and options aligned together */}
@@ -440,7 +439,7 @@ export function JobDetailsSheet({
               {formatSalary(
                 job.salaryMin,
                 job.salaryMax,
-                job.salaryCurrency || undefined
+                job.salaryCurrency || undefined,
               ) && (
                 <div className="p-3 rounded-lg border bg-muted/30">
                   <div className="text-xs text-muted-foreground mb-1">
@@ -452,7 +451,7 @@ export function JobDetailsSheet({
                       {formatSalary(
                         job.salaryMin,
                         job.salaryMax,
-                        job.salaryCurrency || undefined
+                        job.salaryCurrency || undefined,
                       )}
                     </span>
                   </div>
@@ -515,9 +514,7 @@ export function JobDetailsSheet({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="size-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    Interviews
-                  </span>
+                  <span className="text-sm font-medium">Interviews</span>
                   {job.interviews.length > 0 && (
                     <Badge variant="secondary" className="text-xs">
                       {job.interviews.length}

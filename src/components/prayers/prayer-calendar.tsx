@@ -9,12 +9,6 @@ import {
   endOfMonth,
   startOfWeek,
   endOfWeek,
-  subMonths,
-  addMonths,
-  subDays,
-  addDays,
-  subWeeks,
-  addWeeks,
   subYears,
   addYears,
   isFuture,
@@ -81,32 +75,9 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
     getDateFromParams("day", new Date()),
   );
   const [records, setRecords] = React.useState<PrayerRecord[]>(initialRecords);
-  const [isLoading, setIsLoading] = React.useState(false);
 
-  // Update URL when state changes
-  const updateUrl = React.useCallback(
-    (newView: CalendarViewType, newMonth: Date, newDay: Date) => {
-      const params = new URLSearchParams();
-      params.set("view", newView);
-      params.set("month", format(newMonth, "yyyy-MM-dd"));
-      params.set("day", format(newDay, "yyyy-MM-dd"));
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [pathname, router],
-  );
-
-  // Fetch records when view/date changes
-  React.useEffect(() => {
-    fetchRecords();
-  }, [currentDate, view]);
-
-  // Update URL when state changes
-  React.useEffect(() => {
-    updateUrl(view, currentDate, selectedDay);
-  }, [view, currentDate, selectedDay, updateUrl]);
-
-  const fetchRecords = async () => {
-    setIsLoading(true);
+  // Fetch records function
+  const fetchRecords = React.useCallback(async () => {
     try {
       let startDate: string;
       let endDate: string;
@@ -166,10 +137,30 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
       }
     } catch (error) {
       console.error("Error fetching prayer records:", error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [currentDate, view, selectedDay]);
+
+  // Update URL when state changes
+  const updateUrl = React.useCallback(
+    (newView: CalendarViewType, newMonth: Date, newDay: Date) => {
+      const params = new URLSearchParams();
+      params.set("view", newView);
+      params.set("month", format(newMonth, "yyyy-MM-dd"));
+      params.set("day", format(newDay, "yyyy-MM-dd"));
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router],
+  );
+
+  // Fetch records when view/date changes
+  React.useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
+  // Update URL when state changes
+  React.useEffect(() => {
+    updateUrl(view, currentDate, selectedDay);
+  }, [view, currentDate, selectedDay, updateUrl]);
 
   const handleStatusChange = async (
     date: Date,
@@ -277,7 +268,7 @@ export function PrayerCalendar({ initialRecords = [] }: PrayerCalendarProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 shadow-lg shadow-indigo-500/25">
+          <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 p-2.5 shadow-lg shadow-indigo-500/25">
             <Moon className="size-5 text-white" />
           </div>
           <div>

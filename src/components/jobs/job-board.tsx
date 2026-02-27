@@ -248,7 +248,7 @@ export function JobBoard({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-500/25">
+          <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-500/25">
             <Briefcase className="size-5 text-white" />
           </div>
           <div>
