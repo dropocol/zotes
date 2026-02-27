@@ -31,46 +31,59 @@ interface NavItem {
   }[];
 }
 
+// Helper to get default open items based on current path
+function getDefaultOpenItems(items: NavItem[], pathname: string): Record<string, boolean> {
+  const defaultOpen: Record<string, boolean> = {};
+  items.forEach((item) => {
+    if (item.items) {
+      const isActive = item.items.some((subItem) => pathname === subItem.url || pathname.startsWith(subItem.url + "/"));
+      if (isActive) {
+        defaultOpen[item.title] = true;
+      }
+    }
+  });
+  return defaultOpen;
+}
+
 export function NavMain({
   items,
 }: {
   items: NavItem[];
 }) {
   const pathname = usePathname();
+  const [mounted, setMounted] = React.useState(false);
 
-  // Initialize open state from localStorage or based on active path
-  const [openItems, setOpenItems] = React.useState<Record<string, boolean>>(() => {
-    if (typeof window === "undefined") return {};
+  // Initialize with path-based defaults (same on server and client initially)
+  const [openItems, setOpenItems] = React.useState<Record<string, boolean>>(() =>
+    getDefaultOpenItems(items, pathname)
+  );
 
+  // After hydration, load from localStorage
+  React.useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem("sidebar-open-items");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Merge with current path-based defaults
+        setOpenItems((prev) => ({ ...prev, ...parsed }));
       } catch {
         // ignore parse errors
       }
     }
-
-    // Default: open items that are active or contain the current path
-    const defaultOpen: Record<string, boolean> = {};
-    items.forEach((item) => {
-      if (item.items) {
-        const isActive = item.items.some((subItem) => pathname === subItem.url || pathname.startsWith(subItem.url + "/"));
-        if (isActive) {
-          defaultOpen[item.title] = true;
-        }
-      }
-    });
-    return defaultOpen;
-  });
+  }, []);
 
   // Persist open state to localStorage
   React.useEffect(() => {
-    localStorage.setItem("sidebar-open-items", JSON.stringify(openItems));
-  }, [openItems]);
+    if (mounted) {
+      localStorage.setItem("sidebar-open-items", JSON.stringify(openItems));
+    }
+  }, [openItems, mounted]);
 
   // Update open state when pathname changes
   React.useEffect(() => {
+    if (!mounted) return;
+
     setOpenItems((prev) => {
       const updated = { ...prev };
       let hasChanges = false;
@@ -89,7 +102,7 @@ export function NavMain({
 
       return hasChanges ? updated : prev;
     });
-  }, [pathname, items]);
+  }, [pathname, items, mounted]);
 
   const toggleItem = (title: string) => {
     setOpenItems((prev) => ({

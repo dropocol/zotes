@@ -8,6 +8,10 @@ import {
   ArrowUpDown,
   Building2,
   MapPin,
+  MessageSquare,
+  DollarSign,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,8 +39,9 @@ import {
   getJobSourceDisplayName,
   getStatusDisplayName,
   formatSalary,
+  getResponseStatusColor,
 } from "@/types/jobs";
-import type { JobApplication, JobInterview } from "@prisma/client";
+import type { JobApplication, JobInterview, ResponseStatus } from "@prisma/client";
 
 interface JobWithInterviews extends JobApplication {
   interviews: JobInterview[];
@@ -47,7 +52,25 @@ interface ListViewProps {
   onJobClick: (job: JobWithInterviews) => void;
 }
 
-type SortField = "createdAt" | "dateApplied" | "companyName" | "jobTitle" | "status";
+// Response Badge Component
+function ResponseBadge({ response }: { response: ResponseStatus }) {
+  const colors = getResponseStatusColor(response);
+  const labels: Record<ResponseStatus, string> = {
+    YES: "Yes",
+    NO: "No",
+    PENDING: "Pending",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors.bg} ${colors.text}`}
+    >
+      {labels[response]}
+    </span>
+  );
+}
+
+type SortField = "createdAt" | "dateApplied" | "dateFound" | "companyName" | "jobTitle" | "status" | "responseReceived";
 type SortDirection = "asc" | "desc";
 
 export function ListView({ jobs, onJobClick }: ListViewProps) {
@@ -85,9 +108,14 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
         case "dateApplied":
-          const dateA = a.dateApplied ? new Date(a.dateApplied).getTime() : 0;
-          const dateB = b.dateApplied ? new Date(b.dateApplied).getTime() : 0;
-          comparison = dateA - dateB;
+          const dateAppliedA = a.dateApplied ? new Date(a.dateApplied).getTime() : 0;
+          const dateAppliedB = b.dateApplied ? new Date(b.dateApplied).getTime() : 0;
+          comparison = dateAppliedA - dateAppliedB;
+          break;
+        case "dateFound":
+          const dateFoundA = a.dateFound ? new Date(a.dateFound).getTime() : 0;
+          const dateFoundB = b.dateFound ? new Date(b.dateFound).getTime() : 0;
+          comparison = dateFoundA - dateFoundB;
           break;
         case "companyName":
           comparison = a.companyName.localeCompare(b.companyName);
@@ -97,6 +125,9 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
           break;
         case "status":
           comparison = a.status.localeCompare(b.status);
+          break;
+        case "responseReceived":
+          comparison = a.responseReceived.localeCompare(b.responseReceived);
           break;
       }
 
@@ -186,7 +217,21 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
               </TableHead>
               <TableHead>Source</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Response</TableHead>
               <TableHead>Location</TableHead>
+              <TableHead>Salary</TableHead>
+              <TableHead>Interviews</TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="-ml-3"
+                  onClick={() => handleSort("dateFound")}
+                >
+                  Found
+                  <ArrowUpDown className="ml-2 size-4" />
+                </Button>
+              </TableHead>
               <TableHead>
                 <Button
                   variant="ghost"
@@ -198,12 +243,23 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
                   <ArrowUpDown className="ml-2 size-4" />
                 </Button>
               </TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="-ml-3"
+                  onClick={() => handleSort("createdAt")}
+                >
+                  Created
+                  <ArrowUpDown className="ml-2 size-4" />
+                </Button>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedJobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                   No job applications found
                 </TableCell>
               </TableRow>
@@ -215,14 +271,7 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
                   onClick={() => onJobClick(job)}
                 >
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{job.jobTitle}</div>
-                      {job.interviews.length > 0 && (
-                        <Badge variant="outline" className="mt-1">
-                          {job.interviews.length} interview{job.interviews.length > 1 ? "s" : ""}
-                        </Badge>
-                      )}
-                    </div>
+                    <div className="font-medium">{job.jobTitle}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -237,6 +286,9 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
                     <StatusBadge status={job.status} />
                   </TableCell>
                   <TableCell>
+                    <ResponseBadge response={job.responseReceived} />
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       {job.location && (
                         <>
@@ -247,12 +299,46 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
                       {job.isRemote && !job.location && (
                         <Badge variant="secondary">Remote</Badge>
                       )}
+                      {job.isRemote && job.location && (
+                        <Badge variant="secondary" className="ml-1">Remote</Badge>
+                      )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency || undefined) ? (
+                      <div className="flex items-center gap-1 text-sm">
+                        <DollarSign className="size-3 text-muted-foreground" />
+                        {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency || undefined)}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {job.interviews.length > 0 ? (
+                      <Badge variant="outline" className="gap-1">
+                        <MessageSquare className="size-3" />
+                        {job.interviews.length}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {job.dateFound
+                      ? format(new Date(job.dateFound), "MMM d, yyyy")
+                      : "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {job.dateApplied
                       ? format(new Date(job.dateApplied), "MMM d, yyyy")
-                      : "-"}
+                      : <span className="text-muted-foreground/50">Not applied</span>}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Clock className="size-3" />
+                      {format(new Date(job.createdAt), "MMM d, yyyy")}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
