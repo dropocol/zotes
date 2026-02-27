@@ -16,6 +16,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 export function DashboardLayout({
   children,
@@ -30,6 +31,8 @@ export function DashboardLayout({
   headerActions?: React.ReactNode;
   fullHeight?: boolean;
 }) {
+  usePageTitle();
+
   return (
     <SidebarProvider suppressHydrationWarning>
       <AppSidebar />

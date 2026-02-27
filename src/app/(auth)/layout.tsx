@@ -1,8 +1,14 @@
+"use client";
+
+import { usePageTitle } from "@/hooks/use-page-title";
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  usePageTitle();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
