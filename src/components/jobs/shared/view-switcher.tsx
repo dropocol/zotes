@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { List, Kanban, Calendar, BarChart3 } from "lucide-react";
+import { List, Calendar, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,6 @@ const VIEW_OPTIONS: {
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   { value: JobBoardView.LIST, label: "List", icon: List },
-  { value: JobBoardView.KANBAN, label: "Kanban", icon: Kanban },
   { value: JobBoardView.CALENDAR, label: "Calendar", icon: Calendar },
   { value: JobBoardView.STATS, label: "Stats", icon: BarChart3 },
 ];

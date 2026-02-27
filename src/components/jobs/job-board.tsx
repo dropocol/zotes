@@ -8,14 +8,12 @@ import { ViewSwitcher } from "./shared/view-switcher";
 import { JobForm } from "./job-form/job-form";
 import { JobDetailsSheet } from "./job-form/job-details-sheet";
 import { ListView } from "./list-view/list-view";
-import { KanbanView } from "./kanban-view/kanban-view";
 import { CalendarView } from "./calendar-view/calendar-view";
 import { StatsView } from "./stats-view/stats-view";
 import { JobBoardViewType, JobBoardView } from "@/types/jobs";
 import type {
   JobApplication,
   JobInterview,
-  JobApplicationStatus,
 } from "@prisma/client";
 
 interface InterviewWithJob extends JobInterview {
@@ -78,6 +76,7 @@ export function JobBoard({
   const [statsRange, setStatsRange] = React.useState("month");
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasInitiallyFetched, setHasInitiallyFetched] = React.useState(false);
+  const [refreshKey, setRefreshKey] = React.useState(0);
 
   // Form state
   const [showJobForm, setShowJobForm] = React.useState(false);
@@ -96,10 +95,11 @@ export function JobBoard({
   const fetchJobs = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/jobs");
+      const response = await fetch("/api/jobs?page=1&limit=100");
       if (response.ok) {
         const data = await response.json();
-        setJobs(data);
+        // Handle paginated response
+        setJobs(data.data || data);
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -188,6 +188,7 @@ export function JobBoard({
         setSelectedJob(null);
         fetchJobs();
         fetchStats(statsRange);
+        setRefreshKey((prev) => prev + 1);
       }
     } catch (error) {
       console.error("Error deleting job:", error);
@@ -200,34 +201,7 @@ export function JobBoard({
     setSelectedJob(null);
     fetchJobs();
     fetchStats(statsRange);
-  };
-
-  const handleStatusChange = async (
-    jobId: string,
-    newStatus: JobApplicationStatus,
-  ) => {
-    // Optimistic update
-    setJobs((prevJobs) =>
-      prevJobs.map((job) =>
-        job.id === jobId ? { ...job, status: newStatus } : job,
-      ),
-    );
-
-    try {
-      const response = await fetch(`/api/jobs/${jobId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        // Revert on error
-        fetchJobs();
-      }
-    } catch (error) {
-      console.error("Error updating job status:", error);
-      fetchJobs();
-    }
+    setRefreshKey((prev) => prev + 1);
   };
 
   // Get all interviews for calendar view
@@ -278,15 +252,7 @@ export function JobBoard({
       ) : (
         <>
           {view === JobBoardView.LIST && (
-            <ListView jobs={jobs} onJobClick={handleJobClick} />
-          )}
-
-          {view === JobBoardView.KANBAN && (
-            <KanbanView
-              jobs={jobs}
-              onJobClick={handleJobClick}
-              onStatusChange={handleStatusChange}
-            />
+            <ListView onJobClick={handleJobClick} refreshKey={refreshKey} />
           )}
 
           {view === JobBoardView.CALENDAR && (

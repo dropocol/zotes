@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useState, useCallback, useMemo } from "react"
 
 interface UsePaginationOptions {
@@ -33,15 +33,19 @@ export function usePagination({
   initialLimit = 25,
   maxPagesToShow = 7,
 }: UsePaginationOptions): UsePaginationReturn {
-  const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Read initial values from URL or use defaults (only once on mount)
+  // Read from URL or use defaults - derived during render, not in effect
   const urlPage = Number(searchParams.get("page")) || initialPage
   const urlLimit = Number(searchParams.get("limit")) || initialLimit
 
-  const [currentPage, setCurrentPage] = useState(Math.max(1, urlPage))
-  const [limit, setLimit] = useState(Math.max(1, urlLimit))
+  // Internal state for user interactions (starts from URL values)
+  const [internalPage, setInternalPage] = useState<number | null>(null)
+  const [internalLimit, setInternalLimit] = useState<number | null>(null)
+
+  // Use internal state if user has interacted, otherwise use URL values
+  const currentPage = internalPage ?? Math.max(1, urlPage)
+  const limit = internalLimit ?? Math.max(1, urlLimit)
 
   const totalPages = Math.max(1, Math.ceil(totalItems / limit))
 
@@ -75,66 +79,43 @@ export function usePagination({
     return pagesArray
   }, [currentPage, totalPages, maxPagesToShow])
 
-  // Update URL when pagination state changes
-  const updateUrl = useCallback(
-    (page: number, newLimit?: number) => {
-      const params = new URLSearchParams(searchParams.toString())
-
-      params.set("page", page.toString())
-      if (newLimit) {
-        params.set("limit", newLimit.toString())
-      }
-
-      router.push(`?${params.toString()}`, { scroll: false })
-    },
-    [searchParams, router]
-  )
-
-  // Navigation functions
+  // Navigation functions (URL sync is handled by parent component)
   const setPage = useCallback(
     (page: number) => {
       const validPage = Math.max(1, Math.min(page, totalPages))
-      setCurrentPage(validPage)
-      updateUrl(validPage)
+      setInternalPage(validPage)
     },
-    [totalPages, updateUrl]
+    [totalPages]
   )
 
   const setLimitWithValidation = useCallback(
     (newLimit: number) => {
       const validLimit = Math.max(1, newLimit)
-      setLimit(validLimit)
-      setCurrentPage(1)
-      updateUrl(1, validLimit)
+      setInternalLimit(validLimit)
+      setInternalPage(1)
     },
-    [updateUrl]
+    []
   )
 
   const nextPage = useCallback(() => {
     if (hasNextPage) {
-      const newPage = currentPage + 1
-      setCurrentPage(newPage)
-      updateUrl(newPage)
+      setInternalPage(currentPage + 1)
     }
-  }, [hasNextPage, currentPage, updateUrl])
+  }, [hasNextPage, currentPage])
 
   const previousPage = useCallback(() => {
     if (hasPreviousPage) {
-      const newPage = currentPage - 1
-      setCurrentPage(newPage)
-      updateUrl(newPage)
+      setInternalPage(currentPage - 1)
     }
-  }, [hasPreviousPage, currentPage, updateUrl])
+  }, [hasPreviousPage, currentPage])
 
   const goToFirstPage = useCallback(() => {
-    setCurrentPage(1)
-    updateUrl(1)
-  }, [updateUrl])
+    setInternalPage(1)
+  }, [])
 
   const goToLastPage = useCallback(() => {
-    setCurrentPage(totalPages)
-    updateUrl(totalPages)
-  }, [totalPages, updateUrl])
+    setInternalPage(totalPages)
+  }, [totalPages])
 
   return {
     currentPage,

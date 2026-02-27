@@ -36,7 +36,10 @@ interface JobStats {
   bySource: Record<string, number>;
   byMethod: Record<string, number>;
   applicationsOverTime: Record<string, number>;
-  responseRateBySource: Record<string, { total: number; responded: number; rate: number }>;
+  responseRateBySource: Record<
+    string,
+    { total: number; responded: number; rate: number }
+  >;
 }
 
 interface JobsContextValue {
@@ -49,7 +52,10 @@ interface JobsContextValue {
   fetchStats: (range: string) => Promise<void>;
   setStatsRange: (range: string) => void;
   handleJobClick: (job: JobWithInterviews) => void;
-  handleStatusChange: (jobId: string, newStatus: JobApplicationStatus) => Promise<void>;
+  handleStatusChange: (
+    jobId: string,
+    newStatus: JobApplicationStatus,
+  ) => Promise<void>;
   showAddJobForm: () => void;
 }
 
@@ -69,7 +75,11 @@ interface JobsProviderProps {
   initialStats?: JobStats | null;
 }
 
-export function JobsProvider({ children, initialJobs = [], initialStats = null }: JobsProviderProps) {
+export function JobsProvider({
+  children,
+  initialJobs = [],
+  initialStats = null,
+}: JobsProviderProps) {
   const [jobs, setJobs] = React.useState<JobWithInterviews[]>(initialJobs);
   const [stats, setStats] = React.useState<JobStats | null>(initialStats);
   const [statsRange, setStatsRange] = React.useState("month");
@@ -78,10 +88,13 @@ export function JobsProvider({ children, initialJobs = [], initialStats = null }
 
   // Form state
   const [showJobForm, setShowJobForm] = React.useState(false);
-  const [editingJob, setEditingJob] = React.useState<JobWithInterviews | null>(null);
+  const [editingJob, setEditingJob] = React.useState<JobWithInterviews | null>(
+    null,
+  );
 
   // Details sheet state
-  const [selectedJob, setSelectedJob] = React.useState<JobWithInterviews | null>(null);
+  const [selectedJob, setSelectedJob] =
+    React.useState<JobWithInterviews | null>(null);
 
   // Fetch jobs
   const fetchJobs = React.useCallback(async () => {
@@ -90,7 +103,8 @@ export function JobsProvider({ children, initialJobs = [], initialStats = null }
       const response = await fetch("/api/jobs");
       if (response.ok) {
         const data = await response.json();
-        setJobs(data);
+        // Handle paginated response
+        setJobs(data.data || data);
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -126,7 +140,14 @@ export function JobsProvider({ children, initialJobs = [], initialStats = null }
         fetchStats(statsRange);
       }
     }
-  }, [hasInitiallyFetched, initialJobs.length, initialStats, fetchJobs, fetchStats, statsRange]);
+  }, [
+    hasInitiallyFetched,
+    initialJobs.length,
+    initialStats,
+    fetchJobs,
+    fetchStats,
+    statsRange,
+  ]);
 
   // Fetch stats when range changes
   React.useEffect(() => {
@@ -170,12 +191,15 @@ export function JobsProvider({ children, initialJobs = [], initialStats = null }
     fetchStats(statsRange);
   };
 
-  const handleStatusChange = async (jobId: string, newStatus: JobApplicationStatus) => {
+  const handleStatusChange = async (
+    jobId: string,
+    newStatus: JobApplicationStatus,
+  ) => {
     // Optimistic update
     setJobs((prevJobs) =>
       prevJobs.map((job) =>
-        job.id === jobId ? { ...job, status: newStatus } : job
-      )
+        job.id === jobId ? { ...job, status: newStatus } : job,
+      ),
     );
 
     try {
@@ -208,7 +232,7 @@ export function JobsProvider({ children, initialJobs = [], initialStats = null }
           jobTitle: job.jobTitle,
           companyName: job.companyName,
         },
-      }))
+      })),
     );
   }, [jobs]);
 
@@ -260,18 +284,26 @@ export function JobsProvider({ children, initialJobs = [], initialStats = null }
 }
 
 // Header component for all job views
-export function JobViewHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+export function JobViewHeader({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   const { showAddJobForm } = useJobs();
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-500/25">
+        <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-500/25">
           <Briefcase className="size-5 text-white" />
         </div>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">{subtitle || "Track your job search progress"}</p>
+          <p className="text-sm text-muted-foreground">
+            {subtitle || "Track your job search progress"}
+          </p>
         </div>
       </div>
       <Button onClick={showAddJobForm}>

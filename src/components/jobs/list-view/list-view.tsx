@@ -1,20 +1,20 @@
 "use client";
 
 import * as React from "react";
+import { useState } from "react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
   Search,
   SlidersHorizontal,
-  ArrowUpDown,
   Building2,
   MapPin,
   MessageSquare,
   DollarSign,
-  Calendar,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -49,9 +49,21 @@ interface JobWithInterviews extends JobApplication {
   interviews: JobInterview[];
 }
 
+interface PaginatedJobsResponse {
+  data: JobWithInterviews[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
 interface ListViewProps {
-  jobs: JobWithInterviews[];
   onJobClick: (job: JobWithInterviews) => void;
+  refreshKey?: number;
 }
 
 // Response Badge Component
@@ -72,106 +84,152 @@ function ResponseBadge({ response }: { response: ResponseStatus }) {
   );
 }
 
-type SortField = "createdAt" | "dateApplied" | "dateFound" | "companyName" | "jobTitle" | "status" | "responseReceived";
-type SortDirection = "asc" | "desc";
+export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
 
-export function ListView({ jobs, onJobClick }: ListViewProps) {
-  const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<string>("all");
-  const [sourceFilter, setSourceFilter] = React.useState<string>("all");
-  const [sortField, setSortField] = React.useState<SortField>("createdAt");
-  const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
+  // Track if component has mounted (to avoid URL sync during SSR/hydration)
+  const mountedRef = React.useRef(false);
 
-  // Filter jobs
-  const filteredJobs = React.useMemo(() => {
-    return jobs.filter((job) => {
-      const matchesSearch =
-        search === "" ||
-        job.jobTitle.toLowerCase().includes(search.toLowerCase()) ||
-        job.companyName.toLowerCase().includes(search.toLowerCase());
+  // Read URL values during render (derived state)
+  const urlSearch = searchParams.get("search") || ""
+  const urlStatus = searchParams.get("status") || "all"
+  const urlSource = searchParams.get("source") || "all"
 
-      const matchesStatus =
-        statusFilter === "all" || job.status === statusFilter;
+  // Internal state for user interactions (null means use URL value)
+  const [jobs, setJobs] = React.useState<JobWithInterviews[]>([]);
+  const [totalItems, setTotalItems] = React.useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchInput, setSearchInput] = React.useState<string | null>(null);
+  const [internalStatus, setInternalStatus] = React.useState<string | null>(null);
+  const [internalSource, setInternalSource] = React.useState<string | null>(null);
 
-      const matchesSource =
-        sourceFilter === "all" || job.source === sourceFilter;
+  // Use internal state if set, otherwise use URL values
+  const search = searchInput ?? urlSearch
+  const statusFilter = internalStatus ?? urlStatus
+  const sourceFilter = internalSource ?? urlSource
 
-      return matchesSearch && matchesStatus && matchesSource;
-    });
-  }, [jobs, search, statusFilter, sourceFilter]);
-
-  // Sort jobs
-  const sortedJobs = React.useMemo(() => {
-    return [...filteredJobs].sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortField) {
-        case "createdAt":
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          break;
-        case "dateApplied":
-          const dateAppliedA = a.dateApplied ? new Date(a.dateApplied).getTime() : 0;
-          const dateAppliedB = b.dateApplied ? new Date(b.dateApplied).getTime() : 0;
-          comparison = dateAppliedA - dateAppliedB;
-          break;
-        case "dateFound":
-          const dateFoundA = a.dateFound ? new Date(a.dateFound).getTime() : 0;
-          const dateFoundB = b.dateFound ? new Date(b.dateFound).getTime() : 0;
-          comparison = dateFoundA - dateFoundB;
-          break;
-        case "companyName":
-          comparison = a.companyName.localeCompare(b.companyName);
-          break;
-        case "jobTitle":
-          comparison = a.jobTitle.localeCompare(b.jobTitle);
-          break;
-        case "status":
-          comparison = a.status.localeCompare(b.status);
-          break;
-        case "responseReceived":
-          comparison = a.responseReceived.localeCompare(b.responseReceived);
-          break;
-      }
-
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-  }, [filteredJobs, sortField, sortDirection]);
-
-  // Pagination
   const pagination = usePagination({
-    totalItems: sortedJobs.length,
+    totalItems,
     initialLimit: 25,
   });
 
-  // Track if this is the initial mount
-  const isInitialMount = React.useRef(true);
+  // Debounced search value
+  const [debouncedSearch, setDebouncedSearch] = React.useState(search);
 
-  // Paginated jobs
-  const paginatedJobs = React.useMemo(() => {
-    const start = pagination.startIndex;
-    const end = pagination.endIndex;
-    return sortedJobs.slice(start, end);
-  }, [sortedJobs, pagination.startIndex, pagination.endIndex]);
-
-  // Reset to first page when filters change (but not on initial mount)
+  // Debounce search input
   React.useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Build the target URL based on current state
+  const buildTargetUrl = React.useCallback(() => {
+    const params = new URLSearchParams();
+
+    if (debouncedSearch) {
+      params.set("search", debouncedSearch);
+    }
+    if (statusFilter !== "all") {
+      params.set("status", statusFilter);
+    }
+    if (sourceFilter !== "all") {
+      params.set("source", sourceFilter);
+    }
+    if (pagination.currentPage > 1) {
+      params.set("page", pagination.currentPage.toString());
+    }
+    if (pagination.limit !== 25) {
+      params.set("limit", pagination.limit.toString());
+    }
+
+    return params.toString() ? `${pathname}?${params.toString()}` : pathname;
+  }, [debouncedSearch, statusFilter, sourceFilter, pagination.currentPage, pagination.limit, pathname]);
+
+  // Mark as mounted after first render
+  React.useEffect(() => {
+    mountedRef.current = true;
+  }, []);
+
+  // Update URL only when it would actually change (and after mount)
+  React.useEffect(() => {
+    if (!mountedRef.current) return;
+
+    const targetUrl = buildTargetUrl();
+    const currentUrl = pathname + window.location.search;
+
+    if (targetUrl !== currentUrl) {
+      router.replace(targetUrl, { scroll: false });
+    }
+  }, [buildTargetUrl, router, pathname]);
+
+  // Wrapper functions to set internal state
+  const handleSearchChange = React.useCallback((value: string) => {
+    setSearchInput(value);
+  }, []);
+
+  const handleStatusChange = React.useCallback((value: string) => {
+    setInternalStatus(value);
+  }, []);
+
+  const handleSourceChange = React.useCallback((value: string) => {
+    setInternalSource(value);
+  }, []);
+
+  // Fetch jobs from API with filters
+  const fetchJobs = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: pagination.currentPage.toString(),
+        limit: pagination.limit.toString(),
+      });
+
+      // Add filters to params
+      if (debouncedSearch) {
+        params.set("search", debouncedSearch);
+      }
+      if (statusFilter !== "all") {
+        params.set("status", statusFilter);
+      }
+      if (sourceFilter !== "all") {
+        params.set("source", sourceFilter);
+      }
+
+      const response = await fetch(`/api/jobs?${params.toString()}`);
+      if (response.ok) {
+        const data: PaginatedJobsResponse = await response.json();
+        setJobs(data.data);
+        setTotalItems(data.pagination.total);
+      }
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pagination.currentPage, pagination.limit, debouncedSearch, statusFilter, sourceFilter]);
+
+  // Fetch on mount and when filters/pagination/refreshKey changes
+  React.useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs, refreshKey]);
+
+  // Reset to first page when filters change (but not on initial mount with URL params)
+  const filtersChangedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    // Skip on initial mount - we don't want to reset page when loading from URL
+    if (!filtersChangedRef.current) {
+      filtersChangedRef.current = true;
       return;
     }
     if (pagination.currentPage > 1) {
       pagination.setPage(1);
     }
-  }, [search, statusFilter, sourceFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDirection("desc");
-    }
-  };
+  }, [debouncedSearch, statusFilter, sourceFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-4">
@@ -182,12 +240,12 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
           <Input
             placeholder="Search jobs..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
           />
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[140px]">
               <SlidersHorizontal className="size-4 mr-2" />
               <SelectValue placeholder="Status" />
@@ -201,7 +259,7 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
               ))}
             </SelectContent>
           </Select>
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <Select value={sourceFilter} onValueChange={handleSourceChange}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Source" />
             </SelectTrigger>
@@ -218,173 +276,130 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="-ml-3"
-                  onClick={() => handleSort("jobTitle")}
-                >
-                  Job Title
-                  <ArrowUpDown className="ml-2 size-4" />
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="-ml-3"
-                  onClick={() => handleSort("companyName")}
-                >
-                  Company
-                  <ArrowUpDown className="ml-2 size-4" />
-                </Button>
-              </TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Response</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Salary</TableHead>
-              <TableHead>Interviews</TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="-ml-3"
-                  onClick={() => handleSort("dateFound")}
-                >
-                  Found
-                  <ArrowUpDown className="ml-2 size-4" />
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="-ml-3"
-                  onClick={() => handleSort("dateApplied")}
-                >
-                  Applied
-                  <ArrowUpDown className="ml-2 size-4" />
-                </Button>
-              </TableHead>
-              <TableHead>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="-ml-3"
-                  onClick={() => handleSort("createdAt")}
-                >
-                  Created
-                  <ArrowUpDown className="ml-2 size-4" />
-                </Button>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedJobs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                  No job applications found
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedJobs.map((job) => (
-                <TableRow
-                  key={job.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => onJobClick(job)}
-                >
-                  <TableCell>
-                    <div className="font-medium">{job.jobTitle}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Building2 className="size-4 text-muted-foreground" />
-                      {job.companyName}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <SourceIcon source={job.source} showLabel />
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={job.status} />
-                  </TableCell>
-                  <TableCell>
-                    <ResponseBadge response={job.responseReceived} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {job.location && (
-                        <>
-                          <MapPin className="size-4 text-muted-foreground" />
-                          <span className="text-sm">{job.location}</span>
-                        </>
-                      )}
-                      {job.isRemote && !job.location && (
-                        <Badge variant="secondary">Remote</Badge>
-                      )}
-                      {job.isRemote && job.location && (
-                        <Badge variant="secondary" className="ml-1">Remote</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency || undefined) ? (
-                      <div className="flex items-center gap-1 text-sm">
-                        <DollarSign className="size-3 text-muted-foreground" />
-                        {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency || undefined)}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {job.interviews.length > 0 ? (
-                      <Badge variant="outline" className="gap-1">
-                        <MessageSquare className="size-3" />
-                        {job.interviews.length}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {job.dateFound
-                      ? format(new Date(job.dateFound), "MMM d, yyyy")
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {job.dateApplied
-                      ? format(new Date(job.dateApplied), "MMM d, yyyy")
-                      : <span className="text-muted-foreground/50">Not applied</span>}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Clock className="size-3" />
-                      {format(new Date(job.createdAt), "MMM d, yyyy")}
-                    </div>
-                  </TableCell>
+      {isLoading && jobs.length === 0 ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Job Title</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Response</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Salary</TableHead>
+                  <TableHead>Interviews</TableHead>
+                  <TableHead>Found</TableHead>
+                  <TableHead>Applied</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {jobs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                      No job applications found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  jobs.map((job) => (
+                    <TableRow
+                      key={job.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => onJobClick(job)}
+                    >
+                      <TableCell>
+                        <div className="font-medium">{job.jobTitle}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="size-4 text-muted-foreground" />
+                          {job.companyName}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <SourceIcon source={job.source} showLabel />
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={job.status} />
+                      </TableCell>
+                      <TableCell>
+                        <ResponseBadge response={job.responseReceived} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {job.location && (
+                            <>
+                              <MapPin className="size-4 text-muted-foreground" />
+                              <span className="text-sm">{job.location}</span>
+                            </>
+                          )}
+                          {job.isRemote && !job.location && (
+                            <Badge variant="secondary">Remote</Badge>
+                          )}
+                          {job.isRemote && job.location && (
+                            <Badge variant="secondary" className="ml-1">Remote</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency || undefined) ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <DollarSign className="size-3 text-muted-foreground" />
+                            {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency || undefined)}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {job.interviews.length > 0 ? (
+                          <Badge variant="outline" className="gap-1">
+                            <MessageSquare className="size-3" />
+                            {job.interviews.length}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {job.dateFound
+                          ? format(new Date(job.dateFound), "MMM d, yyyy")
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {job.dateApplied
+                          ? format(new Date(job.dateApplied), "MMM d, yyyy")
+                          : <span className="text-muted-foreground/50">Not applied</span>}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="size-3" />
+                          {format(new Date(job.createdAt), "MMM d, yyyy")}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
-      {/* Pagination */}
-      <Pagination
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        totalItems={sortedJobs.length}
-        limit={pagination.limit}
-        onPageChange={pagination.setPage}
-        onLimitChange={pagination.setLimit}
-      />
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={totalItems}
+            limit={pagination.limit}
+            onPageChange={pagination.setPage}
+            onLimitChange={pagination.setLimit}
+          />
+        </>
+      )}
     </div>
   );
 }

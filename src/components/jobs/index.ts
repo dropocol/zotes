@@ -6,7 +6,6 @@ export { JobViewLayout } from "./job-view-layout";
 // Views
 export {
   JobListView,
-  JobKanbanView,
   JobCalendarView,
   JobStatsView,
 } from "./views";
@@ -23,7 +22,6 @@ export { InterviewForm } from "./job-form/interview-form";
 
 // Individual views (for direct use)
 export { ListView } from "./list-view/list-view";
-export { KanbanView } from "./kanban-view/kanban-view";
 export { CalendarView } from "./calendar-view/calendar-view";
 export { StatsView } from "./stats-view/stats-view";
 

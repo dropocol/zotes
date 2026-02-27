@@ -69,44 +69,12 @@ export const INTERVIEW_TYPES: InterviewType[] = [
 
 export const JobBoardView = {
   LIST: "list",
-  KANBAN: "kanban",
   CALENDAR: "calendar",
   STATS: "stats",
 } as const;
 
 export type JobBoardViewType =
   (typeof JobBoardView)[keyof typeof JobBoardView];
-
-// ============================================================================
-// KANBAN COLUMNS
-// ============================================================================
-
-export const KANBAN_COLUMNS: {
-  id: string;
-  title: string;
-  statuses: JobApplicationStatus[];
-}[] = [
-  {
-    id: "to-apply",
-    title: "To Apply",
-    statuses: ["SAVED"],
-  },
-  {
-    id: "applied",
-    title: "Applied",
-    statuses: ["APPLIED", "NO_RESPONSE"],
-  },
-  {
-    id: "in-progress",
-    title: "In Progress",
-    statuses: ["PHONE_SCREEN", "INTERVIEW"],
-  },
-  {
-    id: "resolved",
-    title: "Resolved",
-    statuses: ["OFFER", "REJECTED", "WITHDRAWN"],
-  },
-];
 
 // ============================================================================
 // HELPER FUNCTIONS

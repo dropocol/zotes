@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Layers, StickyNote, Home, CheckSquare, CalendarDays, Moon, Repeat, Briefcase, List, Kanban, BarChart3 } from "lucide-react";
+import { Layers, StickyNote, Home, CheckSquare, CalendarDays, Moon, Repeat, Briefcase, List, BarChart3 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavRecent } from "@/components/nav-recent";
@@ -76,10 +76,6 @@ const data = {
         {
           title: "List",
           url: "/jobs/list",
-        },
-        {
-          title: "Kanban",
-          url: "/jobs/kanban",
         },
         {
           title: "Calendar",
