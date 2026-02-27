@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getPaginationParams, createPaginatedResponse } from "@/lib/pagination";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
 
     // Get projects owned by user
     const ownedProjects = await prisma.project.findMany({
@@ -37,7 +40,7 @@ export async function GET() {
     });
 
     // Combine and mark role
-    const projects = [
+    const allProjects = [
       ...ownedProjects.map((p) => ({ ...p, userRole: "admin", isOwner: true })),
       ...collaborations.map((c) => ({
         ...c.project,
@@ -47,9 +50,15 @@ export async function GET() {
     ];
 
     // Sort by updatedAt
-    projects.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    allProjects.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-    return NextResponse.json(projects);
+    // Always paginate
+    const { page, limit } = getPaginationParams(searchParams);
+    const total = allProjects.length;
+    const start = (page - 1) * limit;
+    const paginatedProjects = allProjects.slice(start, start + limit);
+
+    return NextResponse.json(createPaginatedResponse(paginatedProjects, total, page, limit));
   } catch (error) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(

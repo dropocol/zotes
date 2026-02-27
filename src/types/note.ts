@@ -15,3 +15,16 @@ export interface Note {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
+
+// Paginated response type
+export interface PaginatedNotesResponse {
+  data: Note[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}

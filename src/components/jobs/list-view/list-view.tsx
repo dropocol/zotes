@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Pagination } from "@/components/ui/pagination";
 import { StatusBadge } from "../shared/status-badge";
 import { SourceIcon } from "../shared/source-icon";
 import {
@@ -41,6 +42,7 @@ import {
   formatSalary,
   getResponseStatusColor,
 } from "@/types/jobs";
+import { usePagination } from "@/hooks/use-pagination";
 import type { JobApplication, JobInterview, ResponseStatus } from "@prisma/client";
 
 interface JobWithInterviews extends JobApplication {
@@ -134,6 +136,33 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
       return sortDirection === "asc" ? comparison : -comparison;
     });
   }, [filteredJobs, sortField, sortDirection]);
+
+  // Pagination
+  const pagination = usePagination({
+    totalItems: sortedJobs.length,
+    initialLimit: 25,
+  });
+
+  // Track if this is the initial mount
+  const isInitialMount = React.useRef(true);
+
+  // Paginated jobs
+  const paginatedJobs = React.useMemo(() => {
+    const start = pagination.startIndex;
+    const end = pagination.endIndex;
+    return sortedJobs.slice(start, end);
+  }, [sortedJobs, pagination.startIndex, pagination.endIndex]);
+
+  // Reset to first page when filters change (but not on initial mount)
+  React.useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (pagination.currentPage > 1) {
+      pagination.setPage(1);
+    }
+  }, [search, statusFilter, sourceFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -257,14 +286,14 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedJobs.length === 0 ? (
+            {paginatedJobs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                   No job applications found
                 </TableCell>
               </TableRow>
             ) : (
-              sortedJobs.map((job) => (
+              paginatedJobs.map((job) => (
                 <TableRow
                   key={job.id}
                   className="cursor-pointer hover:bg-muted/50"
@@ -347,10 +376,15 @@ export function ListView({ jobs, onJobClick }: ListViewProps) {
         </Table>
       </div>
 
-      {/* Summary */}
-      <div className="text-sm text-muted-foreground">
-        Showing {sortedJobs.length} of {jobs.length} applications
-      </div>
+      {/* Pagination */}
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={sortedJobs.length}
+        limit={pagination.limit}
+        onPageChange={pagination.setPage}
+        onLimitChange={pagination.setLimit}
+      />
     </div>
   );
 }

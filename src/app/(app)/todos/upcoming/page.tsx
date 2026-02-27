@@ -1,17 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
+import { Pagination } from "@/components/ui/pagination";
 import { TodoItemRow } from "@/components/todos/todo-item-row";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import { CalendarDays, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { TodoItem, TodoList } from "@/types";
+import { usePagination } from "@/hooks/use-pagination";
 
 interface TodoItemWithList extends TodoItem {
   todoList: TodoList;
+}
+
+interface PaginatedResponse {
+  data: TodoItemWithList[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 function isOverdue(dueDate: Date | string | null | undefined): boolean {
@@ -64,22 +77,35 @@ export default function UpcomingTodosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<TodoItemWithList | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
+  const pagination = usePagination({
+    totalItems,
+    initialLimit: 25,
+  });
 
-  async function fetchItems() {
+  const fetchItems = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch("/api/todo/items?filter=upcoming");
-      const data = await response.json();
-      setItems(data);
+      const params = new URLSearchParams({
+        filter: "upcoming",
+        page: pagination.currentPage.toString(),
+        limit: pagination.limit.toString(),
+      });
+      const response = await fetch(`/api/todo/items?${params.toString()}`);
+      const data: PaginatedResponse = await response.json();
+      setItems(data.data);
+      setTotalItems(data.pagination.total);
     } catch (error) {
       console.error("Error fetching items:", error);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [pagination.currentPage, pagination.limit]);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   async function toggleStatus(id: string, status: string) {
     try {
@@ -115,6 +141,14 @@ export default function UpcomingTodosPage() {
   function handleUpdateItem() {
     fetchItems();
   }
+
+  const handlePageChange = (page: number) => {
+    pagination.setPage(page);
+  };
+
+  const handleLimitChange = (limit: number) => {
+    pagination.setLimit(limit);
+  };
 
   // Group items by due date category
   const overdueItems = items.filter((item) => isOverdue(item.dueDate));
@@ -158,202 +192,213 @@ export default function UpcomingTodosPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {/* Overdue Section */}
-          {overdueItems.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="h-4 w-4 text-destructive" />
-                <h2 className="text-sm font-semibold text-destructive">
-                  Overdue ({overdueItems.length})
+        <>
+          <div className="space-y-6">
+            {/* Overdue Section */}
+            {overdueItems.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <h2 className="text-sm font-semibold text-destructive">
+                    Overdue ({overdueItems.length})
+                  </h2>
+                </div>
+                <div className="rounded-lg border bg-card divide-y divide-border/50">
+                  {overdueItems.map((item) => (
+                    <TodoItemRow
+                      key={item.id}
+                      item={item}
+                      onToggleStatus={toggleStatus}
+                      onAddSubItem={() => {}}
+                      onDelete={deleteItem}
+                      onSelect={handleSelectItem}
+                      hideSubTasks
+                      listLink={
+                        <Link
+                          href={getTodoListUrl(item)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                        >
+                          {item.todoList.project && (
+                            <>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    item.todoList.project.color || "#6b7280",
+                                }}
+                              />
+                              {item.todoList.project.name}
+                              {" · "}
+                            </>
+                          )}
+                          {item.todoList.name}
+                        </Link>
+                      }
+                      dueDateBadge={
+                        <span className="text-xs text-destructive font-medium">
+                          {getDueDateLabel(item.dueDate)}
+                        </span>
+                      }
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Today Section */}
+            {todayItems.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold text-muted-foreground mb-3">
+                  Due Today ({todayItems.length})
                 </h2>
-              </div>
-              <div className="rounded-lg border bg-card divide-y divide-border/50">
-                {overdueItems.map((item) => (
-                  <TodoItemRow
-                    key={item.id}
-                    item={item}
-                    onToggleStatus={toggleStatus}
-                    onAddSubItem={() => {}}
-                    onDelete={deleteItem}
-                    onSelect={handleSelectItem}
-                    hideSubTasks
-                    listLink={
-                      <Link
-                        href={getTodoListUrl(item)}
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                      >
-                        {item.todoList.project && (
-                          <>
-                            <span
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  item.todoList.project.color || "#6b7280",
-                              }}
-                            />
-                            {item.todoList.project.name}
-                            {" · "}
-                          </>
-                        )}
-                        {item.todoList.name}
-                      </Link>
-                    }
-                    dueDateBadge={
-                      <span className="text-xs text-destructive font-medium">
-                        {getDueDateLabel(item.dueDate)}
-                      </span>
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+                <div className="rounded-lg border bg-card divide-y divide-border/50">
+                  {todayItems.map((item) => (
+                    <TodoItemRow
+                      key={item.id}
+                      item={item}
+                      onToggleStatus={toggleStatus}
+                      onAddSubItem={() => {}}
+                      onDelete={deleteItem}
+                      onSelect={handleSelectItem}
+                      hideSubTasks
+                      listLink={
+                        <Link
+                          href={getTodoListUrl(item)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                        >
+                          {item.todoList.project && (
+                            <>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    item.todoList.project.color || "#6b7280",
+                                }}
+                              />
+                              {item.todoList.project.name}
+                              {" · "}
+                            </>
+                          )}
+                          {item.todoList.name}
+                        </Link>
+                      }
+                      dueDateBadge={
+                        <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                          {getDueDateLabel(item.dueDate)}
+                        </span>
+                      }
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
-          {/* Today Section */}
-          {todayItems.length > 0 && (
-            <section>
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">
-                Due Today ({todayItems.length})
-              </h2>
-              <div className="rounded-lg border bg-card divide-y divide-border/50">
-                {todayItems.map((item) => (
-                  <TodoItemRow
-                    key={item.id}
-                    item={item}
-                    onToggleStatus={toggleStatus}
-                    onAddSubItem={() => {}}
-                    onDelete={deleteItem}
-                    onSelect={handleSelectItem}
-                    hideSubTasks
-                    listLink={
-                      <Link
-                        href={getTodoListUrl(item)}
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                      >
-                        {item.todoList.project && (
-                          <>
-                            <span
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  item.todoList.project.color || "#6b7280",
-                              }}
-                            />
-                            {item.todoList.project.name}
-                            {" · "}
-                          </>
-                        )}
-                        {item.todoList.name}
-                      </Link>
-                    }
-                    dueDateBadge={
-                      <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
-                        {getDueDateLabel(item.dueDate)}
-                      </span>
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+            {/* Tomorrow Section */}
+            {tomorrowItems.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold text-muted-foreground mb-3">
+                  Due Tomorrow ({tomorrowItems.length})
+                </h2>
+                <div className="rounded-lg border bg-card divide-y divide-border/50">
+                  {tomorrowItems.map((item) => (
+                    <TodoItemRow
+                      key={item.id}
+                      item={item}
+                      onToggleStatus={toggleStatus}
+                      onAddSubItem={() => {}}
+                      onDelete={deleteItem}
+                      onSelect={handleSelectItem}
+                      hideSubTasks
+                      listLink={
+                        <Link
+                          href={getTodoListUrl(item)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                        >
+                          {item.todoList.project && (
+                            <>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    item.todoList.project.color || "#6b7280",
+                                }}
+                              />
+                              {item.todoList.project.name}
+                              {" · "}
+                            </>
+                          )}
+                          {item.todoList.name}
+                        </Link>
+                      }
+                      dueDateBadge={
+                        <span className="text-xs text-muted-foreground">
+                          {getDueDateLabel(item.dueDate)}
+                        </span>
+                      }
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
-          {/* Tomorrow Section */}
-          {tomorrowItems.length > 0 && (
-            <section>
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">
-                Due Tomorrow ({tomorrowItems.length})
-              </h2>
-              <div className="rounded-lg border bg-card divide-y divide-border/50">
-                {tomorrowItems.map((item) => (
-                  <TodoItemRow
-                    key={item.id}
-                    item={item}
-                    onToggleStatus={toggleStatus}
-                    onAddSubItem={() => {}}
-                    onDelete={deleteItem}
-                    onSelect={handleSelectItem}
-                    hideSubTasks
-                    listLink={
-                      <Link
-                        href={getTodoListUrl(item)}
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                      >
-                        {item.todoList.project && (
-                          <>
-                            <span
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  item.todoList.project.color || "#6b7280",
-                              }}
-                            />
-                            {item.todoList.project.name}
-                            {" · "}
-                          </>
-                        )}
-                        {item.todoList.name}
-                      </Link>
-                    }
-                    dueDateBadge={
-                      <span className="text-xs text-muted-foreground">
-                        {getDueDateLabel(item.dueDate)}
-                      </span>
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+            {/* Later Section */}
+            {laterItems.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold text-muted-foreground mb-3">
+                  Coming Up ({laterItems.length})
+                </h2>
+                <div className="rounded-lg border bg-card divide-y divide-border/50">
+                  {laterItems.map((item) => (
+                    <TodoItemRow
+                      key={item.id}
+                      item={item}
+                      onToggleStatus={toggleStatus}
+                      onAddSubItem={() => {}}
+                      onDelete={deleteItem}
+                      onSelect={handleSelectItem}
+                      hideSubTasks
+                      listLink={
+                        <Link
+                          href={getTodoListUrl(item)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                        >
+                          {item.todoList.project && (
+                            <>
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    item.todoList.project.color || "#6b7280",
+                                }}
+                              />
+                              {item.todoList.project.name}
+                              {" · "}
+                            </>
+                          )}
+                          {item.todoList.name}
+                        </Link>
+                      }
+                      dueDateBadge={
+                        <span className="text-xs text-muted-foreground">
+                          {getDueDateLabel(item.dueDate)}
+                        </span>
+                      }
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
 
-          {/* Later Section */}
-          {laterItems.length > 0 && (
-            <section>
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">
-                Coming Up ({laterItems.length})
-              </h2>
-              <div className="rounded-lg border bg-card divide-y divide-border/50">
-                {laterItems.map((item) => (
-                  <TodoItemRow
-                    key={item.id}
-                    item={item}
-                    onToggleStatus={toggleStatus}
-                    onAddSubItem={() => {}}
-                    onDelete={deleteItem}
-                    onSelect={handleSelectItem}
-                    hideSubTasks
-                    listLink={
-                      <Link
-                        href={getTodoListUrl(item)}
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                      >
-                        {item.todoList.project && (
-                          <>
-                            <span
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  item.todoList.project.color || "#6b7280",
-                              }}
-                            />
-                            {item.todoList.project.name}
-                            {" · "}
-                          </>
-                        )}
-                        {item.todoList.name}
-                      </Link>
-                    }
-                    dueDateBadge={
-                      <span className="text-xs text-muted-foreground">
-                        {getDueDateLabel(item.dueDate)}
-                      </span>
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={totalItems}
+            limit={pagination.limit}
+            onPageChange={handlePageChange}
+            onLimitChange={handleLimitChange}
+          />
+        </>
       )}
 
       {/* Detail drawer */}

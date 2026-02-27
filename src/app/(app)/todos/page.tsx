@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Pagination } from "@/components/ui/pagination";
 import { TodoItemRow } from "@/components/todos/todo-item-row";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import { TodoItemInput } from "@/components/todos/todo-item-input";
@@ -45,8 +46,21 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Project, TodoList, TodoItem } from "@/types";
+import { usePagination } from "@/hooks/use-pagination";
 
 const DEFAULT_LIST_ITEMS_LIMIT = 10;
+
+interface PaginatedListsResponse {
+  data: TodoList[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
 
 export default function TodosPage() {
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
@@ -61,22 +75,27 @@ export default function TodosPage() {
   const [newProjectId, setNewProjectId] = useState<string>("none");
   const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [otherListsTotal, setOtherListsTotal] = useState(0);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const otherListsPagination = usePagination({
+    totalItems: otherListsTotal,
+    initialLimit: 10,
+  });
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const [todoListsRes, projectsRes] = await Promise.all([
-        fetch("/api/todo/lists"),
-        fetch("/api/projects"),
-      ]);
+      // Fetch projects (no pagination needed for dropdown)
+      const projectsRes = await fetch("/api/projects");
+      if (projectsRes.ok) {
+        const data = await projectsRes.json();
+        setProjects(data);
+      }
 
-      if (todoListsRes.ok) {
-        const data = await todoListsRes.json();
-        setTodoLists(data);
-        // Set the list marked as isDefault
+      // Fetch default list separately
+      const allListsRes = await fetch("/api/todo/lists");
+      if (allListsRes.ok) {
+        const data = await allListsRes.json();
         const defaultL = data.find((list: TodoList) => list.isDefault);
         if (defaultL) {
           setDefaultList(defaultL);
@@ -84,16 +103,28 @@ export default function TodosPage() {
         }
       }
 
-      if (projectsRes.ok) {
-        const data = await projectsRes.json();
-        setProjects(data);
+      // Fetch other lists with pagination
+      const params = new URLSearchParams({
+        excludeDefault: "true",
+        page: otherListsPagination.currentPage.toString(),
+        limit: otherListsPagination.limit.toString(),
+      });
+      const todoListsRes = await fetch(`/api/todo/lists?${params.toString()}`);
+      if (todoListsRes.ok) {
+        const data: PaginatedListsResponse = await todoListsRes.json();
+        setTodoLists(data.data);
+        setOtherListsTotal(data.pagination.total);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [otherListsPagination.currentPage, otherListsPagination.limit]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   async function fetchDefaultListItems(listId: string) {
     try {
@@ -216,10 +247,16 @@ export default function TodosPage() {
     return `/todos/${todoList.id}`;
   }
 
-  // Filter out the default list from the other lists
-  const otherLists = defaultList
-    ? todoLists.filter((list) => list.id !== defaultList.id)
-    : todoLists;
+  const handlePageChange = (page: number) => {
+    otherListsPagination.setPage(page);
+  };
+
+  const handleLimitChange = (limit: number) => {
+    otherListsPagination.setLimit(limit);
+  };
+
+  // Other lists are already filtered by the API (excludeDefault=true)
+  const otherLists = todoLists;
 
   return (
     <DashboardLayout breadcrumbs={[{ title: "Todos", href: "/todos" }]}>
@@ -462,6 +499,14 @@ export default function TodosPage() {
                   </TableBody>
                 </Table>
               </div>
+              <Pagination
+                currentPage={otherListsPagination.currentPage}
+                totalPages={otherListsPagination.totalPages}
+                totalItems={otherListsTotal}
+                limit={otherListsPagination.limit}
+                onPageChange={handlePageChange}
+                onLimitChange={handleLimitChange}
+              />
             </section>
           )}
 

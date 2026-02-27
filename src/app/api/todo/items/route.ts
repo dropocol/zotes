@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getPaginationParams, createPaginatedResponse } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,13 +54,19 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // For upcoming, filter out items without due dates and past due dates if needed
+    // For upcoming, filter out items without due dates
     const filteredItems =
       filter === "upcoming"
         ? items.filter((item) => item.dueDate !== null)
         : items;
 
-    return NextResponse.json(filteredItems);
+    // Always paginate
+    const { page, limit } = getPaginationParams(searchParams);
+    const total = filteredItems.length;
+    const start = (page - 1) * limit;
+    const paginatedItems = filteredItems.slice(start, start + limit);
+
+    return NextResponse.json(createPaginatedResponse(paginatedItems, total, page, limit));
   } catch (error) {
     console.error("Error fetching todo items:", error);
     return NextResponse.json(

@@ -22,31 +22,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { ProjectForm } from "./project-form";
 import { RoleBadge } from "./role-badge";
-
-interface Project {
-  id: string;
-  name: string;
-  description?: string | null;
-  color?: string | null;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  userRole: string;
-  isOwner: boolean;
-  _count?: {
-    notes: number;
-    todoLists: number;
-  };
-}
+import { ProjectWithRole } from "@/types";
 
 interface ProjectsTableProps {
-  projects: Project[];
+  projects: ProjectWithRole[];
   searchQuery: string;
   onRefresh: () => void;
 }
 
 export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "updatedAt", direction: "desc" });
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<ProjectWithRole | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const filteredProjects = useMemo(() => {
@@ -95,7 +81,7 @@ export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTabl
     }
   }
 
-  function handleEdit(project: Project) {
+  function handleEdit(project: ProjectWithRole) {
     setEditingProject(project);
     setIsFormOpen(true);
   }

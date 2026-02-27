@@ -18,3 +18,22 @@ export interface ProjectWithCounts extends Project {
     todoLists: number;
   };
 }
+
+// Extended type for projects list with collaboration info
+export interface ProjectWithRole extends ProjectWithCounts {
+  userRole: string;
+  isOwner: boolean;
+}
+
+// Paginated response type
+export interface PaginatedProjectsResponse {
+  data: ProjectWithRole[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}

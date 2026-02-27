@@ -19,20 +19,7 @@ import {
 import { SortableTableHead, sortItems, type SortConfig } from "@/components/ui/sortable-table-head";
 import { MoreHorizontal, Trash2, Pin, PinOff } from "lucide-react";
 import Link from "next/link";
-
-interface Note {
-  id: string;
-  title: string;
-  content?: string | null;
-  pinned: boolean;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  project?: {
-    id: string;
-    name: string;
-    color?: string | null;
-  } | null;
-}
+import { Note } from "@/types";
 
 interface NotesTableProps {
   notes: Note[];

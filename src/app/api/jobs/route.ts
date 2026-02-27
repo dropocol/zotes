@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { JobSource, ApplicationMethod, JobApplicationStatus } from "@prisma/client";
+import { getPaginationParams, createPaginatedResponse } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,6 +45,10 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Always paginate
+    const { page, limit } = getPaginationParams(searchParams);
+    const total = await prisma.jobApplication.count({ where });
+
     const jobs = await prisma.jobApplication.findMany({
       where,
       include: {
@@ -52,9 +57,11 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: [{ createdAt: "desc" }],
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return NextResponse.json(jobs);
+    return NextResponse.json(createPaginatedResponse(jobs, total, page, limit));
   } catch (error) {
     console.error("Error fetching job applications:", error);
     return NextResponse.json(

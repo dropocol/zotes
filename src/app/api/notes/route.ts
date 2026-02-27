@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
+import { getPaginationParams, createPaginatedResponse } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");
 
-    const where: {
+    const baseWhere: {
       OR?: Array<{ userId: string } | { project: { collaborators: { some: { userId: string } } } }>;
       projectId?: string | null;
     } = {};
@@ -25,26 +26,27 @@ export async function GET(request: NextRequest) {
       if (!canViewProject(access)) {
         return NextResponse.json({ error: "Project not found" }, { status: 404 });
       }
-      where.projectId = projectId;
+      baseWhere.projectId = projectId;
       // Return only notes from this project (owned or collaborated)
-      where.OR = [
+      baseWhere.OR = [
         { userId: session.user.id },
         { project: { collaborators: { some: { userId: session.user.id } } } },
       ];
     } else {
       // Get all notes owned by user or from collaborated projects
-      where.OR = [
+      baseWhere.OR = [
         { userId: session.user.id },
         { project: { collaborators: { some: { userId: session.user.id } } } },
       ];
     }
 
-    const notes = await prisma.note.findMany({
-      where,
-      orderBy: [
-        { pinned: "desc" },
-        { updatedAt: "desc" },
-      ],
+    // Always paginate
+    const { page, limit } = getPaginationParams(searchParams);
+
+    // Get pinned notes separately (always shown first)
+    const pinnedNotes = await prisma.note.findMany({
+      where: { ...baseWhere, pinned: true },
+      orderBy: [{ updatedAt: "desc" }],
       include: {
         project: {
           select: {
@@ -56,7 +58,38 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(notes);
+    // Get total count of non-pinned notes
+    const totalNonPinned = await prisma.note.count({
+      where: { ...baseWhere, pinned: false },
+    });
+
+    // Calculate how many non-pinned notes to fetch
+    const pinnedCount = pinnedNotes.length;
+    const effectiveLimit = Math.max(0, limit - pinnedCount);
+    const effectiveSkip = Math.max(0, (page - 1) * limit - pinnedCount);
+
+    // Fetch non-pinned notes with pagination
+    const nonPinnedNotes = effectiveLimit > 0 ? await prisma.note.findMany({
+      where: { ...baseWhere, pinned: false },
+      orderBy: [{ updatedAt: "desc" }],
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      },
+      skip: effectiveSkip,
+      take: effectiveLimit,
+    }) : [];
+
+    // Combine pinned and non-pinned notes
+    const notes = [...pinnedNotes, ...nonPinnedNotes];
+    const total = pinnedCount + totalNonPinned;
+
+    return NextResponse.json(createPaginatedResponse(notes, total, page, limit));
   } catch (error) {
     console.error("Error fetching notes:", error);
     return NextResponse.json(

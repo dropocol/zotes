@@ -20,9 +20,10 @@ interface ProjectFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project?: Partial<Project> | null;
+  onSuccess?: () => void;
 }
 
-export function ProjectForm({ open, onOpenChange, project }: ProjectFormProps) {
+export function ProjectForm({ open, onOpenChange, project, onSuccess }: ProjectFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState(project?.name || "");
@@ -50,6 +51,7 @@ export function ProjectForm({ open, onOpenChange, project }: ProjectFormProps) {
       if (response.ok) {
         onOpenChange(false);
         router.refresh();
+        onSuccess?.();
       }
     } catch (error) {
       console.error("Error saving project:", error);

@@ -1,40 +1,65 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { ProjectsTable } from "@/components/projects/projects-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { ProjectForm } from "@/components/projects/project-form";
 import { Loader2, Plus, Search, Layers } from "lucide-react";
+import { usePagination } from "@/hooks/use-pagination";
+import { ProjectWithRole, PaginatedProjectsResponse } from "@/types";
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [totalItems, setTotalItems] = useState(0);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  const pagination = usePagination({
+    totalItems,
+    initialLimit: 10,
+  });
 
-  async function fetchProjects() {
+  const fetchProjects = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch("/api/projects");
+      const params = new URLSearchParams({
+        page: pagination.currentPage.toString(),
+        limit: pagination.limit.toString(),
+      });
+      const response = await fetch(`/api/projects?${params.toString()}`);
       if (response.ok) {
-        const data = await response.json();
-        setProjects(Array.isArray(data) ? data : []);
+        const data: PaginatedProjectsResponse = await response.json();
+        setProjects(Array.isArray(data.data) ? data.data : []);
+        setTotalItems(data.pagination.total);
       } else {
         setProjects([]);
+        setTotalItems(0);
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
       setProjects([]);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [pagination.currentPage, pagination.limit]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  const handlePageChange = (page: number) => {
+    pagination.setPage(page);
+  };
+
+  const handleLimitChange = (limit: number) => {
+    pagination.setLimit(limit);
+  };
 
   return (
     <DashboardLayout breadcrumbs={[{ title: "Projects", href: "/projects" }]}>
@@ -64,14 +89,28 @@ export default function ProjectsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <ProjectsTable
-          projects={projects}
-          searchQuery={searchQuery}
-          onRefresh={fetchProjects}
-        />
+        <>
+          <ProjectsTable
+            projects={projects}
+            searchQuery={searchQuery}
+            onRefresh={fetchProjects}
+          />
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={totalItems}
+            limit={pagination.limit}
+            onPageChange={handlePageChange}
+            onLimitChange={handleLimitChange}
+          />
+        </>
       )}
 
-      <ProjectForm open={isFormOpen} onOpenChange={setIsFormOpen} />
+      <ProjectForm
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSuccess={fetchProjects}
+      />
     </DashboardLayout>
   );
 }
