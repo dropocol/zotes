@@ -12,8 +12,45 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const forDropdown = searchParams.get("forDropdown") === "true";
 
-    // Get projects owned by user
+    // If forDropdown, return lean data (only id, name, color)
+    if (forDropdown) {
+      // Get projects owned by user
+      const ownedProjects = await prisma.project.findMany({
+        where: { userId: session.user.id },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          color: true,
+        },
+      });
+
+      // Get projects where user is a collaborator
+      const collaborations = await prisma.projectCollaborator.findMany({
+        where: { userId: session.user.id },
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+            },
+          },
+        },
+      });
+
+      // Combine (avoid duplicates)
+      const collaboratorProjectIds = new Set(ownedProjects.map((p) => p.id));
+      const collaboratorProjects = collaborations
+        .filter((c) => !collaboratorProjectIds.has(c.project.id))
+        .map((c) => c.project);
+
+      return NextResponse.json([...ownedProjects, ...collaboratorProjects]);
+    }
+
+    // Get projects owned by user (full data with counts)
     const ownedProjects = await prisma.project.findMany({
       where: { userId: session.user.id },
       orderBy: { updatedAt: "desc" },
@@ -52,7 +89,7 @@ export async function GET(request: NextRequest) {
     // Sort by updatedAt
     allProjects.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-    // Always paginate
+    // Always paginate for normal requests
     const { page, limit } = getPaginationParams(searchParams);
     const total = allProjects.length;
     const start = (page - 1) * limit;

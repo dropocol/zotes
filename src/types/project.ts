@@ -25,6 +25,13 @@ export interface ProjectWithRole extends ProjectWithCounts {
   isOwner: boolean;
 }
 
+// Lean type for dropdown selections (only essential fields)
+export interface ProjectForDropdown {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
 // Paginated response type
 export interface PaginatedProjectsResponse {
   data: ProjectWithRole[];

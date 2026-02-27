@@ -45,26 +45,15 @@ import {
   Plus,
 } from "lucide-react";
 import Link from "next/link";
-import { Project, TodoList, TodoItem } from "@/types";
+import { TodoList, TodoItem, PaginatedListsResponse } from "@/types";
+import { ProjectForDropdown } from "@/types/project";
 import { usePagination } from "@/hooks/use-pagination";
 
 const DEFAULT_LIST_ITEMS_LIMIT = 10;
 
-interface PaginatedListsResponse {
-  data: TodoList[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
 export default function TodosPage() {
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectForDropdown[]>([]);
   const [defaultListItems, setDefaultListItems] = useState<TodoItem[]>([]);
   const [defaultList, setDefaultList] = useState<TodoList | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,24 +68,24 @@ export default function TodosPage() {
 
   const otherListsPagination = usePagination({
     totalItems: otherListsTotal,
-    initialLimit: 10,
+    initialLimit: 5,
   });
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch projects (no pagination needed for dropdown)
-      const projectsRes = await fetch("/api/projects");
+      // Fetch projects for dropdown (lean data: id, name, color only)
+      const projectsRes = await fetch("/api/projects?forDropdown=true");
       if (projectsRes.ok) {
-        const data = await projectsRes.json();
+        const data: ProjectForDropdown[] = await projectsRes.json();
         setProjects(data);
       }
 
-      // Fetch default list separately
-      const allListsRes = await fetch("/api/todo/lists");
+      // Fetch default list - use a high limit to find it
+      const allListsRes = await fetch("/api/todo/lists?limit=100");
       if (allListsRes.ok) {
-        const data = await allListsRes.json();
-        const defaultL = data.find((list: TodoList) => list.isDefault);
+        const allData: PaginatedListsResponse = await allListsRes.json();
+        const defaultL = allData.data.find((list: TodoList) => list.isDefault);
         if (defaultL) {
           setDefaultList(defaultL);
           await fetchDefaultListItems(defaultL.id);
@@ -279,74 +268,74 @@ export default function TodosPage() {
               Add New List
             </Button>
           </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Todo List</DialogTitle>
-                <DialogDescription>
-                  Create a new todo list to organize your tasks
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Enter todo list name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (optional)</Label>
-                  <Textarea
-                    id="description"
-                    value={newDescription}
-                    onChange={(e) => setNewDescription(e.target.value)}
-                    placeholder="Enter description"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="project">Project (optional)</Label>
-                  <Select value={newProjectId} onValueChange={setNewProjectId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No project</SelectItem>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-2 h-2 rounded-full"
-                              style={{
-                                backgroundColor: project.color || "#6b7280",
-                              }}
-                            />
-                            {project.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Todo List</DialogTitle>
+              <DialogDescription>
+                Create a new todo list to organize your tasks
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Enter todo list name"
+                />
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreate}
-                  disabled={!newName.trim() || isCreating}
-                >
-                  {isCreating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Create
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (optional)</Label>
+                <Textarea
+                  id="description"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="Enter description"
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="project">Project (optional)</Label>
+                <Select value={newProjectId} onValueChange={setNewProjectId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No project</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{
+                              backgroundColor: project.color || "#6b7280",
+                            }}
+                          />
+                          {project.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={!newName.trim() || isCreating}
+              >
+                {isCreating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </PageHeader>
 
       {isLoading ? (
@@ -382,27 +371,27 @@ export default function TodosPage() {
                 </div>
 
                 <div className="divide-y divide-border/50">
-                {defaultListItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted mb-3">
-                      <ListTodo className="h-5 w-5 text-muted-foreground" />
+                  {defaultListItems.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted mb-3">
+                        <ListTodo className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        No tasks yet
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      No tasks yet
-                    </p>
-                  </div>
-                ) : (
-                  defaultListItems.map((item) => (
-                    <TodoItemRow
-                      key={item.id}
-                      item={item}
-                      onToggleStatus={toggleStatus}
-                      onAddSubItem={() => {}}
-                      onDelete={deleteItem}
-                      onSelect={handleSelectItem}
-                    />
-                  ))
-                )}
+                  ) : (
+                    defaultListItems.map((item) => (
+                      <TodoItemRow
+                        key={item.id}
+                        item={item}
+                        onToggleStatus={toggleStatus}
+                        onAddSubItem={() => {}}
+                        onDelete={deleteItem}
+                        onSelect={handleSelectItem}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
             </section>

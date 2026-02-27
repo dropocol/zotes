@@ -17,6 +17,19 @@ export interface TodoList {
   };
 }
 
+// Paginated response type for todo lists
+export interface PaginatedListsResponse {
+  data: TodoList[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
 // ============================================================================
 // TODO ITEM TYPES
 // ============================================================================
