@@ -7,6 +7,11 @@ import { PriorityBadge } from "./priority-badge";
 import { RecurringBadge } from "@/components/recurring/recurring-badge";
 import { RecurringMiniProgress } from "@/components/recurring/recurring-mini-progress";
 import {
+  isDateBeforeToday,
+  isDateToday,
+  isDateTomorrow,
+} from "@/utils/date";
+import {
   ChevronRight,
   ChevronDown,
   Plus,
@@ -15,7 +20,7 @@ import {
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, isPast, isToday, isTomorrow } from "date-fns";
+import { format } from "date-fns";
 import { TodoItem } from "@/types";
 
 interface TodoItemRowProps {
@@ -73,16 +78,15 @@ export function TodoItemRow({
     }
   }
 
-  // Format due date with relative indicators
+  // Format due date with relative indicators (using local time)
   const formatDueDate = (date: Date) => {
-    const d = new Date(date);
-    if (isToday(d)) return "Today";
-    if (isTomorrow(d)) return "Tomorrow";
-    return format(d, "MMM d");
+    if (isDateToday(date)) return "Today";
+    if (isDateTomorrow(date)) return "Tomorrow";
+    return format(new Date(date), "MMM d");
   };
 
-  // Check if overdue
-  const isOverdue = item.dueDate && isPast(new Date(item.dueDate)) && !isCheckboxChecked;
+  // Check if overdue (using local time comparison)
+  const isOverdue = item.dueDate && isDateBeforeToday(item.dueDate) && !isCheckboxChecked;
 
   // Calculate indentation offset to align sub-items properly
   // Top level has: expand button (24px) + checkbox (24px) = 48px occupied

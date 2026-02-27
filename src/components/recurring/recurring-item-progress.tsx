@@ -5,13 +5,15 @@ import { cn } from "@/lib/utils";
 import { CompletionCell } from "./completion-cell";
 import {
   RecurringCompletionStatus,
-  getWeekDates,
-  isSameDay,
   shouldAppearOnDate,
+} from "@/types/recurring";
+import {
+  getLocalWeekDates,
+  isSameDay,
   isFutureDate,
   toUTCDate,
-  getTodayDate,
-} from "@/types/recurring";
+  getLocalToday,
+} from "@/utils/date";
 
 interface RecurringItemProgressProps {
   todoItemId: string;
@@ -34,8 +36,9 @@ export function RecurringItemProgress({
   const [isLoading, setIsLoading] = useState(true);
 
   const item = { frequency, daysOfWeek, recurrenceStart, recurrenceEnd };
-  const weekDates = getWeekDates(new Date());
-  const today = getTodayDate();
+  // Use local time for week display (matches user's timezone)
+  const weekDates = getLocalWeekDates(new Date());
+  const today = getLocalToday();
 
   // Fetch completions for this item
   useEffect(() => {

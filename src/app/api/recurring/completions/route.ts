@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import {
-  RecurringCompletionStatus,
-  getWeekStart,
-  getWeekEnd,
-  toUTCDate,
-  isFutureDate,
-  getTodayDate,
-} from "@/types/recurring";
+import { RecurringCompletionStatus } from "@/types/recurring";
+import { getWeekStart, getWeekEnd, toUTCDate, isFutureDate } from "@/utils/date";
 
 // GET - Fetch completions for a date range
 export async function GET(request: NextRequest) {

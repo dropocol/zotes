@@ -31,11 +31,14 @@ import {
   RecurringFrequency,
   parseDaysOfWeek,
   serializeDaysOfWeek,
-  getTodayDate,
+} from "@/types/recurring";
+import {
+  getLocalToday,
+  getUTCToday,
   toUTCDate,
   isFutureDate,
   isSameDay,
-} from "@/types/recurring";
+} from "@/utils/date";
 
 interface RecurringSettingsDialogProps {
   todoItem: {
@@ -81,8 +84,10 @@ export function RecurringSettingsDialog({
   const [wasRecurring, setWasRecurring] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoize today's date to prevent infinite loops
-  const today = useMemo(() => getTodayDate(), []);
+  // Today's date in local timezone for UI display
+  const localToday = useMemo(() => getLocalToday(), []);
+  // Today's date in UTC for validation comparisons
+  const utcToday = useMemo(() => getUTCToday(), []);
 
   useEffect(() => {
     if (todoItem) {
@@ -93,12 +98,12 @@ export function RecurringSettingsDialog({
       setSelectedDays(parseDaysOfWeek(todoItem.daysOfWeek));
       setError(null);
 
-      // For existing recurring items, use stored dates
-      // For new ones, default start to today and end to undefined (no end)
+      // For existing recurring items, use stored dates (convert from UTC to local for display)
+      // For new ones, default start to today (local) and end to undefined (no end)
       if (isCurrentlyRecurring && todoItem.recurrenceStart) {
         setRecurrenceStart(toUTCDate(todoItem.recurrenceStart));
       } else {
-        setRecurrenceStart(today);
+        setRecurrenceStart(localToday);
       }
 
       if (isCurrentlyRecurring && todoItem.recurrenceEnd) {
@@ -107,15 +112,15 @@ export function RecurringSettingsDialog({
         setRecurrenceEnd(undefined);
       }
     }
-  }, [todoItem, today]);
+  }, [todoItem, localToday]);
 
-  // When enabling recurrence for the first time, always set start to today
+  // When enabling recurrence for the first time, always set start to today (local)
   useEffect(() => {
     if (isRecurring && !wasRecurring) {
-      setRecurrenceStart(today);
+      setRecurrenceStart(localToday);
       setRecurrenceEnd(undefined);
     }
-  }, [isRecurring, wasRecurring, today]);
+  }, [isRecurring, wasRecurring, localToday]);
 
   const toggleDay = (day: number) => {
     setSelectedDays((prev) =>
@@ -128,10 +133,12 @@ export function RecurringSettingsDialog({
 
     // Validation
     if (isRecurring) {
-      const startDate = toUTCDate(recurrenceStart || today);
+      // Convert calendar date to UTC for validation
+      // Calendar returns local midnight, toUTCDate extracts the UTC date from that instant
+      const startDate = toUTCDate(recurrenceStart || localToday);
 
       // Check if start date is in the past (warning, not error)
-      if (startDate < today && !isSameDay(startDate, today)) {
+      if (startDate < utcToday && !isSameDay(startDate, utcToday)) {
         // Allow it but this might be intentional for historical tracking
       }
 
@@ -146,7 +153,7 @@ export function RecurringSettingsDialog({
         }
 
         // End date must be >= today
-        if (endDate < today && !isSameDay(endDate, today)) {
+        if (endDate < utcToday && !isSameDay(endDate, utcToday)) {
           setError("End date cannot be before today");
           return;
         }
@@ -155,8 +162,9 @@ export function RecurringSettingsDialog({
 
     setIsLoading(true);
     try {
-      // Use UTC dates to avoid timezone issues
-      const startDate = isRecurring ? toUTCDate(recurrenceStart || today) : null;
+      // Convert calendar dates to UTC before sending to server
+      // Calendar returns local midnight, toUTCDate extracts the UTC date from that instant
+      const startDate = isRecurring ? toUTCDate(recurrenceStart || localToday) : null;
       const endDate = isRecurring && recurrenceEnd ? toUTCDate(recurrenceEnd) : null;
 
       await onUpdate({

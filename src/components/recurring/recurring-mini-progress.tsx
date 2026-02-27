@@ -5,13 +5,15 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   RecurringCompletionStatus,
-  getWeekDates,
-  isSameDay,
   shouldAppearOnDate,
-  isFutureDate,
-  getTodayDate,
-  toUTCDate,
 } from "@/types/recurring";
+import {
+  getLocalWeekDates,
+  isSameDay,
+  isFutureDate,
+  getLocalToday,
+  toUTCDate,
+} from "@/utils/date";
 
 interface RecurringMiniProgressProps {
   todoItemId: string;
@@ -33,8 +35,9 @@ export function RecurringMiniProgress({
   const [completions, setCompletions] = useState<{ date: string; status: string }[]>([]);
 
   const item = { frequency, daysOfWeek, recurrenceStart, recurrenceEnd };
-  const weekDates = useMemo(() => getWeekDates(new Date()), []);
-  const today = useMemo(() => getTodayDate(), []);
+  // Use local time for week display (matches user's timezone)
+  const weekDates = useMemo(() => getLocalWeekDates(new Date()), []);
+  const today = useMemo(() => getLocalToday(), []);
 
   // Fetch completions for this item
   useEffect(() => {

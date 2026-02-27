@@ -6,6 +6,11 @@ import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { TodoItemRow } from "@/components/todos/todo-item-row";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
+import {
+  isDateBeforeToday,
+  isDateToday,
+  isDateTomorrow,
+} from "@/utils/date";
 import { CalendarDays, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { TodoItem, TodoList } from "@/types";
@@ -27,32 +32,20 @@ interface PaginatedResponse {
   };
 }
 
+// Use the helper functions from recurring.ts for consistent local time comparisons
 function isOverdue(dueDate: Date | string | null | undefined): boolean {
   if (!dueDate) return false;
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  return due < now;
+  return isDateBeforeToday(dueDate);
 }
 
 function isDueToday(dueDate: Date | string | null | undefined): boolean {
   if (!dueDate) return false;
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  return due.getTime() === now.getTime();
+  return isDateToday(dueDate);
 }
 
 function isDueTomorrow(dueDate: Date | string | null | undefined): boolean {
   if (!dueDate) return false;
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  return due.getTime() === tomorrow.getTime();
+  return isDateTomorrow(dueDate);
 }
 
 function getDueDateLabel(dueDate: Date | string | null | undefined): string {

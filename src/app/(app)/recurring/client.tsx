@@ -4,7 +4,8 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { RecurringWeeklyView } from "@/components/recurring";
-import { RecurringCompletionStatus, isSameDay, toUTCDate } from "@/types/recurring";
+import { RecurringCompletionStatus } from "@/types/recurring";
+import { isSameDay, toUTCDate } from "@/utils/date";
 
 interface Completion {
   id: string;

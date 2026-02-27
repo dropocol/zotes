@@ -8,11 +8,13 @@ import { cn } from "@/lib/utils";
 import { CompletionCell } from "./completion-cell";
 import {
   RecurringCompletionStatus,
-  getWeekDates,
-  isSameDay,
   shouldAppearOnDate,
-  isFutureDate,
 } from "@/types/recurring";
+import {
+  getLocalWeekDates,
+  isSameDay,
+  isFutureDate,
+} from "@/utils/date";
 
 interface RecurringItem {
   id: string;
@@ -55,7 +57,8 @@ export function RecurringWeeklyView({
     }
   }, [initialDate]);
 
-  const weekDates = getWeekDates(currentDate);
+  // Use local time for week display (so week boundaries match user's timezone)
+  const weekDates = getLocalWeekDates(currentDate);
 
   const goToPreviousWeek = () => {
     const newDate = subWeeks(currentDate, 1);

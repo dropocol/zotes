@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { RecurringWeeklyViewClient } from "./client";
-import { getWeekStart, getWeekEnd } from "@/types/recurring";
+import { getWeekRangeWithBuffer } from "@/utils/date";
 import { Loader2, ArrowLeft, Repeat } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,10 @@ export default async function RecurringPage({ searchParams }: PageProps) {
 
   const { taskId } = await searchParams;
 
-  // Get the current week's date range
+  // Get the current week's date range with buffer for timezone safety
+  // This ensures we fetch all completions regardless of user's timezone
   const today = new Date();
-  const weekStart = getWeekStart(today);
-  const weekEnd = getWeekEnd(today);
+  const { start: weekStart, end: weekEnd } = getWeekRangeWithBuffer(today);
 
   // Build where clause
   const where: {

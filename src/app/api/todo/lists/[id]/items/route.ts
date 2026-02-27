@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
-import { shouldAppearOnDate, getTodayDate } from "@/types/recurring";
+import { shouldAppearOnDate } from "@/types/recurring";
+import { getUTCToday } from "@/utils/date";
 
 export async function GET(
   request: NextRequest,
@@ -32,8 +33,8 @@ export async function GET(
       return NextResponse.json({ error: "Todo list not found" }, { status: 404 });
     }
 
-    // Get today's date for recurring item processing
-    const today = getTodayDate();
+    // Get today's date for recurring item processing (use UTC for server-side consistency)
+    const today = getUTCToday();
 
     const items = await prisma.todoItem.findMany({
       where: {

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProjectAccess, canModifyProject } from "@/lib/permissions";
-import { RecurringCompletionStatus, getTodayDate } from "@/types/recurring";
+import { RecurringCompletionStatus } from "@/types/recurring";
+import { getUTCToday } from "@/utils/date";
 
 export async function GET(
   request: NextRequest,
@@ -113,7 +114,7 @@ export async function PUT(
 
     // For recurring items, handle status separately from other updates
     if (willBeRecurring && status !== undefined) {
-      const today = getTodayDate();
+      const today = getUTCToday();
 
       // Create or update completion record for today (status goes here, not on the item)
       await prisma.recurringCompletion.upsert({
@@ -172,7 +173,7 @@ export async function PUT(
 
     // For recurring items with status update, return the effective status
     if (willBeRecurring && status !== undefined) {
-      const today = getTodayDate();
+      const today = getUTCToday();
       return NextResponse.json({
         ...item,
         status, // Return the effective status from completion
