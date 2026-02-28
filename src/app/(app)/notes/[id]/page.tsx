@@ -63,7 +63,9 @@ export default function NotePage({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [autoSaveStatus, setAutoSaveStatus] = useState<
+    "idle" | "saving" | "saved"
+  >("idle");
   const [editor, setEditor] = useState<Editor | null>(null);
 
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -110,7 +112,7 @@ export default function NotePage({
 
   async function fetchProjects() {
     try {
-      const response = await fetch("/api/projects");
+      const response = await fetch("/api/projects?forDropdown=true");
       const data = await response.json();
       setProjects(data);
     } catch (error) {
@@ -314,8 +316,8 @@ export default function NotePage({
           <DialogHeader>
             <DialogTitle>Delete Note</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this note? This action cannot
-              be undone.
+              Are you sure you want to delete this note? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -332,7 +334,12 @@ export default function NotePage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Button onClick={handleSave} disabled={!title.trim() || isSaving} size="sm" className="h-8">
+      <Button
+        onClick={handleSave}
+        disabled={!title.trim() || isSaving}
+        size="sm"
+        className="h-8"
+      >
         {isSaving ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (

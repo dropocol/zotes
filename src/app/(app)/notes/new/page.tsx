@@ -106,7 +106,7 @@ export default function NewNotePage() {
 
   async function fetchProjects() {
     try {
-      const response = await fetch("/api/projects");
+      const response = await fetch("/api/projects?forDropdown=true");
       const data = await response.json();
       setProjects(data);
     } catch (error) {
