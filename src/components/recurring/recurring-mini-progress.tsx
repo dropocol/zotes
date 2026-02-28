@@ -12,7 +12,8 @@ import {
   isSameDay,
   isFutureDate,
   getLocalToday,
-  toUTCDate,
+  utcToLocal,
+  toComparableDate,
 } from "@/utils/date";
 
 interface RecurringMiniProgressProps {
@@ -62,18 +63,21 @@ export function RecurringMiniProgress({
   }, [todoItemId]);
 
   const getCompletionStatus = (date: Date): string => {
+    // Convert local week date to comparable format (preserves local date)
+    const comparableDate = toComparableDate(date);
+
     // Check if date is before recurrence start
     if (recurrenceStart) {
-      const startDate = toUTCDate(recurrenceStart);
-      if (date < startDate && !isSameDay(date, startDate)) {
+      const startDate = utcToLocal(recurrenceStart);
+      if (comparableDate < startDate && !isSameDay(comparableDate, startDate)) {
         return "before_start";
       }
     }
 
     // Check if date is after recurrence end
     if (recurrenceEnd) {
-      const endDate = toUTCDate(recurrenceEnd);
-      if (date > endDate && !isSameDay(date, endDate)) {
+      const endDate = utcToLocal(recurrenceEnd);
+      if (comparableDate > endDate && !isSameDay(comparableDate, endDate)) {
         return "after_end";
       }
     }

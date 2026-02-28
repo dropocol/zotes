@@ -111,6 +111,20 @@ export function toUTCDate(date: Date | string): Date {
 }
 
 /**
+ * Convert a local date to a comparable UTC date at noon
+ * Extracts LOCAL components (not UTC) and creates a UTC date
+ * Use this for dates that represent "local dates" like from date pickers
+ *
+ * @param date - A date representing a local date
+ * @returns A Date object set to noon UTC with the same date components as the local date
+ */
+export function toComparableDate(date: Date | string): Date {
+  const d = typeof date === "string" ? parseISO(date) : new Date(date);
+  // Extract LOCAL date components and create UTC date
+  return createUTCDate(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
  * Get date string in YYYY-MM-DD format (UTC)
  */
 export function toDateString(date: Date): string {

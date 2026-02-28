@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { isBefore, isAfter } from "date-fns";
-import { toUTCDate, isSameDay } from "@/utils/date";
+import { toComparableDate, utcToLocal, isSameDay } from "@/utils/date";
 
 export enum RecurringFrequency {
   DAILY = "DAILY",
@@ -76,7 +76,8 @@ export function getDayNames(days: number[]): string[] {
 }
 
 /**
- * Check if a recurring item should appear on a specific date (UTC comparison)
+ * Check if a recurring item should appear on a specific date
+ * Uses local time for comparisons to match user's expectations
  */
 export function shouldAppearOnDate(
   item: {
@@ -87,19 +88,20 @@ export function shouldAppearOnDate(
   },
   date: Date
 ): boolean {
-  // Normalize the input date to UTC
-  const checkDate = toUTCDate(date);
+  // Convert the check date to a comparable format (preserves local date)
+  const checkDate = toComparableDate(date);
 
   // Check if within recurrence range
+  // Use utcToLocal for stored dates to get the user's intended local date
   if (item.recurrenceStart) {
-    const start = toUTCDate(item.recurrenceStart);
+    const start = utcToLocal(item.recurrenceStart);
     if (isBefore(checkDate, start) && !isSameDay(checkDate, start)) {
       return false;
     }
   }
 
   if (item.recurrenceEnd) {
-    const end = toUTCDate(item.recurrenceEnd);
+    const end = utcToLocal(item.recurrenceEnd);
     if (isAfter(checkDate, end) && !isSameDay(checkDate, end)) {
       return false;
     }
@@ -116,7 +118,7 @@ export function shouldAppearOnDate(
     case RecurringFrequency.MONTHLY:
       // For monthly, we use the day from recurrenceStart
       if (item.recurrenceStart) {
-        const startDay = toUTCDate(item.recurrenceStart).getUTCDate();
+        const startDay = utcToLocal(item.recurrenceStart).getUTCDate();
         return checkDate.getUTCDate() === startDay;
       }
       return false;
