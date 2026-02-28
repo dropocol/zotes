@@ -36,6 +36,8 @@ import {
   getLocalToday,
   getUTCToday,
   toUTCDate,
+  localToUTC,
+  utcToLocal,
   isFutureDate,
   isSameDay,
 } from "@/utils/date";
@@ -98,16 +100,16 @@ export function RecurringSettingsDialog({
       setSelectedDays(parseDaysOfWeek(todoItem.daysOfWeek));
       setError(null);
 
-      // For existing recurring items, use stored dates (convert from UTC to local for display)
+      // For existing recurring items, convert stored UTC dates to local for display
       // For new ones, default start to today (local) and end to undefined (no end)
       if (isCurrentlyRecurring && todoItem.recurrenceStart) {
-        setRecurrenceStart(toUTCDate(todoItem.recurrenceStart));
+        setRecurrenceStart(utcToLocal(todoItem.recurrenceStart));
       } else {
         setRecurrenceStart(localToday);
       }
 
       if (isCurrentlyRecurring && todoItem.recurrenceEnd) {
-        setRecurrenceEnd(toUTCDate(todoItem.recurrenceEnd));
+        setRecurrenceEnd(utcToLocal(todoItem.recurrenceEnd));
       } else {
         setRecurrenceEnd(undefined);
       }
@@ -133,9 +135,9 @@ export function RecurringSettingsDialog({
 
     // Validation
     if (isRecurring) {
-      // Convert calendar date to UTC for validation
-      // Calendar returns local midnight, toUTCDate extracts the UTC date from that instant
-      const startDate = toUTCDate(recurrenceStart || localToday);
+      // Convert local calendar dates to UTC for validation
+      // localToUTC preserves the local date (e.g., Feb 28 local -> Feb 28 UTC)
+      const startDate = localToUTC(recurrenceStart || localToday);
 
       // Check if start date is in the past (warning, not error)
       if (startDate < utcToday && !isSameDay(startDate, utcToday)) {
@@ -144,7 +146,7 @@ export function RecurringSettingsDialog({
 
       // End date validation
       if (recurrenceEnd) {
-        const endDate = toUTCDate(recurrenceEnd);
+        const endDate = localToUTC(recurrenceEnd);
 
         // End date must be >= start date
         if (endDate < startDate && !isSameDay(endDate, startDate)) {
@@ -162,10 +164,10 @@ export function RecurringSettingsDialog({
 
     setIsLoading(true);
     try {
-      // Convert calendar dates to UTC before sending to server
-      // Calendar returns local midnight, toUTCDate extracts the UTC date from that instant
-      const startDate = isRecurring ? toUTCDate(recurrenceStart || localToday) : null;
-      const endDate = isRecurring && recurrenceEnd ? toUTCDate(recurrenceEnd) : null;
+      // Convert local calendar dates to UTC before sending to server
+      // localToUTC preserves the local date (e.g., Feb 28 local -> Feb 28 UTC)
+      const startDate = isRecurring ? localToUTC(recurrenceStart || localToday) : null;
+      const endDate = isRecurring && recurrenceEnd ? localToUTC(recurrenceEnd) : null;
 
       await onUpdate({
         isRecurring,
