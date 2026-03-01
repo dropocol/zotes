@@ -16,16 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { EmptyState } from "@/components/common/empty-state";
+import { ProjectSelect } from "@/components/common/project-select";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import { DefaultTodoListSection } from "@/components/todos/default-todo-list-section";
 import { TodoListsTable } from "@/components/todos/todo-lists-table";
@@ -38,14 +32,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { TodoList, TodoItem, PaginatedListsResponse } from "@/types";
-import { ProjectForDropdown } from "@/types/project";
 import { usePagination } from "@/hooks/use-pagination";
 
 const DEFAULT_LIST_ITEMS_LIMIT = 10;
 
 export default function TodosPage() {
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
-  const [projects, setProjects] = useState<ProjectForDropdown[]>([]);
   const [defaultListItems, setDefaultListItems] = useState<TodoItem[]>([]);
   const [defaultList, setDefaultList] = useState<TodoList | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +45,7 @@ export default function TodosPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newProjectId, setNewProjectId] = useState<string>("none");
+  const [newProjectId, setNewProjectId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [otherListsTotal, setOtherListsTotal] = useState(0);
@@ -66,13 +58,6 @@ export default function TodosPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch projects for dropdown (lean data: id, name, color only)
-      const projectsRes = await fetch("/api/projects?forDropdown=true");
-      if (projectsRes.ok) {
-        const data: ProjectForDropdown[] = await projectsRes.json();
-        setProjects(data);
-      }
-
       // Fetch default list - only personal lists (no project)
       const personalListsRes = await fetch("/api/todo/lists?personalOnly=true&limit=100");
       if (personalListsRes.ok) {
@@ -136,14 +121,14 @@ export default function TodosPage() {
         body: JSON.stringify({
           name: newName.trim(),
           description: newDescription.trim() || null,
-          projectId: newProjectId === "none" ? null : newProjectId,
+          projectId: newProjectId,
         }),
       });
 
       if (response.ok) {
         setNewName("");
         setNewDescription("");
-        setNewProjectId("none");
+        setNewProjectId(null);
         setIsDialogOpen(false);
         fetchData();
       }
@@ -295,28 +280,12 @@ export default function TodosPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="project">Project (optional)</Label>
-                <Select value={newProjectId} onValueChange={setNewProjectId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No project</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{
-                              backgroundColor: project.color || "#6b7280",
-                            }}
-                          />
-                          {project.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Project (optional)</Label>
+                <ProjectSelect
+                  value={newProjectId}
+                  onChange={setNewProjectId}
+                  placeholder="Select a project"
+                />
               </div>
             </div>
             <DialogFooter>

@@ -1,27 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TiptapEditor } from "@/components/editor/tiptap-editor";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Loader2, Save, Check } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Toolbar } from "@/components/editor/toolbar";
+import { NoteHeaderActions } from "@/components/notes/note-header-actions";
+import { NoteEditorLayout } from "@/components/notes/note-editor-layout";
+import { useNoteAutoSave } from "@/hooks/use-note-auto-save";
 import type { Editor } from "@tiptap/react";
-
-interface Project {
-  id: string;
-  name: string;
-}
 
 // Default content with empty paragraphs for easier editing
 const DEFAULT_CONTENT = "<p></p><p></p><p></p>";
@@ -33,187 +17,35 @@ export default function NewNotePage() {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState(DEFAULT_CONTENT);
-  const [selectedProject, setSelectedProject] = useState<string>(projectId || "none");
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingProjects, setIsFetchingProjects] = useState(true);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [selectedProject, setSelectedProject] = useState<string | null>(projectId || null);
   const [editor, setEditor] = useState<Editor | null>(null);
 
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasTitleRef = useRef(false);
+  const { autoSaveStatus, isSaving, save } = useNoteAutoSave({
+    title,
+    content,
+    projectId: selectedProject,
+    hasChanges: true,
+  });
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  // Auto-save when content changes and title exists
-  const performAutoSave = useCallback(async (titleValue: string, contentValue: string, projectValue: string) => {
-    if (!titleValue.trim()) return;
-
-    setAutoSaveStatus("saving");
-    try {
-      const response = await fetch("/api/notes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: titleValue.trim(),
-          content: contentValue,
-          projectId: projectValue === "none" ? null : projectValue,
-        }),
-      });
-
-      if (response.ok) {
-        const note = await response.json();
-        setAutoSaveStatus("saved");
-        // Redirect to the note page after auto-save
-        router.push(`/notes/${note.id}`);
-      }
-    } catch (error) {
-      console.error("Error auto-saving note:", error);
-      setAutoSaveStatus("idle");
-    }
-  }, [router]);
-
-  // Debounced auto-save effect
-  useEffect(() => {
-    hasTitleRef.current = title.trim().length > 0;
-
-    if (!hasTitleRef.current) {
-      return;
-    }
-
-    // Clear existing timeout
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    // Set new timeout for auto-save (1.5 seconds after user stops typing)
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      if (hasTitleRef.current) {
-        performAutoSave(title, content, selectedProject);
-      }
-    }, 1500);
-
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-    };
-  }, [title, content, selectedProject, performAutoSave]);
-
-  async function fetchProjects() {
-    try {
-      const response = await fetch("/api/projects?forDropdown=true");
-      const data = await response.json();
-      setProjects(data);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-    } finally {
-      setIsFetchingProjects(false);
-    }
-  }
-
-  async function handleSave() {
-    if (!title.trim()) return;
-
-    // Clear auto-save timeout if manual save is triggered
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/notes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          content,
-          projectId: selectedProject === "none" ? null : selectedProject,
-        }),
-      });
-
-      if (response.ok) {
-        const note = await response.json();
-        router.push(`/notes/${note.id}`);
-      }
-    } catch (error) {
-      console.error("Error creating note:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  const handleEditorReady = useCallback((editorInstance: Editor | null) => {
-    setEditor(editorInstance);
-  }, []);
-
-  const headerContent = (
-    <Input
-      value={title}
-      onChange={(e) => setTitle(e.target.value)}
-      placeholder="Untitled"
-      className="text-sm font-medium border-0 shadow-none focus-visible:ring-0 p-2 h-9 flex-1 min-w-0 bg-muted/30 hover:bg-muted/50 transition-colors rounded-md"
+  const headerActions = (
+    <NoteHeaderActions
+      autoSaveStatus={autoSaveStatus}
+      isSaving={isSaving}
+      selectedProject={selectedProject}
+      onProjectChange={setSelectedProject}
+      onSave={save}
     />
   );
 
-  const headerActions = (
-    <>
-      {autoSaveStatus === "saving" && (
-        <Badge variant="outline" className="text-muted-foreground">
-          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          Saving...
-        </Badge>
-      )}
-      {autoSaveStatus === "saved" && (
-        <Badge variant="outline" className="text-green-600 border-green-200">
-          <Check className="mr-1 h-3 w-3" />
-          Saved
-        </Badge>
-      )}
-      <Select value={selectedProject} onValueChange={setSelectedProject}>
-        <SelectTrigger className="w-[140px] h-8 text-sm">
-          <SelectValue placeholder="Select a project" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">No project</SelectItem>
-          {projects.map((project) => (
-            <SelectItem key={project.id} value={project.id}>
-              {project.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button onClick={handleSave} disabled={!title.trim() || isLoading || autoSaveStatus === "saving"} size="sm" className="h-8">
-        {isLoading ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Save className="mr-2 h-4 w-4" />
-        )}
-        Save
-      </Button>
-    </>
-  );
-
   return (
-    <DashboardLayout
-      headerContent={headerContent}
+    <NoteEditorLayout
+      title={title}
+      onTitleChange={setTitle}
+      content={content}
+      onContentChange={setContent}
       headerActions={headerActions}
-      fullHeight
-    >
-      <Toolbar editor={editor} />
-      <TiptapEditor
-        content={content}
-        onChange={setContent}
-        className="flex-1"
-        hideToolbar
-        onEditorReady={handleEditorReady}
-      />
-    </DashboardLayout>
+      onEditorReady={setEditor}
+      projectId={selectedProject}
+    />
   );
 }
