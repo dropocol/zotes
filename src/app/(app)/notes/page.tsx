@@ -7,7 +7,8 @@ import { NotesTable } from "@/components/notes/notes-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
-import { Loader2, Plus, Search, StickyNote } from "lucide-react";
+import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { Plus, Search, StickyNote } from "lucide-react";
 import Link from "next/link";
 import { usePagination } from "@/hooks/use-pagination";
 import { Note, PaginatedNotesResponse } from "@/types";
@@ -79,9 +80,7 @@ export default function NotesPage() {
       </PageHeader>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <LoadingSpinner />
       ) : (
         <>
           <NotesTable

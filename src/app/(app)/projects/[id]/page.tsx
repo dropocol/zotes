@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Note, TodoList } from "@/types";
 
 interface Project {
   id: string;
@@ -14,25 +15,6 @@ interface Project {
   color?: string | null;
   userRole: string;
   isOwner: boolean;
-}
-
-interface Note {
-  id: string;
-  title: string;
-  content?: string | null;
-  pinned: boolean;
-  updatedAt: string;
-}
-
-interface TodoList {
-  id: string;
-  name: string;
-  description?: string | null;
-  isDefault?: boolean;
-  updatedAt: string;
-  _count: {
-    items: number;
-  };
 }
 
 export default function ProjectPage({

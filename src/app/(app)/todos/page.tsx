@@ -8,14 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -31,27 +23,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
-import { TodoItemRow } from "@/components/todos/todo-item-row";
+import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { EmptyState } from "@/components/common/empty-state";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
-import { TodoItemInput } from "@/components/todos/todo-item-input";
+import { DefaultTodoListSection } from "@/components/todos/default-todo-list-section";
+import { TodoListsTable } from "@/components/todos/todo-lists-table";
 import {
   Loader2,
   ListTodo,
-  ExternalLink,
-  Trash2,
   CalendarDays,
   CheckSquare,
   Plus,
-  Star,
-  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { TodoList, TodoItem, PaginatedListsResponse } from "@/types";
@@ -133,7 +116,6 @@ export default function TodosPage() {
       const response = await fetch(`/api/todo/lists/${listId}/items`);
       if (response.ok) {
         const data = await response.json();
-        // Limit to DEFAULT_LIST_ITEMS_LIMIT items
         setDefaultListItems(data.slice(0, DEFAULT_LIST_ITEMS_LIMIT));
       }
     } catch (error) {
@@ -250,18 +232,7 @@ export default function TodosPage() {
     }
   }
 
-  function formatDate(date: string) {
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  }
-
   function getTodoListUrl(todoList: TodoList) {
-    if (todoList.projectId && todoList.project) {
-      return `/projects/${todoList.projectId}/todos/${todoList.id}`;
-    }
     return `/todos/${todoList.id}`;
   }
 
@@ -273,7 +244,6 @@ export default function TodosPage() {
     otherListsPagination.setLimit(limit);
   };
 
-  // Other lists are already filtered by the API (excludeDefault=true)
   const otherLists = todoLists;
 
   return (
@@ -368,62 +338,20 @@ export default function TodosPage() {
       </PageHeader>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <LoadingSpinner />
       ) : (
         <div className="space-y-6">
           {/* Default List Section */}
           {defaultList && (
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h2 className="text-lg font-semibold">{defaultList.name}</h2>
-                  {defaultList.description && (
-                    <p className="text-sm text-muted-foreground">
-                      {defaultList.description}
-                    </p>
-                  )}
-                </div>
-                <Button variant="ghost" size="sm" asChild className="gap-1">
-                  <Link href={getTodoListUrl(defaultList)}>
-                    View all
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-              </div>
-
-              <div className="rounded-lg border bg-card">
-                {/* Add item input */}
-                <div className="flex items-center gap-2 p-3 border-b">
-                  <TodoItemInput onAdd={addItem} />
-                </div>
-
-                <div className="divide-y divide-border/50">
-                  {defaultListItems.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted mb-3">
-                        <ListTodo className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        No tasks yet
-                      </p>
-                    </div>
-                  ) : (
-                    defaultListItems.map((item) => (
-                      <TodoItemRow
-                        key={item.id}
-                        item={item}
-                        onToggleStatus={toggleStatus}
-                        onAddSubItem={() => {}}
-                        onDelete={deleteItem}
-                        onSelect={handleSelectItem}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            </section>
+            <DefaultTodoListSection
+              defaultList={defaultList}
+              items={defaultListItems}
+              viewAllHref={getTodoListUrl(defaultList)}
+              onAddItem={addItem}
+              onToggleStatus={toggleStatus}
+              onDeleteItem={deleteItem}
+              onSelectItem={handleSelectItem}
+            />
           )}
 
           {/* Other Lists */}
@@ -432,70 +360,12 @@ export default function TodosPage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Todo Lists</h2>
               </div>
-              <div className="rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[40px]"></TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Updated</TableHead>
-                      <TableHead className="w-[60px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {otherLists.map((todoList) => (
-                      <TableRow key={todoList.id} className="group">
-                        <TableCell>
-                          <CheckSquare className="h-4 w-4 text-muted-foreground" />
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            href={getTodoListUrl(todoList)}
-                            className="font-medium hover:text-primary transition-colors"
-                          >
-                            {todoList.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{todoList._count?.items ?? 0}</Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(todoList.updatedAt as string)}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {!todoList.isDefault && (
-                                <DropdownMenuItem onClick={() => handleSetDefault(todoList.id)}>
-                                  <Star className="mr-2 h-4 w-4" />
-                                  Set as Default
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDelete(todoList.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <TodoListsTable
+                todoLists={otherLists}
+                getHref={getTodoListUrl}
+                onSetDefault={handleSetDefault}
+                onDelete={handleDelete}
+              />
               <Pagination
                 currentPage={otherListsPagination.currentPage}
                 totalPages={otherListsPagination.totalPages}
@@ -509,17 +379,11 @@ export default function TodosPage() {
 
           {/* Empty state */}
           {!defaultList && otherLists.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4">
-                <ListTodo className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
-                No todo lists yet
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Create your first todo list to get started
-              </p>
-            </div>
+            <EmptyState
+              icon={ListTodo}
+              title="No todo lists yet"
+              description="Create your first todo list to get started"
+            />
           )}
         </div>
       )}

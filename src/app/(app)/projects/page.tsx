@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { ProjectForm } from "@/components/projects/project-form";
-import { Loader2, Plus, Search, Layers } from "lucide-react";
+import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { Plus, Search, Layers } from "lucide-react";
 import { usePagination } from "@/hooks/use-pagination";
 import { ProjectWithRole, PaginatedProjectsResponse } from "@/types";
 
@@ -85,9 +86,7 @@ export default function ProjectsPage() {
       </PageHeader>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <LoadingSpinner />
       ) : (
         <>
           <ProjectsTable

@@ -23,11 +23,21 @@ import { Note } from "@/types";
 
 interface NotesTableProps {
   notes: Note[];
-  searchQuery: string;
-  onRefresh: () => void;
+  searchQuery?: string;
+  onRefresh?: () => void;
+  showProjectColumn?: boolean;
+  canModify?: boolean;
+  emptyMessage?: string;
 }
 
-export function NotesTable({ notes, searchQuery, onRefresh }: NotesTableProps) {
+export function NotesTable({
+  notes,
+  searchQuery = "",
+  onRefresh = () => {},
+  showProjectColumn = true,
+  canModify = true,
+  emptyMessage,
+}: NotesTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "pinned", direction: "desc" });
 
   const filteredNotes = useMemo(() => {
@@ -132,7 +142,7 @@ export function NotesTable({ notes, searchQuery, onRefresh }: NotesTableProps) {
               onSort={handleSort}
             />
             <TableHead>Preview</TableHead>
-            <TableHead>Project</TableHead>
+            {showProjectColumn && <TableHead>Project</TableHead>}
             <SortableTableHead
               column="updatedAt"
               label="Updated"
@@ -140,14 +150,14 @@ export function NotesTable({ notes, searchQuery, onRefresh }: NotesTableProps) {
               onSort={handleSort}
               className="w-[150px]"
             />
-            <TableHead className="w-[60px]"></TableHead>
+            {canModify && <TableHead className="w-[60px]"></TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedNotes.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                {searchQuery ? "No notes found matching your search" : "No notes yet. Create your first note to get started."}
+              <TableCell colSpan={showProjectColumn ? 6 : 5} className="text-center text-muted-foreground py-8">
+                {emptyMessage || (searchQuery ? "No notes found matching your search" : "No notes yet. Create your first note to get started.")}
               </TableCell>
             </TableRow>
           ) : (
@@ -169,62 +179,66 @@ export function NotesTable({ notes, searchQuery, onRefresh }: NotesTableProps) {
                 <TableCell className="text-muted-foreground max-w-[300px] truncate">
                   {getPreview(note.content) || "-"}
                 </TableCell>
-                <TableCell>
-                  {note.project ? (
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: note.project.color || "#f97316" }}
-                      />
-                      <Link
-                        href={`/projects/${note.project.id}`}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {note.project.name}
-                      </Link>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
+                {showProjectColumn && (
+                  <TableCell>
+                    {note.project ? (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: note.project.color || "#f97316" }}
+                        />
+                        <Link
+                          href={`/projects/${note.project.id}`}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {note.project.name}
+                        </Link>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                )}
                 <TableCell className="text-muted-foreground">
                   {new Date(note.updatedAt).toLocaleDateString()}
                 </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleTogglePin(note)}>
-                        {note.pinned ? (
-                          <>
-                            <PinOff className="mr-2 h-4 w-4" />
-                            Unpin
-                          </>
-                        ) : (
-                          <>
-                            <Pin className="mr-2 h-4 w-4" />
-                            Pin
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDelete(note.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                {canModify && (
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleTogglePin(note)}>
+                          {note.pinned ? (
+                            <>
+                              <PinOff className="mr-2 h-4 w-4" />
+                              Unpin
+                            </>
+                          ) : (
+                            <>
+                              <Pin className="mr-2 h-4 w-4" />
+                              Pin
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDelete(note.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                )}
               </TableRow>
             ))
           )}

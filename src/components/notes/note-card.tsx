@@ -3,14 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Trash2, Pin } from "lucide-react";
+import { CardDropdownMenu } from "@/components/common/card-dropdown-menu";
+import { Pin, Trash2 } from "lucide-react";
 
 interface Note {
   id: string;
@@ -75,6 +69,21 @@ export function NoteCard({ note, onDelete, onTogglePin }: NoteCardProps) {
     ? note.content.replace(/<[^>]*>/g, "").slice(0, 150)
     : "";
 
+  const menuItems = [
+    {
+      icon: Pin,
+      label: note.pinned ? "Unpin" : "Pin",
+      onClick: handleTogglePin,
+    },
+    {
+      icon: Trash2,
+      label: "Delete",
+      onClick: handleDelete,
+      className: "text-destructive focus:text-destructive",
+      disabled: isDeleting,
+    },
+  ];
+
   return (
     <Card className="group relative">
       {note.pinned && (
@@ -104,27 +113,7 @@ export function NoteCard({ note, onDelete, onTogglePin }: NoteCardProps) {
         </CardContent>
       </Link>
       <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleTogglePin}>
-              <Pin className="mr-2 h-4 w-4" />
-              {note.pinned ? "Unpin" : "Pin"}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <CardDropdownMenu items={menuItems} />
       </div>
     </Card>
   );

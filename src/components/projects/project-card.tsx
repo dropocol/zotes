@@ -3,14 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, FileText, CheckSquare } from "lucide-react";
+import { CardDropdownMenu } from "@/components/common/card-dropdown-menu";
+import { Pencil, Trash2, FileText, CheckSquare } from "lucide-react";
 import { ProjectWithCounts } from "@/types";
 
 interface ProjectCardProps {
@@ -41,6 +35,21 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
     }
   }
 
+  const menuItems = [
+    {
+      icon: Pencil,
+      label: "Edit",
+      onClick: () => onEdit(project),
+    },
+    {
+      icon: Trash2,
+      label: "Delete",
+      onClick: handleDelete,
+      className: "text-destructive focus:text-destructive",
+      disabled: isDeleting,
+    },
+  ];
+
   return (
     <Card className="group relative">
       <div
@@ -56,31 +65,10 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
             {project.name}
           </Link>
         </CardTitle>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(project)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <CardDropdownMenu
+          items={menuItems}
+          triggerClassName="opacity-0 group-hover:opacity-100 transition-opacity"
+        />
       </CardHeader>
       <CardContent>
         {project.description && (

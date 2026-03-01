@@ -4,38 +4,15 @@ import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import {
-  Plus,
-  Trash2,
-  CheckSquare,
-  MoreHorizontal,
-  Settings,
-  Star,
-  ExternalLink,
-  ListTodo,
-} from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { TodoListForm } from "@/components/todos/todo-list-form";
-import { TodoItemInput } from "@/components/todos/todo-item-input";
-import { TodoItemRow } from "@/components/todos/todo-item-row";
+import { DefaultTodoListSection } from "@/components/todos/default-todo-list-section";
+import { TodoListsTable } from "@/components/todos/todo-lists-table";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
+import { NotesTable } from "@/components/notes/notes-table";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { RoleBadge } from "@/components/projects/role-badge";
-import { TodoItem } from "@/types/todo";
+import { TodoItem, TodoList, Note } from "@/types";
 
 interface Project {
   id: string;
@@ -44,25 +21,6 @@ interface Project {
   color?: string | null;
   userRole: string;
   isOwner: boolean;
-}
-
-interface Note {
-  id: string;
-  title: string;
-  content?: string | null;
-  pinned: boolean;
-  updatedAt: string;
-}
-
-interface TodoList {
-  id: string;
-  name: string;
-  description?: string | null;
-  isDefault?: boolean;
-  updatedAt: string;
-  _count: {
-    items: number;
-  };
 }
 
 interface ProjectPageClientProps {
@@ -115,12 +73,6 @@ export function ProjectPageClient({
   }
 
   const canModify = project.userRole === "admin";
-
-  // Strip HTML for preview
-  const getPreview = (content: string | null | undefined) => {
-    if (!content) return "";
-    return content.replace(/<[^>]*>/g, "").slice(0, 80);
-  };
 
   async function handleDeleteTodoList(id: string) {
     if (!confirm("Are you sure you want to delete this todo list?")) return;
@@ -200,6 +152,10 @@ export function ProjectPageClient({
     }
   }
 
+  function getTodoListUrl(todoList: TodoList) {
+    return `/projects/${project?.id}/todos/${todoList.id}`;
+  }
+
   return (
     <DashboardLayout
       breadcrumbs={[
@@ -237,57 +193,17 @@ export function ProjectPageClient({
 
       {/* Default List Section */}
       {defaultList && (
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-lg font-semibold">{defaultList.name}</h2>
-              {defaultList.description && (
-                <p className="text-sm text-muted-foreground">
-                  {defaultList.description}
-                </p>
-              )}
-            </div>
-            <Button variant="ghost" size="sm" asChild className="gap-1">
-              <Link href={`/projects/${project.id}/todos/${defaultList.id}`}>
-                View all
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
-
-          <div className="rounded-lg border bg-card">
-            {/* Add item input */}
-            {canModify && (
-              <div className="flex items-center gap-2 p-3 border-b">
-                <TodoItemInput onAdd={addItem} />
-              </div>
-            )}
-
-            <div className="divide-y divide-border/50">
-              {defaultListItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted mb-3">
-                    <ListTodo className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    No tasks yet
-                  </p>
-                </div>
-              ) : (
-                defaultListItems.map((item) => (
-                  <TodoItemRow
-                    key={item.id}
-                    item={item}
-                    onToggleStatus={toggleStatus}
-                    onAddSubItem={() => {}}
-                    onDelete={deleteItem}
-                    onSelect={handleSelectItem}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        </section>
+        <DefaultTodoListSection
+          defaultList={defaultList}
+          items={defaultListItems}
+          viewAllHref={getTodoListUrl(defaultList)}
+          canModify={canModify}
+          onAddItem={addItem}
+          onToggleStatus={toggleStatus}
+          onDeleteItem={deleteItem}
+          onSelectItem={handleSelectItem}
+          className="mb-8"
+        />
       )}
 
       {/* Other Todo Lists Table */}
@@ -302,84 +218,18 @@ export function ProjectPageClient({
           )}
         </div>
 
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40px]"></TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Updated</TableHead>
-                {canModify && <TableHead className="w-[60px]"></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {otherLists.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={canModify ? 5 : 4}
-                    className="text-center text-muted-foreground py-8"
-                  >
-                    {defaultList
-                      ? "No additional lists."
-                      : "No todo lists yet. " +
-                        (canModify ? "Create your first list to get started." : "")}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                otherLists.map((todoList) => (
-                  <TableRow key={todoList.id} className="group">
-                    <TableCell>
-                      <CheckSquare className="h-4 w-4 text-muted-foreground" />
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/projects/${project.id}/todos/${todoList.id}`}
-                        className="font-medium hover:text-primary transition-colors"
-                      >
-                        {todoList.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{todoList._count.items}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(todoList.updatedAt).toLocaleDateString()}
-                    </TableCell>
-                    {canModify && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleSetDefault(todoList.id)}>
-                              <Star className="mr-2 h-4 w-4" />
-                              Set as Default
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => handleDeleteTodoList(todoList.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <TodoListsTable
+          todoLists={otherLists}
+          getHref={getTodoListUrl}
+          canModify={canModify}
+          onSetDefault={canModify ? handleSetDefault : undefined}
+          onDelete={canModify ? handleDeleteTodoList : undefined}
+          emptyMessage={
+            defaultList
+              ? "No additional lists."
+              : "No todo lists yet. Create your first list to get started."
+          }
+        />
       </div>
 
       {/* Notes Table */}
@@ -396,63 +246,13 @@ export function ProjectPageClient({
           )}
         </div>
 
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40px]"></TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Preview</TableHead>
-                <TableHead>Updated</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {notes.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center text-muted-foreground py-8"
-                  >
-                    No notes yet.{" "}
-                    {canModify ? "Create your first note to get started." : ""}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                notes.map((note) => (
-                  <TableRow key={note.id}>
-                    <TableCell>
-                      {note.pinned && (
-                        <Badge variant="secondary" className="p-1">
-                          <svg
-                            className="h-3 w-3"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M16 3H8c-1.1 0-2 .9-2 2v3c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 10H8c-1.1 0-2 .9-2 2v3c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-3c0-1.1-.9-2-2-2z" />
-                          </svg>
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/notes/${note.id}`}
-                        className="font-medium hover:text-primary transition-colors"
-                      >
-                        {note.title}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground max-w-[300px] truncate">
-                      {getPreview(note.content) || "-"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(note.updatedAt).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <NotesTable
+          notes={notes}
+          onRefresh={onRefresh}
+          showProjectColumn={false}
+          canModify={canModify}
+          emptyMessage="No notes yet."
+        />
       </div>
 
       <TodoListForm
