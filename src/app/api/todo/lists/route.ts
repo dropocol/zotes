@@ -14,13 +14,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");
     const excludeDefault = searchParams.get("excludeDefault") === "true";
+    const personalOnly = searchParams.get("personalOnly") === "true";
 
-    const where: { userId: string; projectId?: string; isDefault?: boolean } = {
+    const where: { userId: string; projectId?: string | null; isDefault?: boolean } = {
       userId: session.user.id,
     };
 
     if (projectId) {
       where.projectId = projectId;
+    }
+
+    if (personalOnly) {
+      where.projectId = null;
     }
 
     if (excludeDefault) {

@@ -131,6 +131,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create a default todo list for the project
+    await prisma.todoList.create({
+      data: {
+        name: "Tasks",
+        description: `Default task list for ${name}`,
+        projectId: project.id,
+        userId: session.user.id,
+        isDefault: true,
+      },
+    });
+
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
     console.error("Error creating project:", error);

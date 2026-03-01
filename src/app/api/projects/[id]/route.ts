@@ -36,7 +36,10 @@ export async function GET(
           },
         },
         todoLists: {
-          orderBy: { updatedAt: "desc" },
+          orderBy: [
+            { isDefault: "desc" },
+            { updatedAt: "desc" },
+          ],
           include: {
             _count: {
               select: { items: true },

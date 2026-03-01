@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -10,8 +10,14 @@ import {
   CheckSquare,
   MoreHorizontal,
   Settings,
+  Star,
+  ExternalLink,
+  ListTodo,
 } from "lucide-react";
 import { TodoListForm } from "@/components/todos/todo-list-form";
+import { TodoItemInput } from "@/components/todos/todo-item-input";
+import { TodoItemRow } from "@/components/todos/todo-item-row";
+import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import {
   Table,
@@ -29,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { RoleBadge } from "@/components/projects/role-badge";
+import { TodoItem } from "@/types/todo";
 
 interface Project {
   id: string;
@@ -51,6 +58,7 @@ interface TodoList {
   id: string;
   name: string;
   description?: string | null;
+  isDefault?: boolean;
   updatedAt: string;
   _count: {
     items: number;
@@ -64,6 +72,8 @@ interface ProjectPageClientProps {
   onRefresh: () => void;
 }
 
+const DEFAULT_LIST_ITEMS_LIMIT = 10;
+
 export function ProjectPageClient({
   project,
   notes,
@@ -71,6 +81,34 @@ export function ProjectPageClient({
   onRefresh,
 }: ProjectPageClientProps) {
   const [isTodoListFormOpen, setIsTodoListFormOpen] = useState(false);
+  const [defaultListItems, setDefaultListItems] = useState<TodoItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Separate default list from other lists
+  const defaultList = todoLists.find((list) => list.isDefault);
+  const otherLists = todoLists.filter((list) => !list.isDefault);
+
+  // Fetch items for the default list
+  useEffect(() => {
+    if (defaultList) {
+      fetchDefaultListItems(defaultList.id);
+    } else {
+      setDefaultListItems([]);
+    }
+  }, [defaultList?.id]);
+
+  async function fetchDefaultListItems(listId: string) {
+    try {
+      const response = await fetch(`/api/todo/lists/${listId}/items`);
+      if (response.ok) {
+        const data = await response.json();
+        setDefaultListItems(data.slice(0, DEFAULT_LIST_ITEMS_LIMIT));
+      }
+    } catch (error) {
+      console.error("Error fetching items:", error);
+    }
+  }
 
   if (!project) {
     notFound();
@@ -100,6 +138,68 @@ export function ProjectPageClient({
     }
   }
 
+  async function handleSetDefault(id: string) {
+    try {
+      const response = await fetch(`/api/todo/lists/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isDefault: true }),
+      });
+
+      if (response.ok) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error("Error setting default todo list:", error);
+    }
+  }
+
+  async function toggleStatus(id: string, status: string) {
+    await fetch(`/api/todo/items/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+    if (defaultList) {
+      fetchDefaultListItems(defaultList.id);
+    }
+  }
+
+  async function deleteItem(id: string) {
+    await fetch(`/api/todo/items/${id}`, {
+      method: "DELETE",
+    });
+    if (defaultList) {
+      fetchDefaultListItems(defaultList.id);
+    }
+  }
+
+  async function addItem(title: string) {
+    if (!defaultList) return;
+
+    await fetch(`/api/todo/lists/${defaultList.id}/items`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title }),
+    });
+    fetchDefaultListItems(defaultList.id);
+  }
+
+  function handleSelectItem(item: TodoItem) {
+    setSelectedItem(item);
+    setIsDrawerOpen(true);
+  }
+
+  function handleUpdateItem() {
+    if (defaultList) {
+      fetchDefaultListItems(defaultList.id);
+    }
+  }
+
   return (
     <DashboardLayout
       breadcrumbs={[
@@ -107,7 +207,7 @@ export function ProjectPageClient({
         { title: project.name },
       ]}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3">
             <div
@@ -135,7 +235,62 @@ export function ProjectPageClient({
         )}
       </div>
 
-      {/* Todo Lists Table */}
+      {/* Default List Section */}
+      {defaultList && (
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-lg font-semibold">{defaultList.name}</h2>
+              {defaultList.description && (
+                <p className="text-sm text-muted-foreground">
+                  {defaultList.description}
+                </p>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" asChild className="gap-1">
+              <Link href={`/projects/${project.id}/todos/${defaultList.id}`}>
+                View all
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="rounded-lg border bg-card">
+            {/* Add item input */}
+            {canModify && (
+              <div className="flex items-center gap-2 p-3 border-b">
+                <TodoItemInput onAdd={addItem} />
+              </div>
+            )}
+
+            <div className="divide-y divide-border/50">
+              {defaultListItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted mb-3">
+                    <ListTodo className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    No tasks yet
+                  </p>
+                </div>
+              ) : (
+                defaultListItems.map((item) => (
+                  <TodoItemRow
+                    key={item.id}
+                    item={item}
+                    onToggleStatus={toggleStatus}
+                    onAddSubItem={() => {}}
+                    onDelete={deleteItem}
+                    onSelect={handleSelectItem}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Other Todo Lists Table */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Todo Lists</h2>
@@ -159,18 +314,20 @@ export function ProjectPageClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {todoLists.length === 0 ? (
+              {otherLists.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={canModify ? 5 : 4}
                     className="text-center text-muted-foreground py-8"
                   >
-                    No todo lists yet.{" "}
-                    {canModify ? "Create your first list to get started." : ""}
+                    {defaultList
+                      ? "No additional lists."
+                      : "No todo lists yet. " +
+                        (canModify ? "Create your first list to get started." : "")}
                   </TableCell>
                 </TableRow>
               ) : (
-                todoLists.map((todoList) => (
+                otherLists.map((todoList) => (
                   <TableRow key={todoList.id} className="group">
                     <TableCell>
                       <CheckSquare className="h-4 w-4 text-muted-foreground" />
@@ -202,6 +359,10 @@ export function ProjectPageClient({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleSetDefault(todoList.id)}>
+                              <Star className="mr-2 h-4 w-4" />
+                              Set as Default
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => handleDeleteTodoList(todoList.id)}
@@ -298,6 +459,14 @@ export function ProjectPageClient({
         open={isTodoListFormOpen}
         onOpenChange={setIsTodoListFormOpen}
         projectId={project.id}
+      />
+
+      {/* Detail drawer */}
+      <TodoItemDetailDrawer
+        item={selectedItem}
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+        onUpdate={handleUpdateItem}
       />
     </DashboardLayout>
   );

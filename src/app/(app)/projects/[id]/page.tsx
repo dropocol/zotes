@@ -28,6 +28,7 @@ interface TodoList {
   id: string;
   name: string;
   description?: string | null;
+  isDefault?: boolean;
   updatedAt: string;
   _count: {
     items: number;

@@ -31,6 +31,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { TodoItemRow } from "@/components/todos/todo-item-row";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
@@ -43,6 +50,8 @@ import {
   CalendarDays,
   CheckSquare,
   Plus,
+  Star,
+  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { TodoList, TodoItem, PaginatedListsResponse } from "@/types";
@@ -81,19 +90,23 @@ export default function TodosPage() {
         setProjects(data);
       }
 
-      // Fetch default list - use a high limit to find it
-      const allListsRes = await fetch("/api/todo/lists?limit=100");
-      if (allListsRes.ok) {
-        const allData: PaginatedListsResponse = await allListsRes.json();
-        const defaultL = allData.data.find((list: TodoList) => list.isDefault);
+      // Fetch default list - only personal lists (no project)
+      const personalListsRes = await fetch("/api/todo/lists?personalOnly=true&limit=100");
+      if (personalListsRes.ok) {
+        const personalData: PaginatedListsResponse = await personalListsRes.json();
+        const defaultL = personalData.data.find((list: TodoList) => list.isDefault);
         if (defaultL) {
           setDefaultList(defaultL);
           await fetchDefaultListItems(defaultL.id);
+        } else {
+          setDefaultList(null);
+          setDefaultListItems([]);
         }
       }
 
-      // Fetch other lists with pagination
+      // Fetch other personal lists with pagination
       const params = new URLSearchParams({
+        personalOnly: "true",
         excludeDefault: "true",
         page: otherListsPagination.currentPage.toString(),
         limit: otherListsPagination.limit.toString(),
@@ -172,6 +185,22 @@ export default function TodosPage() {
       }
     } catch (error) {
       console.error("Error deleting todo list:", error);
+    }
+  }
+
+  async function handleSetDefault(id: string) {
+    try {
+      const response = await fetch(`/api/todo/lists/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isDefault: true }),
+      });
+
+      if (response.ok) {
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Error setting default todo list:", error);
     }
   }
 
@@ -400,23 +429,26 @@ export default function TodosPage() {
           {/* Other Lists */}
           {otherLists.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-muted-foreground mb-3">
-                Other Lists
-              </h2>
-              <div className="rounded-lg border bg-card">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Todo Lists</h2>
+              </div>
+              <div className="rounded-lg border">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[40px]"></TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead>Project</TableHead>
-                      <TableHead className="text-center">Tasks</TableHead>
-                      <TableHead>Last Updated</TableHead>
-                      <TableHead className="w-[70px]"></TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Updated</TableHead>
+                      <TableHead className="w-[60px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {otherLists.map((todoList) => (
                       <TableRow key={todoList.id} className="group">
+                        <TableCell>
+                          <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
                         <TableCell>
                           <Link
                             href={getTodoListUrl(todoList)}
@@ -424,64 +456,40 @@ export default function TodosPage() {
                           >
                             {todoList.name}
                           </Link>
-                          {todoList.description && (
-                            <p className="text-xs text-muted-foreground truncate max-w-[300px]">
-                              {todoList.description}
-                            </p>
-                          )}
                         </TableCell>
                         <TableCell>
-                          {todoList.project ? (
-                            <Link
-                              href={`/projects/${todoList.project.id}`}
-                              className="inline-flex items-center gap-1.5 text-sm hover:text-primary transition-colors"
-                            >
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{
-                                  backgroundColor:
-                                    todoList.project.color || "#6b7280",
-                                }}
-                              />
-                              {todoList.project.name}
-                            </Link>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              No project
-                            </span>
-                          )}
+                          <Badge variant="secondary">{todoList._count?.items ?? 0}</Badge>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center h-6 min-w-[24px] px-1.5 rounded-full bg-muted text-xs font-medium">
-                            {todoList._count?.items ?? 0}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-muted-foreground">
                           {formatDate(todoList.updatedAt as string)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              asChild
-                            >
-                              <Link href={getTodoListUrl(todoList)}>
-                                <ExternalLink className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                            {!todoList.isDefault && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {!todoList.isDefault && (
+                                <DropdownMenuItem onClick={() => handleSetDefault(todoList.id)}>
+                                  <Star className="mr-2 h-4 w-4" />
+                                  Set as Default
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
                                 onClick={() => handleDelete(todoList.id)}
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}

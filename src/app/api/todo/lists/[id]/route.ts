@@ -87,7 +87,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { name, description } = await request.json();
+    const { name, description, isDefault } = await request.json();
 
     const existingTodoList = await prisma.todoList.findFirst({
       where: {
@@ -116,11 +116,36 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // If setting as default, unset any existing default for the same project
+    if (isDefault === true && !existingTodoList.isDefault) {
+      // For project lists, unset other defaults in the same project
+      if (existingTodoList.projectId) {
+        await prisma.todoList.updateMany({
+          where: {
+            projectId: existingTodoList.projectId,
+            isDefault: true,
+          },
+          data: { isDefault: false },
+        });
+      } else {
+        // For personal lists (no project), unset other personal defaults
+        await prisma.todoList.updateMany({
+          where: {
+            userId: session.user.id,
+            projectId: null,
+            isDefault: true,
+          },
+          data: { isDefault: false },
+        });
+      }
+    }
+
     const todoList = await prisma.todoList.update({
       where: { id },
       data: {
         name: name ?? existingTodoList.name,
         description: description ?? existingTodoList.description,
+        ...(isDefault !== undefined && { isDefault }),
       },
     });
 
