@@ -17,6 +17,20 @@ export interface TodoList {
   };
 }
 
+// Todo list with items for detailed view
+export interface TodoListWithItems {
+  id: string;
+  name: string;
+  description?: string | null;
+  projectId?: string | null;
+  project?: Project | null;
+  items: Array<{
+    id: string;
+    status: string;
+    parentId?: string | null;
+  }>;
+}
+
 // Paginated response type for todo lists
 export interface PaginatedListsResponse {
   data: TodoList[];

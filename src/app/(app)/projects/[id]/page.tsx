@@ -7,12 +7,9 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Note, TodoList } from "@/types";
+import type { Project } from "@/types/project";
 
-interface Project {
-  id: string;
-  name: string;
-  description?: string | null;
-  color?: string | null;
+interface ProjectWithRole extends Project {
   userRole: string;
   isOwner: boolean;
 }
@@ -22,7 +19,7 @@ export default function ProjectPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<ProjectWithRole | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
   const [isLoading, setIsLoading] = useState(true);

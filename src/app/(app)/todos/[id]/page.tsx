@@ -16,22 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { TodoListContainer } from "@/components/todos/todo-list-container";
 import { useRouter } from "next/navigation";
-
-interface TodoList {
-  id: string;
-  name: string;
-  description?: string | null;
-  project?: {
-    id: string;
-    name: string;
-    color?: string | null;
-  } | null;
-  items: {
-    id: string;
-    status: string;
-    parentId?: string | null;
-  }[];
-}
+import type { TodoListWithItems } from "@/types";
 
 export default function TodoListPage({
   params,
@@ -40,7 +25,7 @@ export default function TodoListPage({
 }) {
   const router = useRouter();
   const { id } = use(params);
-  const [todoList, setTodoList] = useState<TodoList | null>(null);
+  const [todoList, setTodoList] = useState<TodoListWithItems | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

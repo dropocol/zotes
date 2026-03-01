@@ -17,22 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { TodoListContainer } from "@/components/todos/todo-list-container";
 import { useRouter } from "next/navigation";
-
-interface TodoList {
-  id: string;
-  name: string;
-  description?: string | null;
-  project: {
-    id: string;
-    name: string;
-    color?: string | null;
-  };
-  items: {
-    id: string;
-    status: string;
-    parentId?: string | null;
-  }[];
-}
+import type { TodoListWithItems } from "@/types";
 
 export default function TodoListPage({
   params,
@@ -41,7 +26,7 @@ export default function TodoListPage({
 }) {
   const router = useRouter();
   const { id, todoListId } = use(params);
-  const [todoList, setTodoList] = useState<TodoList | null>(null);
+  const [todoList, setTodoList] = useState<TodoListWithItems | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -108,7 +93,7 @@ export default function TodoListPage({
     <DashboardLayout
       breadcrumbs={[
         { title: "Projects", href: "/projects" },
-        { title: todoList.project.name, href: `/projects/${id}` },
+        ...(todoList.project ? [{ title: todoList.project.name, href: `/projects/${id}` }] : []),
         { title: todoList.name },
       ]}
     >
@@ -124,7 +109,7 @@ export default function TodoListPage({
                 {todoList.name}
               </h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{todoList.project.name}</span>
+                <span>{todoList.project?.name || "Personal"}</span>
               </div>
             </div>
           </div>

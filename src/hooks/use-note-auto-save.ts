@@ -13,6 +13,12 @@ interface Note {
   projectId?: string | null;
 }
 
+interface FullNote extends Note {
+  userId: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 interface UseNoteAutoSaveOptions {
   noteId?: string;
   title: string;
@@ -20,7 +26,7 @@ interface UseNoteAutoSaveOptions {
   projectId: string | null;
   hasChanges?: boolean;
   autoSaveDelay?: number;
-  onSaveComplete?: (note: Note) => void;
+  onSaveComplete?: (note: FullNote) => void;
 }
 
 export function useNoteAutoSave({

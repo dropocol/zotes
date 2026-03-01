@@ -13,18 +13,15 @@ import { NotesTable } from "@/components/notes/notes-table";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { RoleBadge } from "@/components/projects/role-badge";
 import { TodoItem, TodoList, Note } from "@/types";
+import type { Project } from "@/types/project";
 
-interface Project {
-  id: string;
-  name: string;
-  description?: string | null;
-  color?: string | null;
+interface ProjectWithRole extends Project {
   userRole: string;
   isOwner: boolean;
 }
 
 interface ProjectPageClientProps {
-  project: Project | null;
+  project: ProjectWithRole | null;
   notes: Note[];
   todoLists: TodoList[];
   onRefresh: () => void;

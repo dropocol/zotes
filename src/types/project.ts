@@ -32,6 +32,22 @@ export interface ProjectForDropdown {
   color: string | null;
 }
 
+// Collaborator type for project settings
+export interface Collaborator {
+  id: string;
+  name?: string | null;
+  email: string;
+  image?: string | null;
+  role: string;
+  isOwner: boolean;
+  collaborationId?: string;
+}
+
+export interface CollaboratorsData {
+  owner: Collaborator;
+  collaborators: Collaborator[];
+}
+
 // Paginated response type
 export interface PaginatedProjectsResponse {
   data: ProjectWithRole[];

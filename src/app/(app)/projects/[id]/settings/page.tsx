@@ -6,29 +6,12 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { ProjectSettingsClient } from "./page-client";
+import type { Project } from "@/types/project";
+import type { Collaborator, CollaboratorsData } from "@/types/project";
 
-interface Project {
-  id: string;
-  name: string;
-  description?: string | null;
-  color?: string | null;
+interface ProjectWithRole extends Project {
   userRole: string;
   isOwner: boolean;
-}
-
-interface Collaborator {
-  id: string;
-  name?: string | null;
-  email: string;
-  image?: string | null;
-  role: string;
-  isOwner: boolean;
-  collaborationId?: string;
-}
-
-interface CollaboratorsData {
-  owner: Collaborator;
-  collaborators: Collaborator[];
 }
 
 export default function ProjectSettingsPage({
@@ -36,7 +19,7 @@ export default function ProjectSettingsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<ProjectWithRole | null>(null);
   const [collaboratorsData, setCollaboratorsData] = useState<CollaboratorsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);

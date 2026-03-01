@@ -4,14 +4,8 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { RecurringWeeklyView } from "@/components/recurring";
-import { RecurringCompletionStatus } from "@/types/recurring";
+import { RecurringCompletionStatus, RecurringTodoItem, RecurringCompletion } from "@/types/recurring";
 import { isSameDay, toUTCDate } from "@/utils/date";
-
-interface Completion {
-  id: string;
-  date: string;
-  status: string;
-}
 
 interface RecurringItem {
   id: string;
@@ -20,11 +14,15 @@ interface RecurringItem {
   daysOfWeek?: string | null;
   recurrenceStart?: string | null;
   recurrenceEnd?: string | null;
-  completions: Completion[];
+  completions: Array<{
+    id: string;
+    date: string;
+    status: string;
+  }>;
 }
 
 interface RecurringWeeklyViewClientProps {
-  initialItems: RecurringItem[];
+  initialItems: RecurringItem[] | RecurringTodoItem[];
   singleTaskMode?: boolean;
 }
 
@@ -34,7 +32,31 @@ export function RecurringWeeklyViewClient({
 }: RecurringWeeklyViewClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [items, setItems] = useState<RecurringItem[]>(initialItems);
+
+  // Convert initialItems to RecurringItem format
+  const convertToRecurringItem = (item: any): RecurringItem => ({
+    id: item.id,
+    title: item.title,
+    frequency: item.frequency,
+    daysOfWeek: typeof item.daysOfWeek === 'string' ? item.daysOfWeek : null,
+    recurrenceStart: item.recurrenceStart,
+    recurrenceEnd: item.recurrenceEnd,
+    completions: item.completions?.map((c: any) => ({
+      id: c.id,
+      date: c.date,
+      status: c.status,
+    })) || [],
+  });
+
+  const [items, setItems] = useState<RecurringItem[]>(() => {
+    if (Array.isArray(initialItems) && initialItems.length > 0) {
+      if ('completions' in initialItems[0]) {
+        return initialItems as RecurringItem[];
+      }
+      return initialItems.map(convertToRecurringItem);
+    }
+    return [];
+  });
 
   // Get initial date from URL or use today
   const dateParam = searchParams.get("date");
@@ -43,7 +65,13 @@ export function RecurringWeeklyViewClient({
 
   // Sync items when initialItems changes
   useEffect(() => {
-    setItems(initialItems);
+    if (Array.isArray(initialItems) && initialItems.length > 0) {
+      if ('completions' in initialItems[0]) {
+        setItems(initialItems as RecurringItem[]);
+      } else {
+        setItems(initialItems.map(convertToRecurringItem));
+      }
+    }
   }, [initialItems]);
 
   // Update URL when date changes
@@ -85,7 +113,7 @@ export function RecurringWeeklyViewClient({
                 (c) => isSameDay(c.date, date)
               );
 
-              let newCompletions: Completion[];
+              let newCompletions: RecurringCompletion[] | any[];
               if (existingIndex >= 0) {
                 // Update existing completion
                 newCompletions = [...item.completions];

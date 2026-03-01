@@ -5,18 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardDropdownMenu } from "@/components/common/card-dropdown-menu";
 import { Pin, Trash2 } from "lucide-react";
-
-interface Note {
-  id: string;
-  title: string;
-  content?: string | null;
-  pinned: boolean;
-  project?: {
-    id: string;
-    name: string;
-    color?: string | null;
-  } | null;
-}
+import type { Note } from "@/types";
 
 interface NoteCardProps {
   note: Note;

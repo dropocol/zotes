@@ -7,14 +7,13 @@ import { NoteHeaderActions } from "@/components/notes/note-header-actions";
 import { NoteEditorLayout } from "@/components/notes/note-editor-layout";
 import { useNoteAutoSave } from "@/hooks/use-note-auto-save";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import type { Note } from "@/types";
 import type { Editor } from "@tiptap/react";
 
-interface Note {
-  id: string;
-  title: string;
-  content?: string | null;
-  pinned: boolean;
-  projectId?: string | null;
+interface FullNote extends Note {
+  userId: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export default function NotePage({
@@ -25,7 +24,7 @@ export default function NotePage({
   const { id } = use(params);
   const router = useRouter();
 
-  const [note, setNote] = useState<Note | null>(null);
+  const [note, setNote] = useState<FullNote | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
@@ -62,7 +61,7 @@ export default function NotePage({
     }
   }
 
-  const handleSaveComplete = useCallback((updatedNote: Note) => {
+  const handleSaveComplete = useCallback((updatedNote: FullNote) => {
     setNote(updatedNote);
     setHasChanges(false);
   }, []);

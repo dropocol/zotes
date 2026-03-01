@@ -10,33 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { ArrowLeft, Settings, Loader2, Save } from "lucide-react";
 import { CollaboratorsList } from "@/components/projects/collaborators-list";
+import type { Project, Collaborator, CollaboratorsData } from "@/types/project";
 
-interface Project {
-  id: string;
-  name: string;
-  description?: string | null;
-  color?: string | null;
+interface ProjectWithRole extends Project {
   userRole: string;
   isOwner: boolean;
 }
 
-interface Collaborator {
-  id: string;
-  name?: string | null;
-  email: string;
-  image?: string | null;
-  role: string;
-  isOwner: boolean;
-  collaborationId?: string;
-}
-
-interface CollaboratorsData {
-  owner: Collaborator;
-  collaborators: Collaborator[];
-}
-
 interface ProjectSettingsClientProps {
-  project: Project;
+  project: ProjectWithRole;
   collaboratorsData: CollaboratorsData | null;
   onRefresh: () => void;
 }
