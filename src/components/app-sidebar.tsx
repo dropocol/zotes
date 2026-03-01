@@ -15,6 +15,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { TeamSwitcher } from "@/components/team-switcher";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const data = {
   teams: [
@@ -97,9 +98,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">
-        <NavMain items={data.navMain} />
-        <SidebarSeparator />
-        <NavRecent />
+        <ScrollArea className="h-full">
+          <NavMain items={data.navMain} />
+          <SidebarSeparator />
+          <NavRecent />
+        </ScrollArea>
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
