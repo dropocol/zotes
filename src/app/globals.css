@@ -324,3 +324,874 @@
 .dark .prose pre {
   background-color: var(--muted);
 }
+
+/* Table styles for Tiptap */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  font-size: 0.875em;
+  line-height: 1.5;
+}
+
+.prose thead {
+  color: var(--foreground);
+  font-weight: 600;
+  border-bottom-width: 1px;
+  border-bottom-color: var(--border);
+}
+
+.prose thead th {
+  vertical-align: bottom;
+  padding-right: 0.75em;
+  padding-bottom: 0.75em;
+  padding-left: 0.75em;
+}
+
+.prose tbody tr {
+  border-bottom-width: 1px;
+  border-bottom-color: var(--border);
+}
+
+.prose tbody tr:last-child {
+  border-bottom-width: 0;
+}
+
+.prose tbody td {
+  vertical-align: top;
+  padding: 0.75em;
+}
+
+.prose tfoot {
+  border-top-width: 1px;
+  border-top-color: var(--border);
+}
+
+.prose tfoot td {
+  vertical-align: top;
+  padding-right: 0.75em;
+  padding-top: 0.75em;
+  padding-left: 0.75em;
+}
+
+/* Selected table cell */
+.ProseMirror-selectednode {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Column resize handle */
+.tableWrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+/* Task list styles */
+.prose ul[data-type="taskList"] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.prose ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin-right: 0.5em;
+  margin-top: 0.125em;
+  user-select: none;
+}
+
+.prose ul[data-type="taskList"] li > label input[type="checkbox"] {
+  width: 1em;
+  height: 1em;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.prose ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+}
+
+.prose ul[data-type="taskList"] li task-list-item.is-checked {
+  text-decoration: line-through;
+  color: var(--muted-foreground);
+}
+
+/* Horizontal rule */
+.prose hr {
+  border: none;
+  border-top-width: 2px;
+  border-top-color: var(--border);
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+/* Image styles */
+.prose img {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  border-radius: 0.5rem;
+  max-width: 100%;
+  height: auto;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Link styles with hover */
+.prose a:hover {
+  opacity: 0.8;
+}
+
+/* Mark/Highlight styles */
+.prose mark {
+  background-color: oklch(0.95 0.05 85);
+  color: var(--foreground);
+  padding: 0.1em 0.2em;
+  border-radius: 0.2rem;
+}
+
+.dark .prose mark {
+  background-color: oklch(0.35 0.1 65);
+  color: var(--foreground);
+}
+
+/* Small text */
+.prose small {
+  font-size: 0.875em;
+  color: var(--muted-foreground);
+}
+
+/* Strike/Deleted text */
+.prose s,
+.prose del {
+  text-decoration: line-through;
+  color: var(--muted-foreground);
+}
+
+/* Italic */
+.prose em,
+.prose i {
+  font-style: italic;
+}
+
+/* Underline */
+.prose u {
+  text-decoration: underline;
+}
+
+/* Subscript and Superscript */
+.prose sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+.prose sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+/* Keyboard key style */
+.prose kbd {
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.4em;
+  font-size: 0.875em;
+  font-family: var(--font-mono);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+/* Figure and figcaption for images */
+.prose figure {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose figcaption {
+  font-size: 0.875em;
+  color: var(--muted-foreground);
+  text-align: center;
+  margin-top: 0.5em;
+}
+
+/* Table with specific class for selection */
+table p {
+  margin: 0;
+}
+
+/* ============================================================
+   Tiptap Editor - Comprehensive Styles
+   ============================================================ */
+
+/* Editor Container */
+.ProseMirror {
+  outline: none;
+  min-height: 300px;
+}
+
+.ProseMirror > * + * {
+  margin-top: 0.75em;
+}
+
+/* First child margin reset */
+.ProseMirror:first-child {
+  margin-top: 0;
+}
+
+/* Focus outline */
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Placeholder text */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: oklch(0.6 0.01 286);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.dark .ProseMirror p.is-editor-empty:first-child::before {
+  color: oklch(0.5 0.01 286);
+}
+
+/* Headings */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  scroll-margin-top: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.prose h1 {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose h2 {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose h3 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.prose h4 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.prose h5,
+.prose h6 {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+/* Paragraphs */
+.prose p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  line-height: 1.75;
+}
+
+/* Links */
+.prose a {
+  color: oklch(0.586 0.253 17.585);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 500;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.prose a:hover {
+  opacity: 0.8;
+}
+
+.dark .prose a {
+  color: oklch(0.645 0.246 16.439);
+}
+
+/* Strong/Bold */
+.prose strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+/* Italic */
+.prose em,
+.prose i {
+  font-style: italic;
+}
+
+/* Underline */
+.prose u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Strike/Deleted */
+.prose s,
+.prose del {
+  text-decoration: line-through;
+  color: oklch(0.552 0.016 285.938);
+}
+
+.dark .prose s,
+.dark .prose del {
+  color: oklch(0.705 0.015 286.067);
+}
+
+/* Code inline */
+.prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875em;
+  font-weight: 500;
+  background-color: oklch(0.967 0.001 286.375);
+  color: oklch(0.586 0.253 17.585);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+.dark .prose code {
+  background-color: oklch(0.274 0.006 286.033);
+  color: oklch(0.645 0.246 16.439);
+}
+
+/* Code block */
+.prose pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875em;
+  line-height: 1.6;
+  background-color: oklch(0.967 0.001 286.375);
+  color: var(--foreground);
+  overflow-x: auto;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid oklch(0.92 0.004 286.32);
+}
+
+.dark .prose pre {
+  background-color: oklch(0.21 0.006 285.885);
+  border-color: oklch(1 0 0 / 10%);
+}
+
+.prose pre code {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  font-weight: normal;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Blockquote */
+.prose blockquote {
+  font-weight: 500;
+  font-style: italic;
+  color: oklch(0.552 0.016 285.938);
+  border-left: 4px solid oklch(0.586 0.253 17.585);
+  quotes: "\201C""\201D""\2018""\2019";
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  padding-left: 1rem;
+}
+
+.dark .prose blockquote {
+  color: oklch(0.705 0.015 286.067);
+  border-left-color: oklch(0.645 0.246 16.439);
+}
+
+.prose blockquote p:first-of-type::before {
+  content: open-quote;
+}
+
+.prose blockquote p:last-of-type::after {
+  content: close-quote;
+}
+
+/* Lists */
+.prose ul,
+.prose ol {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  padding-left: 1.5em;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose li > ul,
+.prose li > ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Nested lists */
+.prose ul ul,
+.prose ul ol,
+.prose ol ul,
+.prose ol ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Task List */
+ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+ul[data-type="taskList"] li > label {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  cursor: pointer;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: oklch(0.586 0.253 17.585);
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.dark ul[data-type="taskList"] li > label input[type="checkbox"] {
+  accent-color: oklch(0.645 0.246 16.439);
+}
+
+ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+ul[data-type="taskList"] li[data-checked="true"] > div {
+  text-decoration: line-through;
+  color: oklch(0.552 0.016 285.938);
+}
+
+.dark ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: oklch(0.705 0.015 286.067);
+}
+
+/* Horizontal rule */
+.prose hr {
+  border: none;
+  border-top: 2px solid oklch(0.92 0.004 286.32);
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+.dark .prose hr {
+  border-top-color: oklch(1 0 0 / 10%);
+}
+
+/* Image */
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose img[src*="placeholder"],
+.prose img[alt=""] {
+  border: 1px dashed oklch(0.92 0.004 286.32);
+  padding: 1rem;
+}
+
+.dark .prose img[src*="placeholder"],
+.dark .prose img[alt=""] {
+  border-color: oklch(1 0 0 / 10%);
+}
+
+/* Figure and Figcaption */
+.prose figure {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose figcaption {
+  font-size: 0.875em;
+  color: oklch(0.552 0.016 285.938);
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.dark .prose figcaption {
+  color: oklch(0.705 0.015 286.067);
+}
+
+/* Mark/Highlight */
+.prose mark {
+  background-color: oklch(0.95 0.05 85);
+  color: var(--foreground);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.dark .prose mark {
+  background-color: oklch(0.4 0.15 65);
+}
+
+/* Small */
+.prose small {
+  font-size: 0.875em;
+  color: oklch(0.552 0.016 285.938);
+}
+
+.dark .prose small {
+  color: oklch(0.705 0.015 286.067);
+}
+
+/* Keyboard */
+.prose kbd {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  background-color: oklch(0.967 0.001 286.375);
+  color: var(--foreground);
+  padding: 0.125rem 0.375rem;
+  border: 1px solid oklch(0.85 0.005 286);
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.1);
+}
+
+.dark .prose kbd {
+  background-color: oklch(0.274 0.006 286.033);
+  border-color: oklch(1 0 0 / 15%);
+}
+
+/* Subscript/Superscript */
+.prose sub {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: -0.25em;
+}
+
+.prose sup {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: -0.5em;
+}
+
+/* Table */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875em;
+  line-height: 1.5;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+
+.prose thead {
+  background-color: oklch(0.967 0.001 286.375);
+  border-bottom: 1px solid oklch(0.92 0.004 286.32);
+}
+
+.dark .prose thead {
+  background-color: oklch(0.21 0.006 285.885);
+  border-bottom-color: oklch(1 0 0 / 10%);
+}
+
+.prose thead th {
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--foreground);
+}
+
+.prose tbody tr {
+  border-bottom: 1px solid oklch(0.92 0.004 286.32);
+  transition: background-color 0.15s ease-in-out;
+}
+
+.dark .prose tbody tr {
+  border-bottom-color: oklch(1 0 0 / 10%);
+}
+
+.prose tbody tr:last-child {
+  border-bottom: none;
+}
+
+.prose tbody tr:hover {
+  background-color: oklch(0.98 0 0);
+}
+
+.dark .prose tbody tr:hover {
+  background-color: oklch(0.25 0.005 286);
+}
+
+.prose td {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+}
+
+.prose tfoot {
+  border-top: 1px solid oklch(0.92 0.004 286.32);
+  background-color: oklch(0.967 0.001 286.375);
+}
+
+.dark .prose tfoot {
+  border-top-color: oklch(1 0 0 / 10%);
+  background-color: oklch(0.21 0.006 285.885);
+}
+
+.prose tfoot td {
+  padding: 0.75rem 1rem;
+}
+
+/* Table cell paragraph reset */
+.prose table p {
+  margin: 0;
+}
+
+/* Selected node */
+.ProseMirror-selectednode {
+  outline: 2px solid oklch(0.586 0.253 17.585);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+.dark .ProseMirror-selectednode {
+  outline-color: oklch(0.645 0.246 16.439);
+}
+
+/* Column resize cursor */
+.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+/* Table wrapper */
+.tableWrapper {
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+/* Link without text decoration option */
+.prose a.no-underline {
+  text-decoration: none;
+}
+
+.prose a.no-underline:hover {
+  text-decoration: underline;
+}
+
+/* Text alignment */
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-justify {
+  text-align: justify;
+}
+
+/* Lead paragraph (larger, introductory text) */
+.prose .lead {
+  font-size: 1.25em;
+  line-height: 1.6;
+  color: oklch(0.45 0.01 286);
+}
+
+.dark .prose .lead {
+  color: oklch(0.65 0.01 286);
+}
+
+/* Description list */
+.prose dl {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose dt {
+  font-weight: 600;
+  margin-top: 0.75em;
+}
+
+.prose dd {
+  margin-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+/* Address */
+.prose address {
+  font-style: normal;
+}
+
+/* Abbreviation */
+.prose abbr[title] {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+/* ============================================================
+   Editor-specific styles
+   ============================================================ */
+
+/* Editor focus state */
+.tiptap-editor:focus-within {
+  border-color: oklch(0.586 0.253 17.585);
+  ring: 2px;
+  ring-color: oklch(0.586 0.253 17.585 / 0.2);
+}
+
+.dark .tiptap-editor:focus-within {
+  border-color: oklch(0.645 0.246 16.439);
+  ring-color: oklch(0.645 0.246 16.439 / 0.2);
+}
+
+/* Scrollbar styling for editor content */
+.tiptap-editor::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tiptap-editor::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tiptap-editor::-webkit-scrollbar-thumb {
+  background: oklch(0.85 0.005 286);
+  border-radius: 4px;
+}
+
+.tiptap-editor::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.75 0.01 286);
+}
+
+.dark .tiptap-editor::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0.01 286);
+}
+
+.dark .tiptap-editor::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.4 0.01 286);
+}
+
+/* Selection styling */
+::selection {
+  background-color: oklch(0.586 0.253 17.585 / 0.2);
+  color: var(--foreground);
+}
+
+.dark ::selection {
+  background-color: oklch(0.645 0.246 16.439 / 0.3);
+}
+
+/* ============================================================
+   Utility classes for editor
+   ============================================================ */
+
+/* No margin */
+.prose .no-margin {
+  margin: 0;
+}
+
+.prose .no-margin-top {
+  margin-top: 0;
+}
+
+.prose .no-margin-bottom {
+  margin-bottom: 0;
+}
+
+/* Custom spacing */
+.prose .spacing-sm {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose .spacing-md {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+.prose .spacing-lg {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose .spacing-xl {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+/* Truncate text */
+.prose .truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
