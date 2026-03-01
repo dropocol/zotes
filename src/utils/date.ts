@@ -235,12 +235,21 @@ export function isSameDay(date1: Date | string, date2: Date | string): boolean {
 }
 
 /**
- * Check if a date is in the future (after today in UTC)
+ * Check if a date is in the future (after today in local time)
+ * Converts UTC dates to local before comparing
  */
 export function isFutureDate(date: Date | string): boolean {
-  const today = getUTCToday();
-  const checkDate = toUTCDate(date);
-  return isAfter(checkDate, today) && !isSameDay(checkDate, today);
+  const today = getLocalToday();
+  // Parse the date (could be UTC string or Date)
+  const d = typeof date === "string" ? new Date(date) : date;
+  // Convert to local midnight for comparison
+  const checkLocalMidnight = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+    0, 0, 0, 0
+  );
+  return checkLocalMidnight > today;
 }
 
 /**
