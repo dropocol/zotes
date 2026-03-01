@@ -7,9 +7,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Check, ChevronDown, Loader2, Plus } from "lucide-react";
+import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { type ProjectForDropdown } from "@/types/project";
 
 interface ProjectSelectProps {
@@ -63,24 +62,21 @@ export function ProjectSelect({
           if (pageNum === 1) {
             setProjects(newProjects);
           } else {
-            setProjects((prev) => [...prev, ...newProjects]);
+            setProjects((prev) => {
+              const combined = [...prev, ...newProjects];
+              // Check if we've reached the limit based on total count
+              const loadedCount = pageNum * limit;
+              const hasMore = loadedCount < data.pagination.total;
+              if (!hasMore && combined.length >= data.pagination.total) {
+                return combined.map((p, i) =>
+                  i === combined.length - 1 ? { ...p, isLimitReached: true } : p,
+                );
+              }
+              return combined;
+            });
           }
 
           setTotalCount(data.pagination.total);
-
-          // Check if we've reached the limit based on total count
-          const loadedCount = pageNum * limit;
-          const hasMore = loadedCount < data.pagination.total;
-          if (
-            !hasMore &&
-            projects.length + newProjects.length >= data.pagination.total
-          ) {
-            setProjects((prev) =>
-              prev.map((p, i) =>
-                i === prev.length - 1 ? { ...p, isLimitReached: true } : p,
-              ),
-            );
-          }
         }
       } catch (error) {
         console.error("Error fetching projects:", error);
@@ -164,12 +160,12 @@ export function ProjectSelect({
               onClick={() => handleSelect(project.id)}
             >
               <div
-                className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                className="h-2.5 w-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: project.color || "#6b7280" }}
               />
               <span className="flex-1 text-left truncate">{project.name}</span>
               {value === project.id && (
-                <Check className="h-4 w-4 flex-shrink-0" />
+                <Check className="h-4 w-4 shrink-0" />
               )}
             </button>
           ))}

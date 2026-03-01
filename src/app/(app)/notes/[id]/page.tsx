@@ -8,7 +8,6 @@ import { NoteEditorLayout } from "@/components/notes/note-editor-layout";
 import { useNoteAutoSave } from "@/hooks/use-note-auto-save";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import type { Note } from "@/types";
-import type { Editor } from "@tiptap/react";
 
 interface FullNote extends Note {
   userId: string;
@@ -30,23 +29,8 @@ export default function NotePage({
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [editor, setEditor] = useState<Editor | null>(null);
 
-  useEffect(() => {
-    fetchNote();
-  }, [id]);
-
-  // Track changes
-  useEffect(() => {
-    if (note) {
-      const titleChanged = title !== note.title;
-      const contentChanged = content !== (note.content || "");
-      const projectChanged = selectedProject !== note.projectId;
-      setHasChanges(titleChanged || contentChanged || projectChanged);
-    }
-  }, [title, content, selectedProject, note]);
-
-  async function fetchNote() {
+  const fetchNote = useCallback(async () => {
     try {
       const response = await fetch(`/api/notes/${id}`);
       if (response.ok) {
@@ -59,7 +43,21 @@ export default function NotePage({
     } catch (error) {
       console.error("Error fetching note:", error);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    fetchNote();
+  }, [fetchNote]);
+
+  // Track changes
+  useEffect(() => {
+    if (note) {
+      const titleChanged = title !== note.title;
+      const contentChanged = content !== (note.content || "");
+      const projectChanged = selectedProject !== note.projectId;
+      setHasChanges(titleChanged || contentChanged || projectChanged);
+    }
+  }, [title, content, selectedProject, note]);
 
   const handleSaveComplete = useCallback((updatedNote: FullNote) => {
     setNote(updatedNote);
@@ -121,7 +119,6 @@ export default function NotePage({
       content={content}
       onContentChange={setContent}
       headerActions={headerActions}
-      onEditorReady={setEditor}
       projectId={note.projectId}
     />
   );

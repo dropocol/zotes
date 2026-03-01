@@ -35,10 +35,8 @@ import {
 import {
   getLocalToday,
   getUTCToday,
-  toUTCDate,
   localToUTC,
   utcToLocal,
-  isFutureDate,
   isSameDay,
 } from "@/utils/date";
 
@@ -78,7 +76,9 @@ export function RecurringSettingsDialog({
 }: RecurringSettingsDialogProps) {
   const [open, setOpen] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [frequency, setFrequency] = useState<RecurringFrequency>(RecurringFrequency.DAILY);
+  const [frequency, setFrequency] = useState<RecurringFrequency>(
+    RecurringFrequency.DAILY,
+  );
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [recurrenceStart, setRecurrenceStart] = useState<Date | undefined>();
   const [recurrenceEnd, setRecurrenceEnd] = useState<Date | undefined>();
@@ -96,7 +96,9 @@ export function RecurringSettingsDialog({
       const isCurrentlyRecurring = todoItem.isRecurring || false;
       setIsRecurring(isCurrentlyRecurring);
       setWasRecurring(isCurrentlyRecurring);
-      setFrequency((todoItem.frequency as RecurringFrequency) || RecurringFrequency.DAILY);
+      setFrequency(
+        (todoItem.frequency as RecurringFrequency) || RecurringFrequency.DAILY,
+      );
       setSelectedDays(parseDaysOfWeek(todoItem.daysOfWeek));
       setError(null);
 
@@ -126,7 +128,7 @@ export function RecurringSettingsDialog({
 
   const toggleDay = (day: number) => {
     setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
     );
   };
 
@@ -166,14 +168,19 @@ export function RecurringSettingsDialog({
     try {
       // Convert local calendar dates to UTC before sending to server
       // localToUTC preserves the local date (e.g., Feb 28 local -> Feb 28 UTC)
-      const startDate = isRecurring ? localToUTC(recurrenceStart || localToday) : null;
-      const endDate = isRecurring && recurrenceEnd ? localToUTC(recurrenceEnd) : null;
+      const startDate = isRecurring
+        ? localToUTC(recurrenceStart || localToday)
+        : null;
+      const endDate =
+        isRecurring && recurrenceEnd ? localToUTC(recurrenceEnd) : null;
 
       await onUpdate({
         isRecurring,
         frequency: isRecurring ? frequency : null,
         daysOfWeek:
-          isRecurring && (frequency === RecurringFrequency.WEEKLY || frequency === RecurringFrequency.CUSTOM)
+          isRecurring &&
+          (frequency === RecurringFrequency.WEEKLY ||
+            frequency === RecurringFrequency.CUSTOM)
             ? serializeDaysOfWeek(selectedDays)
             : null,
         recurrenceStart: startDate,
@@ -191,7 +198,9 @@ export function RecurringSettingsDialog({
     setRecurrenceEnd(undefined);
   };
 
-  const showDayPicker = frequency === RecurringFrequency.WEEKLY || frequency === RecurringFrequency.CUSTOM;
+  const showDayPicker =
+    frequency === RecurringFrequency.WEEKLY ||
+    frequency === RecurringFrequency.CUSTOM;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -227,16 +236,26 @@ export function RecurringSettingsDialog({
                 <Label>Frequency</Label>
                 <Select
                   value={frequency}
-                  onValueChange={(value) => setFrequency(value as RecurringFrequency)}
+                  onValueChange={(value) =>
+                    setFrequency(value as RecurringFrequency)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select frequency" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={RecurringFrequency.DAILY}>Daily</SelectItem>
-                    <SelectItem value={RecurringFrequency.WEEKLY}>Weekly</SelectItem>
-                    <SelectItem value={RecurringFrequency.MONTHLY}>Monthly</SelectItem>
-                    <SelectItem value={RecurringFrequency.CUSTOM}>Custom</SelectItem>
+                    <SelectItem value={RecurringFrequency.DAILY}>
+                      Daily
+                    </SelectItem>
+                    <SelectItem value={RecurringFrequency.WEEKLY}>
+                      Weekly
+                    </SelectItem>
+                    <SelectItem value={RecurringFrequency.MONTHLY}>
+                      Monthly
+                    </SelectItem>
+                    <SelectItem value={RecurringFrequency.CUSTOM}>
+                      Custom
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -254,7 +273,7 @@ export function RecurringSettingsDialog({
                           "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                           selectedDays.includes(day.value)
                             ? "bg-primary text-primary-foreground"
-                            : "bg-muted hover:bg-muted/80"
+                            : "bg-muted hover:bg-muted/80",
                         )}
                       >
                         {day.label}
@@ -273,11 +292,13 @@ export function RecurringSettingsDialog({
                       variant="outline"
                       className={cn(
                         "w-full justify-start font-normal",
-                        !recurrenceStart && "text-muted-foreground"
+                        !recurrenceStart && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {recurrenceStart ? format(recurrenceStart, "PPP") : "Today"}
+                      {recurrenceStart
+                        ? format(recurrenceStart, "PPP")
+                        : "Today"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -316,11 +337,13 @@ export function RecurringSettingsDialog({
                       variant="outline"
                       className={cn(
                         "w-full justify-start font-normal",
-                        !recurrenceEnd && "text-muted-foreground"
+                        !recurrenceEnd && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {recurrenceEnd ? format(recurrenceEnd, "PPP") : "No end date (repeats forever)"}
+                      {recurrenceEnd
+                        ? format(recurrenceEnd, "PPP")
+                        : "No end date (repeats forever)"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -333,7 +356,8 @@ export function RecurringSettingsDialog({
                   </PopoverContent>
                 </Popover>
                 <p className="text-xs text-muted-foreground">
-                  Leave empty for ongoing tasks. Set a date only if you want the task to stop repeating.
+                  Leave empty for ongoing tasks. Set a date only if you want the
+                  task to stop repeating.
                 </p>
               </div>
             </>
@@ -351,7 +375,11 @@ export function RecurringSettingsDialog({
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={isLoading} className="flex-1">
+            <Button
+              onClick={handleSave}
+              disabled={isLoading}
+              className="flex-1"
+            >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -363,7 +391,7 @@ export function RecurringSettingsDialog({
           {/* Error Display */}
           {error && (
             <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
           )}

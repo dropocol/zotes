@@ -6,8 +6,6 @@ import {
   endOfWeek,
   eachDayOfInterval,
   isSameDay as dateFnsIsSameDay,
-  isBefore,
-  isAfter,
   format,
   parseISO,
 } from "date-fns";
