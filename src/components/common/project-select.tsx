@@ -92,10 +92,10 @@ export function ProjectSelect({
   );
 
   useEffect(() => {
-    if (open && projects.length === 0) {
+    if (projects.length === 0) {
       fetchProjects(1);
     }
-  }, [open, fetchProjects, projects.length]);
+  }, [fetchProjects, projects.length]);
 
   function handleSelect(projectId: string) {
     onChange(projectId === "none" ? null : projectId);

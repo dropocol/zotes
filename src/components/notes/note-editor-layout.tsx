@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 interface NoteEditorLayoutProps {
   title: string;
@@ -31,6 +32,7 @@ export function NoteEditorLayout({
   projectId,
 }: NoteEditorLayoutProps) {
   const router = useRouter();
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   function handleBack() {
     if (projectId) {
@@ -41,6 +43,7 @@ export function NoteEditorLayout({
   }
 
   const handleEditorReady = (editorInstance: Editor | null) => {
+    setEditor(editorInstance);
     if (onEditorReady) {
       onEditorReady(editorInstance);
     }
@@ -70,7 +73,7 @@ export function NoteEditorLayout({
       headerActions={headerActions}
       fullHeight={fullHeight}
     >
-      <Toolbar editor={null} />
+      <Toolbar editor={editor} />
       <TiptapEditor
         content={content}
         onChange={onContentChange}
