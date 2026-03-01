@@ -30,6 +30,7 @@ export default function NotesPage() {
       const params = new URLSearchParams({
         page: pagination.currentPage.toString(),
         limit: pagination.limit.toString(),
+        personalOnly: "true",
       });
       const response = await fetch(`/api/notes?${params.toString()}`);
       const data: PaginatedNotesResponse = await response.json();
@@ -87,6 +88,7 @@ export default function NotesPage() {
             notes={notes}
             searchQuery={searchQuery}
             onRefresh={fetchNotes}
+            showProjectColumn={false}
           />
           <Pagination
             currentPage={pagination.currentPage}

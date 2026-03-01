@@ -16,8 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SortableTableHead, sortItems, type SortConfig } from "@/components/ui/sortable-table-head";
-import { MoreHorizontal, Pencil, Trash2, FileText, CheckSquare } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { ProjectForm } from "./project-form";
@@ -31,7 +30,6 @@ interface ProjectsTableProps {
 }
 
 export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTableProps) {
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "updatedAt", direction: "desc" });
   const [editingProject, setEditingProject] = useState<ProjectWithRole | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -46,24 +44,6 @@ export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTabl
       );
     });
   }, [projects, searchQuery]);
-
-  const sortedProjects = useMemo(() => {
-    return sortItems(filteredProjects, sortConfig);
-  }, [filteredProjects, sortConfig]);
-
-  const handleSort = (column: string) => {
-    setSortConfig((prev) => ({
-      key: column,
-      direction:
-        prev.key === column
-          ? prev.direction === "asc"
-            ? "desc"
-            : prev.direction === "desc"
-            ? null
-            : "asc"
-          : "asc",
-    }));
-  };
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this project?")) return;
@@ -93,46 +73,23 @@ export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTabl
           <TableHeader>
             <TableRow>
               <TableHead className="w-[40px]"></TableHead>
-              <SortableTableHead
-                column="name"
-                label="Name"
-                sortConfig={sortConfig}
-                onSort={handleSort}
-              />
+              <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
-              <SortableTableHead
-                column="_count.notes"
-                label="Notes"
-                sortConfig={sortConfig}
-                onSort={handleSort}
-                className="text-right w-[100px]"
-              />
-              <SortableTableHead
-                column="_count.todoLists"
-                label="Todo Lists"
-                sortConfig={sortConfig}
-                onSort={handleSort}
-                className="text-right w-[100px]"
-              />
-              <SortableTableHead
-                column="updatedAt"
-                label="Updated"
-                sortConfig={sortConfig}
-                onSort={handleSort}
-                className="w-[150px]"
-              />
+              <TableHead className="w-[100px]">Notes</TableHead>
+              <TableHead className="w-[100px]">Todo Lists</TableHead>
+              <TableHead className="w-[150px]">Updated</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedProjects.length === 0 ? (
+            {filteredProjects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   {searchQuery ? "No projects found matching your search" : "No projects yet. Create your first project to get started."}
                 </TableCell>
               </TableRow>
             ) : (
-              sortedProjects.map((project) => (
+              filteredProjects.map((project) => (
                 <TableRow key={project.id} className="group">
                   <TableCell>
                     <div
@@ -156,17 +113,11 @@ export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTabl
                   <TableCell className="text-muted-foreground max-w-[300px] truncate">
                     {project.description || "-"}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      <FileText className="h-3 w-3 text-muted-foreground" />
-                      {project._count?.notes || 0}
-                    </span>
+                  <TableCell>
+                    {project._count?.notes || 0}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      <CheckSquare className="h-3 w-3 text-muted-foreground" />
-                      {project._count?.todoLists || 0}
-                    </span>
+                  <TableCell>
+                    {project._count?.todoLists || 0}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {new Date(project.updatedAt).toLocaleDateString()}

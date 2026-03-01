@@ -14,8 +14,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");
+    const personalOnly = searchParams.get("personalOnly") === "true";
 
     const baseWhere: {
+      userId?: string;
       OR?: Array<{ userId: string } | { project: { collaborators: { some: { userId: string } } } }>;
       projectId?: string | null;
     } = {};
@@ -32,6 +34,10 @@ export async function GET(request: NextRequest) {
         { userId: session.user.id },
         { project: { collaborators: { some: { userId: session.user.id } } } },
       ];
+    } else if (personalOnly) {
+      // Get only personal notes (not assigned to any project)
+      baseWhere.userId = session.user.id;
+      baseWhere.projectId = null;
     } else {
       // Get all notes owned by user or from collaborated projects
       baseWhere.OR = [
