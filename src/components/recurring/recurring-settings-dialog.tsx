@@ -306,7 +306,6 @@ export function RecurringSettingsDialog({
                       mode="single"
                       selected={recurrenceStart}
                       onSelect={setRecurrenceStart}
-                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
@@ -351,7 +350,6 @@ export function RecurringSettingsDialog({
                       mode="single"
                       selected={recurrenceEnd}
                       onSelect={setRecurrenceEnd}
-                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>

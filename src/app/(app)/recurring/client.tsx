@@ -59,9 +59,16 @@ export function RecurringWeeklyViewClient({
   });
 
   // Get initial date from URL or use today
+  // URL date is treated as a local date (e.g., "2026-03-01" means March 1st in user's timezone)
   const dateParam = searchParams.get("date");
   const taskIdParam = searchParams.get("taskId");
-  const initialDate = dateParam ? toUTCDate(dateParam) : new Date();
+  const initialDate = dateParam
+    ? (() => {
+        // Parse as local date (not UTC) - create date at local midnight
+        const [year, month, day] = dateParam.split("-").map(Number);
+        return new Date(year, month - 1, day, 0, 0, 0, 0);
+      })()
+    : new Date();
 
   // Sync items when initialItems changes
   useEffect(() => {
