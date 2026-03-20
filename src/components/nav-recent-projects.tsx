@@ -49,10 +49,10 @@ export function NavRecentProjects({ items }: { items: ProjectItem[] }) {
           <SidebarMenu>
             {items.map((item) => (
               <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton asChild tooltip={item.name}>
+                <SidebarMenuButton asChild tooltip={item.name} className="max-w-60">
                   <Link href={item.url}>
                     <Layers className="size-4 shrink-0" />
-                    <span className="truncate">{item.name}</span>
+                    <span className="flex-1 truncate">{item.name}</span>
                     {item.color && (
                       <div
                         className="ml-auto size-2 rounded-full shrink-0"

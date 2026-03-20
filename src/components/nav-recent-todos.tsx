@@ -65,14 +65,20 @@ export function NavRecentTodos({ items }: { items: TodoItem[] }) {
           <SidebarMenu>
             {items.map((item) => (
               <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
+                  className="max-w-60"
+                >
                   <Link href={item.url}>
                     <CheckSquare className="size-4 shrink-0" />
-                    <span className="truncate">{item.title}</span>
+                    <span className="flex-1 truncate">
+                      {item.title}
+                    </span>
                     <div
                       className={cn(
                         "ml-auto size-2 rounded-full shrink-0",
-                        getPriorityColor(item.priority)
+                        getPriorityColor(item.priority),
                       )}
                     />
                   </Link>

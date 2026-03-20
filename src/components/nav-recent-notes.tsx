@@ -49,10 +49,12 @@ export function NavRecentNotes({ items }: { items: NoteItem[] }) {
           <SidebarMenu>
             {items.map((item) => (
               <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuButton asChild tooltip={item.title} className="max-w-60">
                   <Link href={item.url}>
                     <StickyNote className="size-4 shrink-0" />
-                    <span className="truncate">{item.title}</span>
+                    <span className="flex-1 truncate">
+                      {item.title}
+                    </span>
                     {item.project && (
                       <span
                         className="ml-auto text-[10px] px-1 py-0.5 rounded shrink-0 truncate max-w-16"
