@@ -30,12 +30,14 @@ import {
   getApplicationMethodDisplayName,
   getStatusDisplayName,
 } from "@/types/jobs";
+import {
+  JobApplicationStatus,
+  ResponseStatus,
+} from "@prisma/client";
 import type {
   JobApplication,
   JobSource,
   ApplicationMethod,
-  JobApplicationStatus,
-  ResponseStatus,
 } from "@prisma/client";
 
 interface JobFormProps {
@@ -125,7 +127,28 @@ export function JobForm({ open, onOpenChange, job, onSuccess }: JobFormProps) {
   }
 
   const updateField = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+
+      // Auto-set response received when status changes
+      if (field === "status") {
+        const respondedStatuses: JobApplicationStatus[] = [
+          JobApplicationStatus.PHONE_SCREEN,
+          JobApplicationStatus.INTERVIEW,
+          JobApplicationStatus.OFFER,
+          JobApplicationStatus.REJECTED,
+        ];
+        if (respondedStatuses.includes(value as JobApplicationStatus)) {
+          next.responseReceived = ResponseStatus.YES;
+        } else if (value === JobApplicationStatus.NO_RESPONSE) {
+          next.responseReceived = ResponseStatus.NO;
+        } else {
+          next.responseReceived = ResponseStatus.PENDING;
+        }
+      }
+
+      return next;
+    });
   };
 
   return (

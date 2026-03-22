@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Layers, StickyNote, Home, CheckSquare, CalendarDays, Moon, Repeat, Briefcase, List, BarChart3 } from "lucide-react";
+import { Layers, StickyNote, Home, CheckSquare, Moon, Briefcase, List, BarChart3 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavRecent } from "@/components/nav-recent";
@@ -49,18 +49,20 @@ const data = {
       url: "/todos",
       icon: CheckSquare,
       isActive: false,
-    },
-    {
-      title: "Upcoming",
-      url: "/todos/upcoming",
-      icon: CalendarDays,
-      isActive: false,
-    },
-    {
-      title: "Recurring",
-      url: "/recurring",
-      icon: Repeat,
-      isActive: false,
+      items: [
+        {
+          title: "All",
+          url: "/todos",
+        },
+        {
+          title: "Upcoming",
+          url: "/todos/upcoming",
+        },
+        {
+          title: "Recurring",
+          url: "/recurring",
+        },
+      ],
     },
     {
       title: "Prayers",
