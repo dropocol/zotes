@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/ui/pagination";
-import { TodoItemsTable } from "@/components/todos/todo-items-table";
+import { TodoItemsView } from "@/components/todos/todo-items-view";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import {
   isDateBeforeToday,
@@ -35,7 +35,7 @@ interface PaginatedResponse {
 export default function UpcomingTodosPage() {
   const [items, setItems] = useState<TodoItemWithList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<TodoItemWithList | null>(null);
+  const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
 
@@ -68,39 +68,9 @@ export default function UpcomingTodosPage() {
     fetchItems();
   }, [fetchItems]);
 
-  async function toggleStatus(id: string, status: string) {
-    try {
-      await fetch(`/api/todo/items/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
-      });
-      fetchItems();
-    } catch (error) {
-      console.error("Error toggling status:", error);
-    }
-  }
-
-  async function deleteItem(id: string) {
-    try {
-      await fetch(`/api/todo/items/${id}`, {
-        method: "DELETE",
-      });
-      fetchItems();
-    } catch (error) {
-      console.error("Error deleting item:", error);
-    }
-  }
-
   function handleSelectItem(item: TodoItem) {
-    setSelectedItem(item as TodoItemWithList);
+    setSelectedItem(item);
     setIsDrawerOpen(true);
-  }
-
-  function handleUpdateItem() {
-    fetchItems();
   }
 
   const handlePageChange = (page: number) => {
@@ -156,7 +126,6 @@ export default function UpcomingTodosPage() {
       ) : (
         <>
           <div className="space-y-6">
-            {/* Overdue Section */}
             {overdueItems.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-3">
@@ -165,68 +134,57 @@ export default function UpcomingTodosPage() {
                     Overdue ({overdueItems.length})
                   </h2>
                 </div>
-                <TodoItemsTable
+                <TodoItemsView
                   items={overdueItems}
+                  onRefresh={() => fetchItems()}
                   showProject={true}
                   showList={true}
-                  onToggleStatus={toggleStatus}
-                  onAddSubItem={() => {}}
-                  onDelete={deleteItem}
-                  onSelect={handleSelectItem}
+                  onSelectItem={handleSelectItem}
                 />
               </section>
             )}
 
-            {/* Today Section */}
             {todayItems.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-muted-foreground mb-3">
                   Due Today ({todayItems.length})
                 </h2>
-                <TodoItemsTable
+                <TodoItemsView
                   items={todayItems}
+                  onRefresh={() => fetchItems()}
                   showProject={true}
                   showList={true}
-                  onToggleStatus={toggleStatus}
-                  onAddSubItem={() => {}}
-                  onDelete={deleteItem}
-                  onSelect={handleSelectItem}
+                  onSelectItem={handleSelectItem}
                 />
               </section>
             )}
 
-            {/* Tomorrow Section */}
             {tomorrowItems.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-muted-foreground mb-3">
                   Due Tomorrow ({tomorrowItems.length})
                 </h2>
-                <TodoItemsTable
+                <TodoItemsView
                   items={tomorrowItems}
+                  onRefresh={() => fetchItems()}
                   showProject={true}
                   showList={true}
-                  onToggleStatus={toggleStatus}
-                  onAddSubItem={() => {}}
-                  onDelete={deleteItem}
-                  onSelect={handleSelectItem}
+                  onSelectItem={handleSelectItem}
                 />
               </section>
             )}
 
-            {/* Later Section */}
             {laterItems.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-muted-foreground mb-3">
                   Coming Up ({laterItems.length})
                 </h2>
-                <TodoItemsTable
+                <TodoItemsView
                   items={laterItems}
+                  onRefresh={() => fetchItems()}
                   showProject={true}
                   showList={true}
-                  onToggleStatus={toggleStatus}
-                  onAddSubItem={() => {}}
-                  onDelete={deleteItem}
-                  onSelect={handleSelectItem}
+                  onSelectItem={handleSelectItem}
                 />
               </section>
             )}
@@ -243,12 +201,11 @@ export default function UpcomingTodosPage() {
         </>
       )}
 
-      {/* Detail drawer */}
       <TodoItemDetailDrawer
         item={selectedItem}
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
-        onUpdate={handleUpdateItem}
+        onUpdate={() => fetchItems()}
       />
     </DashboardLayout>
   );

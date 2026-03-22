@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { TodoItemsTable } from "@/components/todos/todo-items-table";
-import type { SubItemFormState } from "./todo-item-row";
+import { TodoItemsView } from "@/components/todos/todo-items-view";
 import { TodoList, TodoItem } from "@/types";
 
 interface DefaultTodoListSectionProps {
@@ -13,10 +11,8 @@ interface DefaultTodoListSectionProps {
   items: TodoItem[];
   viewAllHref: string;
   canModify?: boolean;
+  onRefresh: () => void;
   onAddItem?: (title: string) => void | Promise<void>;
-  onToggleStatus?: (id: string, status: string) => void | Promise<void>;
-  onDeleteItem?: (id: string) => void | Promise<void>;
-  onAddSubItem?: (parentId: string, title: string) => void | Promise<void>;
   onSelectItem?: (item: TodoItem) => void;
   className?: string;
 }
@@ -26,41 +22,11 @@ export function DefaultTodoListSection({
   items,
   viewAllHref,
   canModify = true,
+  onRefresh,
   onAddItem,
-  onToggleStatus,
-  onDeleteItem,
-  onAddSubItem,
   onSelectItem,
   className = "",
 }: DefaultTodoListSectionProps) {
-  const [addingToParentId, setAddingToParentId] = useState<string | null>(null);
-  const [subItemTitle, setSubItemTitle] = useState("");
-
-  function handleAddSubItem(parentId: string) {
-    setAddingToParentId(parentId);
-    setSubItemTitle("");
-  }
-
-  async function handleSubmitSubItem(title: string) {
-    if (!onAddSubItem || !addingToParentId) return;
-    await onAddSubItem(addingToParentId, title);
-    setAddingToParentId(null);
-    setSubItemTitle("");
-  }
-
-  function handleCancelSubItem() {
-    setAddingToParentId(null);
-    setSubItemTitle("");
-  }
-
-  const subItemForm: SubItemFormState = {
-    addingToParentId,
-    title: subItemTitle,
-    onTitleChange: setSubItemTitle,
-    onSubmit: handleSubmitSubItem,
-    onCancel: handleCancelSubItem,
-  };
-
   return (
     <section className={className}>
       <div className="flex items-center justify-between mb-3">
@@ -80,17 +46,14 @@ export function DefaultTodoListSection({
         </Button>
       </div>
 
-      <TodoItemsTable
+      <TodoItemsView
         items={items}
-        showProject={true}
-        showList={false}
-        showAddInput={canModify && !!onAddItem}
+        onRefresh={onRefresh}
+        todoListId={defaultList.id}
         onAddItem={onAddItem}
-        onToggleStatus={onToggleStatus || (() => {})}
-        onAddSubItem={handleAddSubItem}
-        onDelete={onDeleteItem || (() => {})}
-        onSelect={onSelectItem || (() => {})}
-        subItemForm={subItemForm}
+        showProject={true}
+        showAddInput={canModify}
+        onSelectItem={onSelectItem}
       />
     </section>
   );

@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { TodoItemsTable } from "./todo-items-table";
-import { TodoItemDetailDrawer } from "./todo-item-detail-drawer";
+import { TodoItemsView } from "./todo-items-view";
 import { Loader2 } from "lucide-react";
 import { TodoItem } from "@/types";
 import { getLocalDateString } from "@/utils/date";
@@ -16,10 +14,6 @@ interface TodoListContainerProps {
 export function TodoListContainer({ todoListId, hasProject = false }: TodoListContainerProps) {
   const [items, setItems] = useState<TodoItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [addingToParentId, setAddingToParentId] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [subItemTitle, setSubItemTitle] = useState("");
 
   useEffect(() => {
     fetchItems();
@@ -37,73 +31,6 @@ export function TodoListContainer({ todoListId, hasProject = false }: TodoListCo
     }
   }
 
-  async function addItem(title: string) {
-    const response = await fetch(`/api/todo/lists/${todoListId}/items`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ title }),
-    });
-
-    if (response.ok) {
-      fetchItems();
-    }
-  }
-
-  async function addSubItem(title: string) {
-    if (!addingToParentId) return;
-
-    const response = await fetch(`/api/todo/lists/${todoListId}/items`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        parentId: addingToParentId,
-      }),
-    });
-
-    if (response.ok) {
-      setAddingToParentId(null);
-      setSubItemTitle("");
-      fetchItems();
-    }
-  }
-
-  async function toggleStatus(id: string, status: string) {
-    await fetch(`/api/todo/items/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status }),
-    });
-    fetchItems();
-  }
-
-  async function deleteItem(id: string) {
-    await fetch(`/api/todo/items/${id}`, {
-      method: "DELETE",
-    });
-    fetchItems();
-  }
-
-  function handleAddSubItem(parentId: string) {
-    setAddingToParentId(parentId);
-    setSubItemTitle("");
-  }
-
-  function handleSelectItem(item: TodoItem) {
-    setSelectedItem(item);
-    setIsDrawerOpen(true);
-  }
-
-  function handleUpdateItem() {
-    fetchItems();
-  }
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
@@ -115,35 +42,12 @@ export function TodoListContainer({ todoListId, hasProject = false }: TodoListCo
 
   return (
     <div className="p-2">
-      {/* Items table */}
-      <TodoItemsTable
+      <TodoItemsView
         items={items}
-        showProject={hasProject}
-        showList={false}
+        onRefresh={fetchItems}
+        todoListId={todoListId}
         showAddInput={true}
-        onAddItem={addItem}
-        onToggleStatus={toggleStatus}
-        onAddSubItem={handleAddSubItem}
-        onDelete={deleteItem}
-        onSelect={handleSelectItem}
-        subItemForm={{
-          addingToParentId,
-          title: subItemTitle,
-          onTitleChange: setSubItemTitle,
-          onSubmit: addSubItem,
-          onCancel: () => {
-            setAddingToParentId(null);
-            setSubItemTitle("");
-          },
-        }}
-      />
-
-      {/* Detail drawer */}
-      <TodoItemDetailDrawer
-        item={selectedItem}
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        onUpdate={handleUpdateItem}
+        showProject={hasProject}
       />
     </div>
   );

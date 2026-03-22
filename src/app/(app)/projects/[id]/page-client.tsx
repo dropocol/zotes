@@ -8,7 +8,6 @@ import { Plus, Settings } from "lucide-react";
 import { TodoListForm } from "@/components/todos/todo-list-form";
 import { DefaultTodoListSection } from "@/components/todos/default-todo-list-section";
 import { TodoListsTable } from "@/components/todos/todo-lists-table";
-import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import { NotesTable } from "@/components/notes/notes-table";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { RoleBadge } from "@/components/projects/role-badge";
@@ -38,10 +37,7 @@ export function ProjectPageClient({
 }: ProjectPageClientProps) {
   const [isTodoListFormOpen, setIsTodoListFormOpen] = useState(false);
   const [defaultListItems, setDefaultListItems] = useState<TodoItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Separate default list from other lists
   const defaultList = todoLists.find((list) => list.isDefault);
   const otherLists = todoLists.filter((list) => !list.isDefault);
 
@@ -57,7 +53,6 @@ export function ProjectPageClient({
     }
   }
 
-  // Fetch items for the default list
   useEffect(() => {
     if (!defaultList) return;
     const controller = new AbortController();
@@ -113,52 +108,6 @@ export function ProjectPageClient({
     }
   }
 
-  async function toggleStatus(id: string, status: string) {
-    await fetch(`/api/todo/items/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status }),
-    });
-    if (defaultList) {
-      fetchDefaultListItems(defaultList.id);
-    }
-  }
-
-  async function deleteItem(id: string) {
-    await fetch(`/api/todo/items/${id}`, {
-      method: "DELETE",
-    });
-    if (defaultList) {
-      fetchDefaultListItems(defaultList.id);
-    }
-  }
-
-  async function addItem(title: string) {
-    if (!defaultList) return;
-
-    await fetch(`/api/todo/lists/${defaultList.id}/items`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ title }),
-    });
-    fetchDefaultListItems(defaultList.id);
-  }
-
-  function handleSelectItem(item: TodoItem) {
-    setSelectedItem(item);
-    setIsDrawerOpen(true);
-  }
-
-  function handleUpdateItem() {
-    if (defaultList) {
-      fetchDefaultListItems(defaultList.id);
-    }
-  }
-
   function getTodoListUrl(todoList: TodoList) {
     return `/projects/${project?.id}/todos/${todoList.id}`;
   }
@@ -198,22 +147,17 @@ export function ProjectPageClient({
         )}
       </div>
 
-      {/* Default List Section */}
       {defaultList && (
         <DefaultTodoListSection
           defaultList={defaultList}
           items={defaultListItems}
           viewAllHref={getTodoListUrl(defaultList)}
           canModify={canModify}
-          onAddItem={addItem}
-          onToggleStatus={toggleStatus}
-          onDeleteItem={deleteItem}
-          onSelectItem={handleSelectItem}
+          onRefresh={() => fetchDefaultListItems(defaultList.id)}
           className="mb-8"
         />
       )}
 
-      {/* Other Todo Lists Table */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Todo Lists</h2>
@@ -239,7 +183,6 @@ export function ProjectPageClient({
         />
       </div>
 
-      {/* Notes Table */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Notes</h2>
@@ -266,14 +209,6 @@ export function ProjectPageClient({
         open={isTodoListFormOpen}
         onOpenChange={setIsTodoListFormOpen}
         projectId={project.id}
-      />
-
-      {/* Detail drawer */}
-      <TodoItemDetailDrawer
-        item={selectedItem}
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        onUpdate={handleUpdateItem}
       />
     </DashboardLayout>
   );

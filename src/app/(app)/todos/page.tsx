@@ -21,10 +21,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { EmptyState } from "@/components/common/empty-state";
 import { ProjectSelect } from "@/components/common/project-select";
-import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import { DefaultTodoListSection } from "@/components/todos/default-todo-list-section";
+import { TodoItemsView } from "@/components/todos/todo-items-view";
 import { TodoListsTable } from "@/components/todos/todo-lists-table";
-import { TodoItemsTable } from "@/components/todos/todo-items-table";
 import {
   Loader2,
   ListTodo,
@@ -99,12 +98,9 @@ function TodosPageContent() {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newProjectId, setNewProjectId] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [otherListsTotal, setOtherListsTotal] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Derive view mode from URL, falling back to localStorage on first load
   const viewParam = searchParams.get("view") as ViewMode | null;
   const sortParam = searchParams.get("sort") as SortOption | null;
 
@@ -117,7 +113,6 @@ function TodosPageContent() {
 
     const params = new URLSearchParams(searchParams.toString());
 
-    // Set view from URL param, then localStorage, then default
     const view = viewParam || savedView || "personal";
     if (!viewParam) {
       params.set("view", view);
@@ -125,7 +120,6 @@ function TodosPageContent() {
     setViewMode(view);
     localStorage.setItem(STORAGE_KEY, view);
 
-    // Set sort from URL param, then localStorage, then default
     const sort = sortParam || savedSort || "default";
     if (!sortParam) {
       params.set("sort", sort);
@@ -133,7 +127,6 @@ function TodosPageContent() {
     setSortBy(sort);
     localStorage.setItem("todos-sort", sort);
 
-    // Push URL with params if any were missing
     const qs = params.toString();
     if (qs !== searchParams.toString()) {
       router.replace(`${pathname}?${qs}`, { scroll: false });
@@ -176,7 +169,6 @@ function TodosPageContent() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch default list - only personal lists (no project)
       const personalListsRes = await fetch(
         "/api/todo/lists?personalOnly=true&limit=100",
       );
@@ -195,7 +187,6 @@ function TodosPageContent() {
         }
       }
 
-      // Fetch other personal lists with pagination
       const params = new URLSearchParams({
         personalOnly: "true",
         excludeDefault: "true",
@@ -250,7 +241,6 @@ function TodosPageContent() {
     }
   }, [viewMode, fetchAllItems, isHydrated]);
 
-  // Refetch when a recurring item is toggled, so _effectiveStatus stays in sync
   useEffect(() => {
     function handleRecurringUpdate() {
       if (viewMode === "all-projects") {
@@ -340,71 +330,6 @@ function TodosPageContent() {
     }
   }
 
-  async function toggleStatus(id: string, status: string) {
-    await fetch(`/api/todo/items/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status }),
-    });
-    if (viewMode === "all-projects") {
-      fetchAllItems();
-    } else if (defaultList) {
-      fetchDefaultListItems(defaultList.id);
-    }
-  }
-
-  async function deleteItem(id: string) {
-    await fetch(`/api/todo/items/${id}`, {
-      method: "DELETE",
-    });
-    if (viewMode === "all-projects") {
-      fetchAllItems();
-    } else if (defaultList) {
-      fetchDefaultListItems(defaultList.id);
-    }
-  }
-
-  async function addItem(title: string) {
-    if (!defaultList) return;
-
-    await fetch(`/api/todo/lists/${defaultList.id}/items`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ title }),
-    });
-    fetchDefaultListItems(defaultList.id);
-  }
-
-  async function addSubItem(parentId: string, title: string) {
-    if (!defaultList) return;
-
-    await fetch(`/api/todo/lists/${defaultList.id}/items`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ title, parentId }),
-    });
-    fetchDefaultListItems(defaultList.id);
-  }
-
-  function handleSelectItem(item: TodoItem) {
-    setSelectedItem(item);
-    setIsDrawerOpen(true);
-  }
-
-  function handleUpdateItem() {
-    if (viewMode === "all-projects") {
-      fetchAllItems();
-    } else if (defaultList) {
-      fetchDefaultListItems(defaultList.id);
-    }
-  }
-
   function getTodoListUrl(todoList: TodoList) {
     return `/todos/${todoList.id}`;
   }
@@ -451,7 +376,6 @@ function TodosPageContent() {
           </Select>
         )}
 
-        {/* View mode toggle */}
         <div className="flex items-center rounded-lg border bg-muted p-1">
           <Button
             variant={viewMode === "personal" ? "default" : "ghost"}
@@ -541,21 +465,15 @@ function TodosPageContent() {
           <LoadingSpinner />
         ) : (
           <div className="space-y-6">
-            {/* Default List Section */}
             {defaultList && (
               <DefaultTodoListSection
                 defaultList={defaultList}
                 items={defaultListItems}
                 viewAllHref={getTodoListUrl(defaultList)}
-                onAddItem={addItem}
-                onToggleStatus={toggleStatus}
-                onDeleteItem={deleteItem}
-                onAddSubItem={addSubItem}
-                onSelectItem={handleSelectItem}
+                onRefresh={() => fetchDefaultListItems(defaultList.id)}
               />
             )}
 
-            {/* Other Lists */}
             {otherLists.length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
@@ -578,7 +496,6 @@ function TodosPageContent() {
               </section>
             )}
 
-            {/* Empty state */}
             {!defaultList && otherLists.length === 0 && (
               <EmptyState
                 icon={ListTodo}
@@ -588,8 +505,7 @@ function TodosPageContent() {
             )}
           </div>
         )
-      ) : /* All Projects view */
-      isLoadingAll ? (
+      ) : isLoadingAll ? (
         <LoadingSpinner />
       ) : allItems.length === 0 ? (
         <EmptyState
@@ -599,14 +515,11 @@ function TodosPageContent() {
         />
       ) : (
         <>
-          <TodoItemsTable
+          <TodoItemsView
             items={allItems}
+            onRefresh={() => fetchAllItems(false)}
             showProject={true}
             showList={true}
-            onToggleStatus={toggleStatus}
-            onAddSubItem={() => {}}
-            onDelete={deleteItem}
-            onSelect={handleSelectItem}
           />
           <Pagination
             currentPage={allItemsPagination.currentPage}
@@ -618,14 +531,6 @@ function TodosPageContent() {
           />
         </>
       )}
-
-      {/* Detail drawer */}
-      <TodoItemDetailDrawer
-        item={selectedItem}
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        onUpdate={handleUpdateItem}
-      />
     </DashboardLayout>
   );
 }
