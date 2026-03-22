@@ -37,7 +37,13 @@ export async function GET(request: NextRequest) {
 
     const items = await prisma.todoItem.findMany({
       where,
-      orderBy: filter === "upcoming" ? [{ dueDate: "asc" }, { order: "asc" }] : { order: "asc" },
+      orderBy: filter === "upcoming"
+        ? [{ dueDate: "asc" }, { order: "asc" }]
+        : [
+            { todoList: { project: { name: "asc" } } },
+            { todoList: { name: "asc" } },
+            { order: "asc" },
+          ],
       include: {
         subItems: {
           orderBy: { order: "asc" },

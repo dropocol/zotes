@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
+import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,10 +121,12 @@ export function TodoItemRow({
 
   const isOverdue = item.dueDate && isDateBeforeToday(item.dueDate) && !isCheckboxChecked;
 
-  const todoList = (item as TodoItem & { todoList?: { name?: string; project?: { name?: string; color?: string } | null } | null }).todoList;
+  const todoList = (item as TodoItem & { todoList?: { id?: string; name?: string; project?: { id?: string; name?: string; color?: string } | null } | null }).todoList;
   const projectName = todoList?.project?.name;
   const projectColor = todoList?.project?.color;
+  const projectId = todoList?.project?.id;
   const listName = todoList?.name;
+  const listId = todoList?.id;
 
   const colSpan = 1 + (showProject ? 1 : 0) + (showList ? 1 : 0) + 5; // task + project? + list? + due + recurring + priority + actions
 
@@ -198,8 +201,12 @@ export function TodoItemRow({
         {/* Col 2: Project */}
         {showProject && (
           <TableCell className="py-2.5 px-2">
-            {projectName ? (
-              <div className="flex items-center gap-1.5">
+            {projectName && projectId ? (
+              <Link
+                href={`/projects/${projectId}`}
+                onClick={(e: MouseEvent) => e.stopPropagation()}
+                className="flex items-center gap-1.5 hover:underline"
+              >
                 <span
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: projectColor || "#6b7280" }}
@@ -207,7 +214,7 @@ export function TodoItemRow({
                 <span className="text-xs text-muted-foreground truncate max-w-[120px]">
                   {projectName}
                 </span>
-              </div>
+              </Link>
             ) : (
               <span className="text-xs text-muted-foreground/40">—</span>
             )}
@@ -217,10 +224,14 @@ export function TodoItemRow({
         {/* Col 3: List */}
         {showList && (
           <TableCell className="py-2.5 px-2">
-            {listName ? (
-              <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+            {listName && listId ? (
+              <Link
+                href={`/todos/${listId}`}
+                onClick={(e: MouseEvent) => e.stopPropagation()}
+                className="text-xs text-muted-foreground truncate max-w-[120px] hover:underline"
+              >
                 {listName}
-              </span>
+              </Link>
             ) : (
               <span className="text-xs text-muted-foreground/40">—</span>
             )}

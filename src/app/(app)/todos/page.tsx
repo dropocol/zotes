@@ -23,19 +23,41 @@ import { ProjectSelect } from "@/components/common/project-select";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import { DefaultTodoListSection } from "@/components/todos/default-todo-list-section";
 import { TodoListsTable } from "@/components/todos/todo-lists-table";
+import { TodoItemsTable } from "@/components/todos/todo-items-table";
 import {
   Loader2,
   ListTodo,
   CalendarDays,
   CheckSquare,
   Plus,
+  User,
+  LayoutGrid,
 } from "lucide-react";
 import Link from "next/link";
 import { TodoList, TodoItem, PaginatedListsResponse } from "@/types";
 import { usePagination } from "@/hooks/use-pagination";
 import { getLocalDateString } from "@/utils/date";
 
+type ViewMode = "personal" | "all-projects";
+
+interface TodoItemWithList extends TodoItem {
+  todoList: TodoList;
+}
+
+interface PaginatedItemsResponse {
+  data: TodoItemWithList[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
 const DEFAULT_LIST_ITEMS_LIMIT = 10;
+const STORAGE_KEY = "todos-view-mode";
 
 export default function TodosPage() {
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
@@ -50,6 +72,33 @@ export default function TodosPage() {
   const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [otherListsTotal, setOtherListsTotal] = useState(0);
+
+  // View mode state with localStorage persistence (hydration-safe)
+  const [viewMode, setViewMode] = useState<ViewMode>("personal");
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY) as ViewMode | null;
+    if (saved === "personal" || saved === "all-projects") {
+      setViewMode(saved);
+    }
+    setIsHydrated(true);
+  }, []);
+
+  function handleViewModeChange(mode: ViewMode) {
+    setViewMode(mode);
+    localStorage.setItem(STORAGE_KEY, mode);
+  }
+
+  // All projects state
+  const [allItems, setAllItems] = useState<TodoItemWithList[]>([]);
+  const [allItemsTotal, setAllItemsTotal] = useState(0);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
+
+  const allItemsPagination = usePagination({
+    totalItems: allItemsTotal,
+    initialLimit: 25,
+  });
 
   const otherListsPagination = usePagination({
     totalItems: otherListsTotal,
@@ -96,6 +145,32 @@ export default function TodosPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const fetchAllItems = useCallback(async () => {
+    setIsLoadingAll(true);
+    try {
+      const params = new URLSearchParams({
+        page: allItemsPagination.currentPage.toString(),
+        limit: allItemsPagination.limit.toString(),
+      });
+      const response = await fetch(`/api/todo/items?${params.toString()}`);
+      if (response.ok) {
+        const data: PaginatedItemsResponse = await response.json();
+        setAllItems(data.data);
+        setAllItemsTotal(data.pagination.total);
+      }
+    } catch (error) {
+      console.error("Error fetching all items:", error);
+    } finally {
+      setIsLoadingAll(false);
+    }
+  }, [allItemsPagination.currentPage, allItemsPagination.limit]);
+
+  useEffect(() => {
+    if (isHydrated && viewMode === "all-projects") {
+      fetchAllItems();
+    }
+  }, [viewMode, fetchAllItems, isHydrated]);
 
   async function fetchDefaultListItems(listId: string) {
     try {
@@ -180,7 +255,9 @@ export default function TodosPage() {
       },
       body: JSON.stringify({ status }),
     });
-    if (defaultList) {
+    if (viewMode === "all-projects") {
+      fetchAllItems();
+    } else if (defaultList) {
       fetchDefaultListItems(defaultList.id);
     }
   }
@@ -189,7 +266,9 @@ export default function TodosPage() {
     await fetch(`/api/todo/items/${id}`, {
       method: "DELETE",
     });
-    if (defaultList) {
+    if (viewMode === "all-projects") {
+      fetchAllItems();
+    } else if (defaultList) {
       fetchDefaultListItems(defaultList.id);
     }
   }
@@ -226,7 +305,9 @@ export default function TodosPage() {
   }
 
   function handleUpdateItem() {
-    if (defaultList) {
+    if (viewMode === "all-projects") {
+      fetchAllItems();
+    } else if (defaultList) {
       fetchDefaultListItems(defaultList.id);
     }
   }
@@ -243,6 +324,14 @@ export default function TodosPage() {
     otherListsPagination.setLimit(limit);
   };
 
+  const handleAllItemsPageChange = (page: number) => {
+    allItemsPagination.setPage(page);
+  };
+
+  const handleAllItemsLimitChange = (limit: number) => {
+    allItemsPagination.setLimit(limit);
+  };
+
   const otherLists = todoLists;
 
   return (
@@ -253,6 +342,28 @@ export default function TodosPage() {
         icon={CheckSquare}
         className="mb-6"
       >
+        {/* View mode toggle */}
+        <div className="flex items-center rounded-lg border bg-muted p-1">
+          <Button
+            variant={viewMode === "personal" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => handleViewModeChange("personal")}
+            className="h-7 gap-1.5 rounded-md px-3 text-xs"
+          >
+            <User className="h-3.5 w-3.5" />
+            Personal
+          </Button>
+          <Button
+            variant={viewMode === "all-projects" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => handleViewModeChange("all-projects")}
+            className="h-7 gap-1.5 rounded-md px-3 text-xs"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            All Projects
+          </Button>
+        </div>
+
         <Button variant="outline" asChild>
           <Link href="/todos/upcoming">
             <CalendarDays className="mr-1.5 h-4 w-4" />
@@ -320,56 +431,91 @@ export default function TodosPage() {
         </Dialog>
       </PageHeader>
 
-      {isLoading ? (
+      {!isHydrated ? (
         <LoadingSpinner />
+      ) : viewMode === "personal" ? (
+        isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <div className="space-y-6">
+            {/* Default List Section */}
+            {defaultList && (
+              <DefaultTodoListSection
+                defaultList={defaultList}
+                items={defaultListItems}
+                viewAllHref={getTodoListUrl(defaultList)}
+                onAddItem={addItem}
+                onToggleStatus={toggleStatus}
+                onDeleteItem={deleteItem}
+                onAddSubItem={addSubItem}
+                onSelectItem={handleSelectItem}
+              />
+            )}
+
+            {/* Other Lists */}
+            {otherLists.length > 0 && (
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Todo Lists</h2>
+                </div>
+                <TodoListsTable
+                  todoLists={otherLists}
+                  getHref={getTodoListUrl}
+                  onSetDefault={handleSetDefault}
+                  onDelete={handleDelete}
+                />
+                <Pagination
+                  currentPage={otherListsPagination.currentPage}
+                  totalPages={otherListsPagination.totalPages}
+                  totalItems={otherListsTotal}
+                  limit={otherListsPagination.limit}
+                  onPageChange={handlePageChange}
+                  onLimitChange={handleLimitChange}
+                />
+              </section>
+            )}
+
+            {/* Empty state */}
+            {!defaultList && otherLists.length === 0 && (
+              <EmptyState
+                icon={ListTodo}
+                title="No todo lists yet"
+                description="Create your first todo list to get started"
+              />
+            )}
+          </div>
+        )
       ) : (
-        <div className="space-y-6">
-          {/* Default List Section */}
-          {defaultList && (
-            <DefaultTodoListSection
-              defaultList={defaultList}
-              items={defaultListItems}
-              viewAllHref={getTodoListUrl(defaultList)}
-              onAddItem={addItem}
+        /* All Projects view */
+        isLoadingAll ? (
+          <LoadingSpinner />
+        ) : allItems.length === 0 ? (
+          <EmptyState
+            icon={ListTodo}
+            title="No todo items yet"
+            description="Todo items from all your project lists will appear here"
+          />
+        ) : (
+          <>
+            <TodoItemsTable
+              items={allItems}
+              showProject={true}
+              showList={true}
               onToggleStatus={toggleStatus}
-              onDeleteItem={deleteItem}
-              onAddSubItem={addSubItem}
-              onSelectItem={handleSelectItem}
+              onAddSubItem={() => {}}
+              onDelete={deleteItem}
+              onSelect={handleSelectItem}
             />
-          )}
-
-          {/* Other Lists */}
-          {otherLists.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Todo Lists</h2>
-              </div>
-              <TodoListsTable
-                todoLists={otherLists}
-                getHref={getTodoListUrl}
-                onSetDefault={handleSetDefault}
-                onDelete={handleDelete}
-              />
-              <Pagination
-                currentPage={otherListsPagination.currentPage}
-                totalPages={otherListsPagination.totalPages}
-                totalItems={otherListsTotal}
-                limit={otherListsPagination.limit}
-                onPageChange={handlePageChange}
-                onLimitChange={handleLimitChange}
-              />
-            </section>
-          )}
-
-          {/* Empty state */}
-          {!defaultList && otherLists.length === 0 && (
-            <EmptyState
-              icon={ListTodo}
-              title="No todo lists yet"
-              description="Create your first todo list to get started"
+            <Pagination
+              currentPage={allItemsPagination.currentPage}
+              totalPages={allItemsPagination.totalPages}
+              totalItems={allItemsTotal}
+              limit={allItemsPagination.limit}
+              onPageChange={handleAllItemsPageChange}
+              onLimitChange={handleAllItemsLimitChange}
             />
-          )}
-        </div>
+          </>
+        )
       )}
 
       {/* Detail drawer */}

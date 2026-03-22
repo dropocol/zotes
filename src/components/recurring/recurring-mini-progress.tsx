@@ -163,7 +163,7 @@ export function RecurringMiniProgress({
               // Todo
               status === "todo" && "bg-muted-foreground/50",
               // Today indicator (not for done items)
-              isTodayDate && !["before_start", "after_end", "done"].includes(status) && "ring-1 ring-primary ring-offset-0.5",
+              isTodayDate && !["before_start", "after_end", "done"].includes(status) && "bg-red-500",
               // Skipped
               status === "skipped" && "bg-amber-500",
               // Hover effect
