@@ -40,26 +40,57 @@ export function RecurringMiniProgress({
   const weekDates = useMemo(() => getLocalWeekDates(new Date()), []);
   const today = useMemo(() => getLocalToday(), []);
 
-  // Fetch completions for this item
-  useEffect(() => {
-    async function fetchCompletions() {
-      try {
-        const response = await fetch("/api/recurring/completions?startDate=2024-01-01&endDate=2030-12-31");
-        if (response.ok) {
-          const data = await response.json();
-          const itemData = data.items?.find((i: { id: string }) => i.id === todoItemId);
-          if (itemData?.completions) {
-            setCompletions(itemData.completions);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching completions:", error);
-      }
-    }
+  // Build date range for the current week with 1-day buffer for timezone safety
+  const weekRange = useMemo(() => {
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const addDays = (d: Date, n: number) => {
+      const r = new Date(d);
+      r.setDate(r.getDate() + n);
+      return r;
+    };
+    const start = addDays(weekDates[0], -1);
+    const end = addDays(weekDates[weekDates.length - 1], 1);
+    return { start: fmt(start), end: fmt(end) };
+  }, [weekDates]);
 
+  async function fetchCompletions() {
+    try {
+      const params = new URLSearchParams({
+        startDate: weekRange.start,
+        endDate: weekRange.end,
+        todoItemId,
+      });
+      const response = await fetch(`/api/recurring/completions?${params}&_t=${Date.now()}`);
+      if (response.ok) {
+        const data = await response.json();
+        const itemData = data.items?.[0];
+        if (itemData?.completions) {
+          setCompletions(itemData.completions);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching completions:", error);
+    }
+  }
+
+  // Fetch completions for this item (current week, single item)
+  useEffect(() => {
     if (todoItemId) {
       fetchCompletions();
     }
+  }, [todoItemId, weekRange.start, weekRange.end]);
+
+  // Re-fetch completions when a checkbox toggle updates a recurring completion
+  useEffect(() => {
+    function onCompletionUpdated(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.todoItemId === todoItemId) {
+        fetchCompletions();
+      }
+    }
+
+    window.addEventListener("recurring-completion-updated", onCompletionUpdated);
+    return () => window.removeEventListener("recurring-completion-updated", onCompletionUpdated);
   }, [todoItemId]);
 
   const getCompletionStatus = (date: Date): string => {

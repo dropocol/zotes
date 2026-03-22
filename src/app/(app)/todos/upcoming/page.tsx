@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/ui/pagination";
-import { TodoItemRow } from "@/components/todos/todo-item-row";
+import { TodoItemsTable } from "@/components/todos/todo-items-table";
 import { TodoItemDetailDrawer } from "@/components/todos/todo-item-detail-drawer";
 import {
   isDateBeforeToday,
@@ -12,7 +12,6 @@ import {
   isDateTomorrow,
 } from "@/utils/date";
 import { CalendarDays, Loader2, AlertCircle } from "lucide-react";
-import Link from "next/link";
 import { TodoItem, TodoList } from "@/types";
 import { usePagination } from "@/hooks/use-pagination";
 
@@ -30,39 +29,6 @@ interface PaginatedResponse {
     hasNext: boolean;
     hasPrev: boolean;
   };
-}
-
-// Use the helper functions from recurring.ts for consistent local time comparisons
-function isOverdue(dueDate: Date | string | null | undefined): boolean {
-  if (!dueDate) return false;
-  return isDateBeforeToday(dueDate);
-}
-
-function isDueToday(dueDate: Date | string | null | undefined): boolean {
-  if (!dueDate) return false;
-  return isDateToday(dueDate);
-}
-
-function isDueTomorrow(dueDate: Date | string | null | undefined): boolean {
-  if (!dueDate) return false;
-  return isDateTomorrow(dueDate);
-}
-
-function getDueDateLabel(dueDate: Date | string | null | undefined): string {
-  if (!dueDate) return "";
-  if (isDueToday(dueDate)) return "Today";
-  if (isDueTomorrow(dueDate)) return "Tomorrow";
-  return new Date(dueDate).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function getTodoListUrl(item: TodoItemWithList): string {
-  if (item.todoList.projectId) {
-    return `/projects/${item.todoList.projectId}/todos/${item.todoList.id}`;
-  }
-  return `/todos/${item.todoList.id}`;
 }
 
 export default function UpcomingTodosPage() {
@@ -143,15 +109,16 @@ export default function UpcomingTodosPage() {
     pagination.setLimit(limit);
   };
 
-  // Group items by due date category
-  const overdueItems = items.filter((item) => isOverdue(item.dueDate));
-  const todayItems = items.filter((item) => isDueToday(item.dueDate));
-  const tomorrowItems = items.filter((item) => isDueTomorrow(item.dueDate));
+  const hasDate = (d: Date | string | null | undefined) => !!d;
+  const overdueItems = items.filter((item) => hasDate(item.dueDate) && isDateBeforeToday(item.dueDate));
+  const todayItems = items.filter((item) => hasDate(item.dueDate) && isDateToday(item.dueDate));
+  const tomorrowItems = items.filter((item) => hasDate(item.dueDate) && isDateTomorrow(item.dueDate));
   const laterItems = items.filter(
     (item) =>
-      !isOverdue(item.dueDate) &&
-      !isDueToday(item.dueDate) &&
-      !isDueTomorrow(item.dueDate)
+      hasDate(item.dueDate) &&
+      !isDateBeforeToday(item.dueDate) &&
+      !isDateToday(item.dueDate) &&
+      !isDateTomorrow(item.dueDate)
   );
 
   return (
@@ -196,45 +163,15 @@ export default function UpcomingTodosPage() {
                     Overdue ({overdueItems.length})
                   </h2>
                 </div>
-                <div className="rounded-lg border bg-card divide-y divide-border/50">
-                  {overdueItems.map((item) => (
-                    <TodoItemRow
-                      key={item.id}
-                      item={item}
-                      onToggleStatus={toggleStatus}
-                      onAddSubItem={() => {}}
-                      onDelete={deleteItem}
-                      onSelect={handleSelectItem}
-                      hideSubTasks
-                      listLink={
-                        <Link
-                          href={getTodoListUrl(item)}
-                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                        >
-                          {item.todoList.project && (
-                            <>
-                              <span
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{
-                                  backgroundColor:
-                                    item.todoList.project.color || "#6b7280",
-                                }}
-                              />
-                              {item.todoList.project.name}
-                              {" · "}
-                            </>
-                          )}
-                          {item.todoList.name}
-                        </Link>
-                      }
-                      dueDateBadge={
-                        <span className="text-xs text-destructive font-medium">
-                          {getDueDateLabel(item.dueDate)}
-                        </span>
-                      }
-                    />
-                  ))}
-                </div>
+                <TodoItemsTable
+                  items={overdueItems}
+                  showProject={true}
+                  showList={true}
+                  onToggleStatus={toggleStatus}
+                  onAddSubItem={() => {}}
+                  onDelete={deleteItem}
+                  onSelect={handleSelectItem}
+                />
               </section>
             )}
 
@@ -244,45 +181,15 @@ export default function UpcomingTodosPage() {
                 <h2 className="text-sm font-semibold text-muted-foreground mb-3">
                   Due Today ({todayItems.length})
                 </h2>
-                <div className="rounded-lg border bg-card divide-y divide-border/50">
-                  {todayItems.map((item) => (
-                    <TodoItemRow
-                      key={item.id}
-                      item={item}
-                      onToggleStatus={toggleStatus}
-                      onAddSubItem={() => {}}
-                      onDelete={deleteItem}
-                      onSelect={handleSelectItem}
-                      hideSubTasks
-                      listLink={
-                        <Link
-                          href={getTodoListUrl(item)}
-                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                        >
-                          {item.todoList.project && (
-                            <>
-                              <span
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{
-                                  backgroundColor:
-                                    item.todoList.project.color || "#6b7280",
-                                }}
-                              />
-                              {item.todoList.project.name}
-                              {" · "}
-                            </>
-                          )}
-                          {item.todoList.name}
-                        </Link>
-                      }
-                      dueDateBadge={
-                        <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
-                          {getDueDateLabel(item.dueDate)}
-                        </span>
-                      }
-                    />
-                  ))}
-                </div>
+                <TodoItemsTable
+                  items={todayItems}
+                  showProject={true}
+                  showList={true}
+                  onToggleStatus={toggleStatus}
+                  onAddSubItem={() => {}}
+                  onDelete={deleteItem}
+                  onSelect={handleSelectItem}
+                />
               </section>
             )}
 
@@ -292,45 +199,15 @@ export default function UpcomingTodosPage() {
                 <h2 className="text-sm font-semibold text-muted-foreground mb-3">
                   Due Tomorrow ({tomorrowItems.length})
                 </h2>
-                <div className="rounded-lg border bg-card divide-y divide-border/50">
-                  {tomorrowItems.map((item) => (
-                    <TodoItemRow
-                      key={item.id}
-                      item={item}
-                      onToggleStatus={toggleStatus}
-                      onAddSubItem={() => {}}
-                      onDelete={deleteItem}
-                      onSelect={handleSelectItem}
-                      hideSubTasks
-                      listLink={
-                        <Link
-                          href={getTodoListUrl(item)}
-                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                        >
-                          {item.todoList.project && (
-                            <>
-                              <span
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{
-                                  backgroundColor:
-                                    item.todoList.project.color || "#6b7280",
-                                }}
-                              />
-                              {item.todoList.project.name}
-                              {" · "}
-                            </>
-                          )}
-                          {item.todoList.name}
-                        </Link>
-                      }
-                      dueDateBadge={
-                        <span className="text-xs text-muted-foreground">
-                          {getDueDateLabel(item.dueDate)}
-                        </span>
-                      }
-                    />
-                  ))}
-                </div>
+                <TodoItemsTable
+                  items={tomorrowItems}
+                  showProject={true}
+                  showList={true}
+                  onToggleStatus={toggleStatus}
+                  onAddSubItem={() => {}}
+                  onDelete={deleteItem}
+                  onSelect={handleSelectItem}
+                />
               </section>
             )}
 
@@ -340,45 +217,15 @@ export default function UpcomingTodosPage() {
                 <h2 className="text-sm font-semibold text-muted-foreground mb-3">
                   Coming Up ({laterItems.length})
                 </h2>
-                <div className="rounded-lg border bg-card divide-y divide-border/50">
-                  {laterItems.map((item) => (
-                    <TodoItemRow
-                      key={item.id}
-                      item={item}
-                      onToggleStatus={toggleStatus}
-                      onAddSubItem={() => {}}
-                      onDelete={deleteItem}
-                      onSelect={handleSelectItem}
-                      hideSubTasks
-                      listLink={
-                        <Link
-                          href={getTodoListUrl(item)}
-                          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                        >
-                          {item.todoList.project && (
-                            <>
-                              <span
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{
-                                  backgroundColor:
-                                    item.todoList.project.color || "#6b7280",
-                                }}
-                              />
-                              {item.todoList.project.name}
-                              {" · "}
-                            </>
-                          )}
-                          {item.todoList.name}
-                        </Link>
-                      }
-                      dueDateBadge={
-                        <span className="text-xs text-muted-foreground">
-                          {getDueDateLabel(item.dueDate)}
-                        </span>
-                      }
-                    />
-                  ))}
-                </div>
+                <TodoItemsTable
+                  items={laterItems}
+                  showProject={true}
+                  showList={true}
+                  onToggleStatus={toggleStatus}
+                  onAddSubItem={() => {}}
+                  onDelete={deleteItem}
+                  onSelect={handleSelectItem}
+                />
               </section>
             )}
           </div>

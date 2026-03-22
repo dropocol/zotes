@@ -48,8 +48,8 @@ export function TodoListsTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[40px]"></TableHead>
-            <TableHead>Name</TableHead>
+            <TableHead className="w-[40px] pr-2"></TableHead>
+            <TableHead className="pl-1">Name</TableHead>
             <TableHead>Items</TableHead>
             <TableHead>Updated</TableHead>
             {canModify && <TableHead className="w-[60px]"></TableHead>}
@@ -68,10 +68,10 @@ export function TodoListsTable({
           ) : (
             todoLists.map((todoList) => (
               <TableRow key={todoList.id} className="group">
-                <TableCell>
+                <TableCell className="pr-0 pl-4">
                   <CheckSquare className="h-4 w-4 text-muted-foreground" />
                 </TableCell>
-                <TableCell>
+                <TableCell className="pl-2">
                   <Link
                     href={getHref(todoList)}
                     className="font-medium hover:text-primary transition-colors"
@@ -100,12 +100,16 @@ export function TodoListsTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {showSetDefault && !todoList.isDefault && onSetDefault && (
-                          <DropdownMenuItem onClick={() => onSetDefault(todoList.id)}>
-                            <Star className="mr-2 h-4 w-4" />
-                            Set as Default
-                          </DropdownMenuItem>
-                        )}
+                        {showSetDefault &&
+                          !todoList.isDefault &&
+                          onSetDefault && (
+                            <DropdownMenuItem
+                              onClick={() => onSetDefault(todoList.id)}
+                            >
+                              <Star className="mr-2 h-4 w-4" />
+                              Set as Default
+                            </DropdownMenuItem>
+                          )}
                         {onDelete && (
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"

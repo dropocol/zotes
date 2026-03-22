@@ -7,7 +7,7 @@ import { useState } from "react";
 
 interface TodoItemInputProps {
   placeholder?: string;
-  onAdd: (title: string) => Promise<void>;
+  onAdd: (title: string) => void | Promise<void>;
   disabled?: boolean;
   className?: string;
   showIcon?: boolean;

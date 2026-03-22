@@ -2,18 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { TodoItemRow } from "./todo-item-row";
+import { TodoItemsTable } from "./todo-items-table";
 import { TodoItemDetailDrawer } from "./todo-item-detail-drawer";
-import { TodoItemInput } from "./todo-item-input";
-import { Loader2, ListTodo } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { TodoItem } from "@/types";
 
 interface TodoListContainerProps {
   todoListId: string;
+  hasProject?: boolean;
 }
 
-export function TodoListContainer({ todoListId }: TodoListContainerProps) {
+export function TodoListContainer({ todoListId, hasProject = false }: TodoListContainerProps) {
   const [items, setItems] = useState<TodoItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [addingToParentId, setAddingToParentId] = useState<string | null>(null);
@@ -113,86 +112,30 @@ export function TodoListContainer({ todoListId }: TodoListContainerProps) {
     );
   }
 
-  const completedCount = items.filter(
-    (item) => item.status === "done" && !item.parentId
-  ).length;
-
   return (
     <div className="p-2">
-      {/* Add item input */}
-      <div className="flex items-center gap-2 p-3 border-b">
-        <TodoItemInput onAdd={addItem} />
-      </div>
-
-      {/* Add sub-item form */}
-      {addingToParentId && (
-        <div className="ml-11 p-2 bg-muted/30 border-b flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Sub-task:</span>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              addSubItem(subItemTitle);
-            }}
-            className="flex-1 flex items-center gap-2"
-          >
-            <Input
-              placeholder="Add a sub-task..."
-              value={subItemTitle}
-              onChange={(e) => setSubItemTitle(e.target.value)}
-              autoFocus
-              className="border-0 shadow-none focus-visible:ring-0 px-0 h-auto py-1 text-sm"
-            />
-            <Button
-              type="submit"
-              size="sm"
-              disabled={!subItemTitle.trim()}
-              className="h-7"
-            >
-              Add
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7"
-              onClick={() => {
-                setAddingToParentId(null);
-                setSubItemTitle("");
-              }}
-            >
-              Cancel
-            </Button>
-          </form>
-        </div>
-      )}
-
-      {/* Items list */}
-      {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-4">
-            <ListTodo className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">
-            No tasks yet
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Add your first task above to get started
-          </p>
-        </div>
-      ) : (
-        <div className="divide-y divide-border/50">
-          {items.map((item) => (
-            <TodoItemRow
-              key={item.id}
-              item={item}
-              onToggleStatus={toggleStatus}
-              onAddSubItem={handleAddSubItem}
-              onDelete={deleteItem}
-              onSelect={handleSelectItem}
-            />
-          ))}
-        </div>
-      )}
+      {/* Items table */}
+      <TodoItemsTable
+        items={items}
+        showProject={hasProject}
+        showList={false}
+        showAddInput={true}
+        onAddItem={addItem}
+        onToggleStatus={toggleStatus}
+        onAddSubItem={handleAddSubItem}
+        onDelete={deleteItem}
+        onSelect={handleSelectItem}
+        subItemForm={{
+          addingToParentId,
+          title: subItemTitle,
+          onTitleChange: setSubItemTitle,
+          onSubmit: addSubItem,
+          onCancel: () => {
+            setAddingToParentId(null);
+            setSubItemTitle("");
+          },
+        }}
+      />
 
       {/* Detail drawer */}
       <TodoItemDetailDrawer

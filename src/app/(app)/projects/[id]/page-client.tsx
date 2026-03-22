@@ -44,15 +44,6 @@ export function ProjectPageClient({
   const defaultList = todoLists.find((list) => list.isDefault);
   const otherLists = todoLists.filter((list) => !list.isDefault);
 
-  // Fetch items for the default list
-  useEffect(() => {
-    if (defaultList) {
-      fetchDefaultListItems(defaultList.id);
-    } else {
-      setDefaultListItems([]);
-    }
-  }, [defaultList?.id]);
-
   async function fetchDefaultListItems(listId: string) {
     try {
       const response = await fetch(`/api/todo/lists/${listId}/items`);
@@ -64,6 +55,24 @@ export function ProjectPageClient({
       console.error("Error fetching items:", error);
     }
   }
+
+  // Fetch items for the default list
+  useEffect(() => {
+    if (!defaultList) return;
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`/api/todo/lists/${defaultList.id}/items`, { signal: controller.signal });
+        if (res.ok) {
+          const data = await res.json();
+          setDefaultListItems(data.slice(0, DEFAULT_LIST_ITEMS_LIMIT));
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) console.error("Error fetching items:", err);
+      }
+    })();
+    return () => controller.abort();
+  }, [defaultList]);
 
   if (!project) {
     notFound();

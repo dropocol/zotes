@@ -93,7 +93,9 @@ export default function TodoListPage({
     <DashboardLayout
       breadcrumbs={[
         { title: "Projects", href: "/projects" },
-        ...(todoList.project ? [{ title: todoList.project.name, href: `/projects/${id}` }] : []),
+        ...(todoList.project
+          ? [{ title: todoList.project.name, href: `/projects/${id}` }]
+          : []),
         { title: todoList.name },
       ]}
     >
@@ -202,9 +204,8 @@ export default function TodoListPage({
       </div>
 
       {/* Todo List */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <TodoListContainer todoListId={todoListId} />
-      </div>
+
+      <TodoListContainer todoListId={todoListId} hasProject />
     </DashboardLayout>
   );
 }

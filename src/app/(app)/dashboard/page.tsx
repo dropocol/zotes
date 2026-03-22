@@ -2,7 +2,15 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
-import { FolderKanban, FileText, CheckSquare, Plus, Clock, ChevronRight, Home } from "lucide-react";
+import {
+  FolderKanban,
+  FileText,
+  CheckSquare,
+  Plus,
+  Clock,
+  ChevronRight,
+  Home,
+} from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -131,19 +139,14 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <DashboardLayout
-      breadcrumbs={[{ title: "Dashboard", href: "/dashboard" }]}
-    >
+    <DashboardLayout breadcrumbs={[{ title: "Dashboard", href: "/dashboard" }]}>
       <PageHeader
         title="Dashboard"
         description={`Welcome back, ${session.user.name || "User"}`}
         icon={Home}
         className="mb-8"
       >
-        <Link
-          href="/projects"
-          className={buttonVariants({ size: "sm" })}
-        >
+        <Link href="/projects" className={buttonVariants({ size: "sm" })}>
           <Plus className="mr-1.5 h-3.5 w-3.5" />
           New Project
         </Link>
@@ -209,7 +212,10 @@ export default async function DashboardPage() {
             {recentItems.recentNotes.length === 0 ? (
               <div className="p-4 text-sm text-muted-foreground">
                 No notes yet.{" "}
-                <Link href="/notes/new" className="text-primary hover:underline">
+                <Link
+                  href="/notes/new"
+                  className="text-primary hover:underline"
+                >
                   Create your first note
                 </Link>
               </div>
@@ -269,7 +275,10 @@ export default async function DashboardPage() {
                   className="flex items-center gap-3 p-3 hover:bg-accent/50 transition-colors group"
                 >
                   <div
-                    className={cn("w-2 h-2 rounded-full shrink-0", getPriorityColor(item.priority))}
+                    className={cn(
+                      "w-2 h-2 rounded-full shrink-0",
+                      getPriorityColor(item.priority),
+                    )}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{item.title}</p>

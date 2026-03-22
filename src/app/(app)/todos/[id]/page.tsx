@@ -216,9 +216,8 @@ export default function TodoListPage({
       </div>
 
       {/* Todo List */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <TodoListContainer todoListId={id} />
-      </div>
+
+      <TodoListContainer todoListId={id} />
     </DashboardLayout>
   );
 }

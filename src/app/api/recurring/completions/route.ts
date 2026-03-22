@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const todoItemId = searchParams.get("todoItemId");
 
     if (!startDate || !endDate) {
       return NextResponse.json(
@@ -24,13 +25,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all recurring todo items for the user
+    // Build query filter
+    const where: Record<string, unknown> = {
+      userId: session.user.id,
+      isRecurring: true,
+      parentId: null,
+    };
+    if (todoItemId) {
+      where.id = todoItemId;
+    }
+
+    // Get recurring todo items (optionally filtered by ID)
     const recurringItems = await prisma.todoItem.findMany({
-      where: {
-        userId: session.user.id,
-        isRecurring: true,
-        parentId: null, // Only top-level items
-      },
+      where,
       include: {
         completions: {
           where: {

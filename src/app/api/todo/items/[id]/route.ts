@@ -72,6 +72,7 @@ export async function PUT(
       daysOfWeek,
       recurrenceStart,
       recurrenceEnd,
+      completionDate,
     } = await request.json();
 
     const existingItem = await prisma.todoItem.findFirst({
@@ -114,7 +115,10 @@ export async function PUT(
 
     // For recurring items, handle status separately from other updates
     if (willBeRecurring && status !== undefined) {
-      const today = getUTCToday();
+      // Use client-provided date (local) or fall back to server UTC today
+      const today = completionDate
+        ? new Date(completionDate)
+        : getUTCToday();
 
       // Create or update completion record for today (status goes here, not on the item)
       await prisma.recurringCompletion.upsert({
@@ -173,11 +177,9 @@ export async function PUT(
 
     // For recurring items with status update, return the effective status
     if (willBeRecurring && status !== undefined) {
-      const today = getUTCToday();
       return NextResponse.json({
         ...item,
         status, // Return the effective status from completion
-        dueDate: today,
       });
     }
 

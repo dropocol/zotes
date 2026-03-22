@@ -206,6 +206,19 @@ export default function TodosPage() {
     fetchDefaultListItems(defaultList.id);
   }
 
+  async function addSubItem(parentId: string, title: string) {
+    if (!defaultList) return;
+
+    await fetch(`/api/todo/lists/${defaultList.id}/items`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title, parentId }),
+    });
+    fetchDefaultListItems(defaultList.id);
+  }
+
   function handleSelectItem(item: TodoItem) {
     setSelectedItem(item);
     setIsDrawerOpen(true);
@@ -319,6 +332,7 @@ export default function TodosPage() {
               onAddItem={addItem}
               onToggleStatus={toggleStatus}
               onDeleteItem={deleteItem}
+              onAddSubItem={addSubItem}
               onSelectItem={handleSelectItem}
             />
           )}

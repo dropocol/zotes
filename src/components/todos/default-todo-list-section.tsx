@@ -1,11 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/common/empty-state";
 import Link from "next/link";
-import { ExternalLink, ListTodo } from "lucide-react";
-import { TodoItemInput } from "@/components/todos/todo-item-input";
-import { TodoItemRow } from "@/components/todos/todo-item-row";
+import { ExternalLink } from "lucide-react";
+import { TodoItemsTable } from "@/components/todos/todo-items-table";
+import type { SubItemFormState } from "./todo-item-row";
 import { TodoList, TodoItem } from "@/types";
 
 interface DefaultTodoListSectionProps {
@@ -16,6 +16,7 @@ interface DefaultTodoListSectionProps {
   onAddItem?: (title: string) => void | Promise<void>;
   onToggleStatus?: (id: string, status: string) => void | Promise<void>;
   onDeleteItem?: (id: string) => void | Promise<void>;
+  onAddSubItem?: (parentId: string, title: string) => void | Promise<void>;
   onSelectItem?: (item: TodoItem) => void;
   className?: string;
 }
@@ -28,9 +29,38 @@ export function DefaultTodoListSection({
   onAddItem,
   onToggleStatus,
   onDeleteItem,
+  onAddSubItem,
   onSelectItem,
   className = "",
 }: DefaultTodoListSectionProps) {
+  const [addingToParentId, setAddingToParentId] = useState<string | null>(null);
+  const [subItemTitle, setSubItemTitle] = useState("");
+
+  function handleAddSubItem(parentId: string) {
+    setAddingToParentId(parentId);
+    setSubItemTitle("");
+  }
+
+  async function handleSubmitSubItem(title: string) {
+    if (!onAddSubItem || !addingToParentId) return;
+    await onAddSubItem(addingToParentId, title);
+    setAddingToParentId(null);
+    setSubItemTitle("");
+  }
+
+  function handleCancelSubItem() {
+    setAddingToParentId(null);
+    setSubItemTitle("");
+  }
+
+  const subItemForm: SubItemFormState = {
+    addingToParentId,
+    title: subItemTitle,
+    onTitleChange: setSubItemTitle,
+    onSubmit: handleSubmitSubItem,
+    onCancel: handleCancelSubItem,
+  };
+
   return (
     <section className={className}>
       <div className="flex items-center justify-between mb-3">
@@ -50,35 +80,18 @@ export function DefaultTodoListSection({
         </Button>
       </div>
 
-      <div className="rounded-lg border bg-card">
-        {canModify && onAddItem && (
-          <div className="flex items-center gap-2 p-3 border-b">
-            <TodoItemInput onAdd={async (title) => { await onAddItem(title); }} />
-          </div>
-        )}
-
-        <div className="divide-y divide-border/50">
-          {items.length === 0 ? (
-            <EmptyState
-              icon={ListTodo}
-              title="No tasks yet"
-              className="py-12"
-              iconClassName="h-10 w-10 mb-3"
-            />
-          ) : (
-            items.map((item) => (
-              <TodoItemRow
-                key={item.id}
-                item={item}
-                onToggleStatus={onToggleStatus || (() => {})}
-                onAddSubItem={() => {}}
-                onDelete={onDeleteItem || (() => {})}
-                onSelect={onSelectItem || (() => {})}
-              />
-            ))
-          )}
-        </div>
-      </div>
+      <TodoItemsTable
+        items={items}
+        showProject={true}
+        showList={false}
+        showAddInput={canModify && !!onAddItem}
+        onAddItem={onAddItem}
+        onToggleStatus={onToggleStatus || (() => {})}
+        onAddSubItem={handleAddSubItem}
+        onDelete={onDeleteItem || (() => {})}
+        onSelect={onSelectItem || (() => {})}
+        subItemForm={subItemForm}
+      />
     </section>
   );
 }
