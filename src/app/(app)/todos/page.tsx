@@ -219,13 +219,14 @@ function TodosPageContent() {
     fetchData();
   }, [fetchData]);
 
-  const fetchAllItems = useCallback(async () => {
-    setIsLoadingAll(true);
+  const fetchAllItems = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoadingAll(true);
     try {
       const params = new URLSearchParams({
         page: allItemsPagination.currentPage.toString(),
         limit: allItemsPagination.limit.toString(),
         projectOnly: "true",
+        date: getLocalDateString(),
       });
       if (sortBy !== "default") {
         params.set("sort", sortBy);
@@ -239,7 +240,7 @@ function TodosPageContent() {
     } catch (error) {
       console.error("Error fetching all items:", error);
     } finally {
-      setIsLoadingAll(false);
+      if (showLoading) setIsLoadingAll(false);
     }
   }, [allItemsPagination.currentPage, allItemsPagination.limit, sortBy]);
 
@@ -248,6 +249,19 @@ function TodosPageContent() {
       fetchAllItems();
     }
   }, [viewMode, fetchAllItems, isHydrated]);
+
+  // Refetch when a recurring item is toggled, so _effectiveStatus stays in sync
+  useEffect(() => {
+    function handleRecurringUpdate() {
+      if (viewMode === "all-projects") {
+        fetchAllItems(false);
+      } else if (defaultList) {
+        fetchDefaultListItems(defaultList.id);
+      }
+    }
+    window.addEventListener("recurring-completion-updated", handleRecurringUpdate);
+    return () => window.removeEventListener("recurring-completion-updated", handleRecurringUpdate);
+  }, [viewMode, defaultList, fetchAllItems]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchDefaultListItems(listId: string) {
     try {

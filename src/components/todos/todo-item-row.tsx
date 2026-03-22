@@ -274,9 +274,7 @@ export function TodoItemRow({
         {/* Col 6: Priority */}
         <TableCell className="py-2.5 px-2">
           <div className="flex items-center gap-1.5">
-            {!isCheckboxChecked && (
-              <PriorityBadge priority={item.priority} className="text-[10px] px-1.5 py-0" />
-            )}
+            <PriorityBadge priority={item.priority} className="text-[10px] px-1.5 py-0" />
             {item.notes && (
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
             )}
