@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       parentId?: null;
       status?: string | { not: string };
       dueDate?: { not: null };
+      todoList?: { projectId?: { not: null } };
     } = {
       userId: session.user.id,
       parentId: null, // Only top-level items
@@ -33,6 +34,10 @@ export async function GET(request: NextRequest) {
       // Items with due dates that are not completed
       where.status = { not: "done" };
       where.dueDate = { not: null };
+    }
+
+    if (searchParams.get("projectOnly") === "true") {
+      where.todoList = { projectId: { not: null } };
     }
 
     const items = await prisma.todoItem.findMany({

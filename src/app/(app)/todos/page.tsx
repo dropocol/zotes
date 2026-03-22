@@ -109,10 +109,15 @@ export default function TodosPage() {
     setIsLoading(true);
     try {
       // Fetch default list - only personal lists (no project)
-      const personalListsRes = await fetch("/api/todo/lists?personalOnly=true&limit=100");
+      const personalListsRes = await fetch(
+        "/api/todo/lists?personalOnly=true&limit=100",
+      );
       if (personalListsRes.ok) {
-        const personalData: PaginatedListsResponse = await personalListsRes.json();
-        const defaultL = personalData.data.find((list: TodoList) => list.isDefault);
+        const personalData: PaginatedListsResponse =
+          await personalListsRes.json();
+        const defaultL = personalData.data.find(
+          (list: TodoList) => list.isDefault,
+        );
         if (defaultL) {
           setDefaultList(defaultL);
           await fetchDefaultListItems(defaultL.id);
@@ -152,6 +157,7 @@ export default function TodosPage() {
       const params = new URLSearchParams({
         page: allItemsPagination.currentPage.toString(),
         limit: allItemsPagination.limit.toString(),
+        projectOnly: "true",
       });
       const response = await fetch(`/api/todo/items?${params.toString()}`);
       if (response.ok) {
@@ -174,7 +180,9 @@ export default function TodosPage() {
 
   async function fetchDefaultListItems(listId: string) {
     try {
-      const response = await fetch(`/api/todo/lists/${listId}/items?date=${getLocalDateString()}`);
+      const response = await fetch(
+        `/api/todo/lists/${listId}/items?date=${getLocalDateString()}`,
+      );
       if (response.ok) {
         const data = await response.json();
         setDefaultListItems(data.slice(0, DEFAULT_LIST_ITEMS_LIMIT));
@@ -485,37 +493,35 @@ export default function TodosPage() {
             )}
           </div>
         )
+      ) : /* All Projects view */
+      isLoadingAll ? (
+        <LoadingSpinner />
+      ) : allItems.length === 0 ? (
+        <EmptyState
+          icon={ListTodo}
+          title="No todo items yet"
+          description="Todo items from all your project lists will appear here"
+        />
       ) : (
-        /* All Projects view */
-        isLoadingAll ? (
-          <LoadingSpinner />
-        ) : allItems.length === 0 ? (
-          <EmptyState
-            icon={ListTodo}
-            title="No todo items yet"
-            description="Todo items from all your project lists will appear here"
+        <>
+          <TodoItemsTable
+            items={allItems}
+            showProject={true}
+            showList={true}
+            onToggleStatus={toggleStatus}
+            onAddSubItem={() => {}}
+            onDelete={deleteItem}
+            onSelect={handleSelectItem}
           />
-        ) : (
-          <>
-            <TodoItemsTable
-              items={allItems}
-              showProject={true}
-              showList={true}
-              onToggleStatus={toggleStatus}
-              onAddSubItem={() => {}}
-              onDelete={deleteItem}
-              onSelect={handleSelectItem}
-            />
-            <Pagination
-              currentPage={allItemsPagination.currentPage}
-              totalPages={allItemsPagination.totalPages}
-              totalItems={allItemsTotal}
-              limit={allItemsPagination.limit}
-              onPageChange={handleAllItemsPageChange}
-              onLimitChange={handleAllItemsLimitChange}
-            />
-          </>
-        )
+          <Pagination
+            currentPage={allItemsPagination.currentPage}
+            totalPages={allItemsPagination.totalPages}
+            totalItems={allItemsTotal}
+            limit={allItemsPagination.limit}
+            onPageChange={handleAllItemsPageChange}
+            onLimitChange={handleAllItemsLimitChange}
+          />
+        </>
       )}
 
       {/* Detail drawer */}
