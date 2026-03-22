@@ -49,6 +49,16 @@ export function getLocalToday(): Date {
 }
 
 /**
+ * Get today's local date as YYYY-MM-DD string
+ * Use this when passing a date to the server so it matches the local date
+ * used when storing completions (which are saved at noon UTC of the local date)
+ */
+export function getLocalDateString(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+/**
  * Get today's date in UTC (for server-side comparisons)
  * Returns a Date object set to noon UTC representing the UTC date
  *

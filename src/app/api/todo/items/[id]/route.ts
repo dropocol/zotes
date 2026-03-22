@@ -158,7 +158,7 @@ export async function PUT(
         notes: notes ?? existingItem.notes,
         status: itemStatusToUpdate,
         priority: priority ?? existingItem.priority,
-        dueDate: dueDate ? new Date(dueDate) : existingItem.dueDate,
+        dueDate: willBeRecurring ? null : (dueDate ? new Date(dueDate) : existingItem.dueDate),
         isRecurring: isRecurring !== undefined ? isRecurring : existingItem.isRecurring,
         frequency: frequency !== undefined ? frequency : existingItem.frequency,
         daysOfWeek: daysOfWeek !== undefined ? daysOfWeek : existingItem.daysOfWeek,

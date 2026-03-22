@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPaginationParams, createPaginatedResponse } from "@/lib/pagination";
+import { getUTCToday, toUTCDate } from "@/utils/date";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get("filter"); // "upcoming" or "all"
+
+    // Use client-provided local date for recurring completion lookups
+    const localDateParam = searchParams.get("date");
+    const today = localDateParam ? toUTCDate(localDateParam) : getUTCToday();
 
     const where: {
       userId: string;
@@ -37,6 +42,11 @@ export async function GET(request: NextRequest) {
         subItems: {
           orderBy: { order: "asc" },
         },
+        completions: {
+          where: {
+            date: today,
+          },
+        },
         todoList: {
           select: {
             id: true,
@@ -54,11 +64,27 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Process recurring items to attach effective status
+    const processedItems = items.map((item) => {
+      if (!item.isRecurring) {
+        return item;
+      }
+
+      const todayCompletion = item.completions[0];
+      const effectiveStatus = todayCompletion?.status || "todo";
+
+      return {
+        ...item,
+        status: item.status,
+        _effectiveStatus: effectiveStatus,
+      };
+    });
+
     // For upcoming, filter out items without due dates
     const filteredItems =
       filter === "upcoming"
-        ? items.filter((item) => item.dueDate !== null)
-        : items;
+        ? processedItems.filter((item) => item.dueDate !== null)
+        : processedItems;
 
     // Always paginate
     const { page, limit } = getPaginationParams(searchParams);

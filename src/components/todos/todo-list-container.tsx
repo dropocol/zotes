@@ -6,6 +6,7 @@ import { TodoItemsTable } from "./todo-items-table";
 import { TodoItemDetailDrawer } from "./todo-item-detail-drawer";
 import { Loader2 } from "lucide-react";
 import { TodoItem } from "@/types";
+import { getLocalDateString } from "@/utils/date";
 
 interface TodoListContainerProps {
   todoListId: string;
@@ -26,7 +27,7 @@ export function TodoListContainer({ todoListId, hasProject = false }: TodoListCo
 
   async function fetchItems() {
     try {
-      const response = await fetch(`/api/todo/lists/${todoListId}/items`);
+      const response = await fetch(`/api/todo/lists/${todoListId}/items?date=${getLocalDateString()}`);
       const data = await response.json();
       setItems(data);
     } catch (error) {

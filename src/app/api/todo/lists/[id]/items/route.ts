@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProjectAccess, canViewProject, canModifyProject } from "@/lib/permissions";
-import { shouldAppearOnDate } from "@/types/recurring";
-import { getUTCToday } from "@/utils/date";
+import { getUTCToday, toUTCDate } from "@/utils/date";
 
 export async function GET(
   request: NextRequest,
@@ -17,6 +16,12 @@ export async function GET(
     }
 
     const { id } = await params;
+
+    // Use client-provided local date (YYYY-MM-DD) for recurring processing
+    // Falls back to UTC date if not provided (handles timezone differences)
+    const { searchParams } = new URL(request.url);
+    const localDateParam = searchParams.get("date");
+    const today = localDateParam ? toUTCDate(localDateParam) : getUTCToday();
 
     // Verify access to todo list
     const todoList = await prisma.todoList.findFirst({
@@ -32,9 +37,6 @@ export async function GET(
     if (!todoList) {
       return NextResponse.json({ error: "Todo list not found" }, { status: 404 });
     }
-
-    // Get today's date for recurring item processing (use UTC for server-side consistency)
-    const today = getUTCToday();
 
     const items = await prisma.todoItem.findMany({
       where: {
@@ -54,18 +56,10 @@ export async function GET(
       },
     });
 
-    // Process recurring items to show today's status
+    // Process recurring items to attach today's effective status
     const processedItems = items.map((item) => {
       if (!item.isRecurring) {
         return item;
-      }
-
-      // Check if this recurring item should appear today
-      const shouldShowToday = shouldAppearOnDate(item, today);
-
-      if (!shouldShowToday) {
-        // Filter out items that shouldn't appear today
-        return null;
       }
 
       // For recurring items, keep the item status as "todo" (recurring items are never "done")
@@ -78,11 +72,9 @@ export async function GET(
         // Keep status as the actual item status (always "todo" for recurring items)
         // The UI should use _effectiveStatus for displaying today's completion
         status: item.status, // Don't overwrite with completion status
-        dueDate: today, // Set due date to today for recurring items
-        _isRecurringToday: true,
         _effectiveStatus: effectiveStatus, // Today's completion status for progress display
       };
-    }).filter(Boolean);
+    });
 
     return NextResponse.json(processedItems);
   } catch (error) {

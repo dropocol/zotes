@@ -14,6 +14,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { RoleBadge } from "@/components/projects/role-badge";
 import { TodoItem, TodoList, Note } from "@/types";
 import type { Project } from "@/types/project";
+import { getLocalDateString } from "@/utils/date";
 
 interface ProjectWithRole extends Project {
   userRole: string;
@@ -46,7 +47,7 @@ export function ProjectPageClient({
 
   async function fetchDefaultListItems(listId: string) {
     try {
-      const response = await fetch(`/api/todo/lists/${listId}/items`);
+      const response = await fetch(`/api/todo/lists/${listId}/items?date=${getLocalDateString()}`);
       if (response.ok) {
         const data = await response.json();
         setDefaultListItems(data.slice(0, DEFAULT_LIST_ITEMS_LIMIT));
@@ -62,7 +63,7 @@ export function ProjectPageClient({
     const controller = new AbortController();
     (async () => {
       try {
-        const res = await fetch(`/api/todo/lists/${defaultList.id}/items`, { signal: controller.signal });
+        const res = await fetch(`/api/todo/lists/${defaultList.id}/items?date=${getLocalDateString()}`, { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
           setDefaultListItems(data.slice(0, DEFAULT_LIST_ITEMS_LIMIT));

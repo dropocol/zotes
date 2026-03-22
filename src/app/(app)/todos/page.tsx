@@ -33,6 +33,7 @@ import {
 import Link from "next/link";
 import { TodoList, TodoItem, PaginatedListsResponse } from "@/types";
 import { usePagination } from "@/hooks/use-pagination";
+import { getLocalDateString } from "@/utils/date";
 
 const DEFAULT_LIST_ITEMS_LIMIT = 10;
 
@@ -98,7 +99,7 @@ export default function TodosPage() {
 
   async function fetchDefaultListItems(listId: string) {
     try {
-      const response = await fetch(`/api/todo/lists/${listId}/items`);
+      const response = await fetch(`/api/todo/lists/${listId}/items?date=${getLocalDateString()}`);
       if (response.ok) {
         const data = await response.json();
         setDefaultListItems(data.slice(0, DEFAULT_LIST_ITEMS_LIMIT));

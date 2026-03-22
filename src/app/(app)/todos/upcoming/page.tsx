@@ -11,6 +11,7 @@ import {
   isDateToday,
   isDateTomorrow,
 } from "@/utils/date";
+import { getLocalDateString } from "@/utils/date";
 import { CalendarDays, Loader2, AlertCircle } from "lucide-react";
 import { TodoItem, TodoList } from "@/types";
 import { usePagination } from "@/hooks/use-pagination";
@@ -50,6 +51,7 @@ export default function UpcomingTodosPage() {
         filter: "upcoming",
         page: pagination.currentPage.toString(),
         limit: pagination.limit.toString(),
+        date: getLocalDateString(),
       });
       const response = await fetch(`/api/todo/items?${params.toString()}`);
       const data: PaginatedResponse = await response.json();
@@ -109,7 +111,7 @@ export default function UpcomingTodosPage() {
     pagination.setLimit(limit);
   };
 
-  const hasDate = (d: Date | string | null | undefined) => !!d;
+  const hasDate = (d: Date | string | null | undefined): d is Date | string => !!d;
   const overdueItems = items.filter((item) => hasDate(item.dueDate) && isDateBeforeToday(item.dueDate));
   const todayItems = items.filter((item) => hasDate(item.dueDate) && isDateToday(item.dueDate));
   const tomorrowItems = items.filter((item) => hasDate(item.dueDate) && isDateTomorrow(item.dueDate));

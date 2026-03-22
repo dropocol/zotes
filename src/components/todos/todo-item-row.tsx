@@ -66,10 +66,13 @@ export function TodoItemRow({
   subItemForm,
 }: TodoItemRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [localChecked, setLocalChecked] = useState<boolean | null>(null);
 
   const effectiveStatus = (item as TodoItem & { _effectiveStatus?: string })._effectiveStatus || item.status;
   const isRecurring = item.isRecurring;
-  const isCheckboxChecked = isRecurring ? effectiveStatus === "done" : item.status === "done";
+  const isCheckboxChecked = isRecurring
+    ? (localChecked !== null ? localChecked : effectiveStatus === "done")
+    : item.status === "done";
   const showStrikethrough = !isRecurring && item.status === "done";
 
   const hasSubItems = item.subItems && item.subItems.length > 0;
@@ -83,7 +86,7 @@ export function TodoItemRow({
       // Use the recurring completions API with local date (matches mini-progress display)
       const today = new Date();
       const localDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-      await fetch("/api/recurring/completions", {
+      const res = await fetch("/api/recurring/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -92,11 +95,14 @@ export function TodoItemRow({
           status: newStatus,
         }),
       });
-      // Notify RecurringMiniProgress to re-fetch
-      window.dispatchEvent(new CustomEvent("recurring-completion-updated", { detail: { todoItemId: item.id } }));
+      if (res.ok) {
+        setLocalChecked(newStatus === "done");
+        // Notify RecurringMiniProgress to re-fetch
+        window.dispatchEvent(new CustomEvent("recurring-completion-updated", { detail: { todoItemId: item.id } }));
+      }
+      return; // Recurring items manage their own completion — skip the parent PUT
     }
 
-    // Always call onToggleStatus so the parent refreshes data
     onToggleStatus(item.id, newStatus);
   }
 
