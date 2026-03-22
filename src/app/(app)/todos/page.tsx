@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -27,18 +28,43 @@ import { TodoItemsTable } from "@/components/todos/todo-items-table";
 import {
   Loader2,
   ListTodo,
-  CalendarDays,
   CheckSquare,
   Plus,
   User,
   LayoutGrid,
+  ArrowUpDown,
 } from "lucide-react";
-import Link from "next/link";
 import { TodoList, TodoItem, PaginatedListsResponse } from "@/types";
 import { usePagination } from "@/hooks/use-pagination";
 import { getLocalDateString } from "@/utils/date";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ViewMode = "personal" | "all-projects";
+
+type SortOption =
+  | "default"
+  | "dueDate"
+  | "dueDateDesc"
+  | "priority"
+  | "status"
+  | "createdAt"
+  | "updatedAt";
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "default", label: "Default (Project → List)" },
+  { value: "dueDate", label: "Due Date (Earliest)" },
+  { value: "dueDateDesc", label: "Due Date (Latest)" },
+  { value: "priority", label: "Priority" },
+  { value: "status", label: "Status" },
+  { value: "createdAt", label: "Created (Newest)" },
+  { value: "updatedAt", label: "Updated (Recently)" },
+];
 
 interface TodoItemWithList extends TodoItem {
   todoList: TodoList;
@@ -59,7 +85,11 @@ interface PaginatedItemsResponse {
 const DEFAULT_LIST_ITEMS_LIMIT = 10;
 const STORAGE_KEY = "todos-view-mode";
 
-export default function TodosPage() {
+function TodosPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
   const [defaultListItems, setDefaultListItems] = useState<TodoItem[]>([]);
   const [defaultList, setDefaultList] = useState<TodoList | null>(null);
@@ -72,22 +102,60 @@ export default function TodosPage() {
   const [selectedItem, setSelectedItem] = useState<TodoItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [otherListsTotal, setOtherListsTotal] = useState(0);
-
-  // View mode state with localStorage persistence (hydration-safe)
-  const [viewMode, setViewMode] = useState<ViewMode>("personal");
   const [isHydrated, setIsHydrated] = useState(false);
 
+  // Derive view mode from URL, falling back to localStorage on first load
+  const viewParam = searchParams.get("view") as ViewMode | null;
+  const sortParam = searchParams.get("sort") as SortOption | null;
+
+  const [viewMode, setViewMode] = useState<ViewMode>("personal");
+  const [sortBy, setSortBy] = useState<SortOption>("default");
+
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) as ViewMode | null;
-    if (saved === "personal" || saved === "all-projects") {
-      setViewMode(saved);
+    const savedView = localStorage.getItem(STORAGE_KEY) as ViewMode | null;
+    const savedSort = localStorage.getItem("todos-sort") as SortOption | null;
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    // Set view from URL param, then localStorage, then default
+    const view = viewParam || savedView || "personal";
+    if (!viewParam) {
+      params.set("view", view);
     }
+    setViewMode(view);
+    localStorage.setItem(STORAGE_KEY, view);
+
+    // Set sort from URL param, then localStorage, then default
+    const sort = sortParam || savedSort || "default";
+    if (!sortParam) {
+      params.set("sort", sort);
+    }
+    setSortBy(sort);
+    localStorage.setItem("todos-sort", sort);
+
+    // Push URL with params if any were missing
+    const qs = params.toString();
+    if (qs !== searchParams.toString()) {
+      router.replace(`${pathname}?${qs}`, { scroll: false });
+    }
+
     setIsHydrated(true);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleViewModeChange(mode: ViewMode) {
     setViewMode(mode);
     localStorage.setItem(STORAGE_KEY, mode);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", mode);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
+  function handleSortChange(sort: SortOption) {
+    setSortBy(sort);
+    localStorage.setItem("todos-sort", sort);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sort", sort);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   // All projects state
@@ -159,6 +227,9 @@ export default function TodosPage() {
         limit: allItemsPagination.limit.toString(),
         projectOnly: "true",
       });
+      if (sortBy !== "default") {
+        params.set("sort", sortBy);
+      }
       const response = await fetch(`/api/todo/items?${params.toString()}`);
       if (response.ok) {
         const data: PaginatedItemsResponse = await response.json();
@@ -170,7 +241,7 @@ export default function TodosPage() {
     } finally {
       setIsLoadingAll(false);
     }
-  }, [allItemsPagination.currentPage, allItemsPagination.limit]);
+  }, [allItemsPagination.currentPage, allItemsPagination.limit, sortBy]);
 
   useEffect(() => {
     if (isHydrated && viewMode === "all-projects") {
@@ -350,6 +421,22 @@ export default function TodosPage() {
         icon={CheckSquare}
         className="mb-6"
       >
+        {viewMode === "all-projects" && (
+          <Select value={sortBy} onValueChange={(v) => handleSortChange(v as SortOption)}>
+            <SelectTrigger className="h-8 w-[180px] gap-1.5 text-xs">
+              <ArrowUpDown className="h-3.5 w-3.5" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         {/* View mode toggle */}
         <div className="flex items-center rounded-lg border bg-muted p-1">
           <Button
@@ -372,12 +459,6 @@ export default function TodosPage() {
           </Button>
         </div>
 
-        <Button variant="outline" asChild>
-          <Link href="/todos/upcoming">
-            <CalendarDays className="mr-1.5 h-4 w-4" />
-            Upcoming
-          </Link>
-        </Button>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -532,5 +613,13 @@ export default function TodosPage() {
         onUpdate={handleUpdateItem}
       />
     </DashboardLayout>
+  );
+}
+
+export default function TodosPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <TodosPageContent />
+    </Suspense>
   );
 }
