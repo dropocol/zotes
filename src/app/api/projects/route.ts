@@ -89,7 +89,24 @@ export async function GET(request: NextRequest) {
     });
 
     // Fetch collaborator projects if needed
-    let collaborations: any[] = [];
+    let collaborations: {
+      project: {
+        id: string;
+        name: string;
+        description: string | null;
+        color: string | null;
+        userId: string;
+        order: number;
+        createdAt: Date;
+        updatedAt: Date;
+        _count: {
+          notes: number;
+          todoLists: number;
+        };
+      };
+      role: string;
+      createdAt: Date;
+    }[] = [];
     const remaining = limit - ownedProjects.length;
 
     if (remaining > 0 && collaboratorCount > 0) {
