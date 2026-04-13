@@ -50,10 +50,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([...ownedProjects, ...collaboratorProjects]);
     }
 
-    // Get projects owned by user (full data with counts)
+    // Always paginate for normal requests
+    const { page, limit } = getPaginationParams(searchParams);
+    const skip = (page - 1) * limit;
+
+    // Get counts for pagination
+    const [ownedCount, collaboratorCount] = await Promise.all([
+      prisma.project.count({ where: { userId: session.user.id } }),
+      prisma.projectCollaborator.count({ where: { userId: session.user.id } }),
+    ]);
+
+    const total = ownedCount + collaboratorCount;
+
+    // Fetch owned projects (ordered by custom order)
+    // Calculate how many owned projects to skip and fetch based on pagination
+    let ownedSkip = skip;
+    let ownedTake = limit;
+
+    // If skip is past all owned projects, we're in collaborator territory
+    if (ownedSkip >= ownedCount) {
+      ownedSkip = ownedCount; // Will skip all owned projects
+      ownedTake = 0; // Don't fetch any owned projects
+    } else if (ownedSkip + ownedTake > ownedCount) {
+      // Partial overlap - fetch remaining owned projects
+      ownedTake = ownedCount - ownedSkip;
+    }
+
     const ownedProjects = await prisma.project.findMany({
       where: { userId: session.user.id },
-      orderBy: { updatedAt: "desc" },
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      skip: ownedSkip,
+      take: ownedTake,
       include: {
         _count: {
           select: { notes: true, todoLists: true },
@@ -61,20 +88,33 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get projects where user is a collaborator
-    const collaborations = await prisma.projectCollaborator.findMany({
-      where: { userId: session.user.id },
-      include: {
-        project: {
-          include: {
-            _count: {
-              select: { notes: true, todoLists: true },
+    // Fetch collaborator projects if needed
+    let collaborations: any[] = [];
+    const remaining = limit - ownedProjects.length;
+
+    if (remaining > 0 && collaboratorCount > 0) {
+      let collabSkip = 0;
+      if (skip > ownedCount) {
+        // We're past owned projects, calculate skip for collaborator projects
+        collabSkip = skip - ownedCount;
+      }
+
+      collaborations = await prisma.projectCollaborator.findMany({
+        where: { userId: session.user.id },
+        include: {
+          project: {
+            include: {
+              _count: {
+                select: { notes: true, todoLists: true },
+              },
             },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        skip: collabSkip,
+        take: remaining,
+      });
+    }
 
     // Combine and mark role
     const allProjects = [
@@ -86,16 +126,7 @@ export async function GET(request: NextRequest) {
       })),
     ];
 
-    // Sort by updatedAt
-    allProjects.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-
-    // Always paginate for normal requests
-    const { page, limit } = getPaginationParams(searchParams);
-    const total = allProjects.length;
-    const start = (page - 1) * limit;
-    const paginatedProjects = allProjects.slice(start, start + limit);
-
-    return NextResponse.json(createPaginatedResponse(paginatedProjects, total, page, limit));
+    return NextResponse.json(createPaginatedResponse(allProjects, total, page, limit));
   } catch (error) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(
@@ -122,12 +153,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get the maximum order value for user's projects
+    const maxOrderProject = await prisma.project.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { order: "desc" },
+      select: { order: true },
+    });
+
+    const nextOrder = (maxOrderProject?.order ?? -1) + 1;
+
     const project = await prisma.project.create({
       data: {
         name,
         description: description || null,
         color: color || null,
         userId: session.user.id,
+        order: nextOrder,
       },
     });
 
