@@ -170,23 +170,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use aggregate for max order (more efficient than findFirst)
-    const maxOrderResult = await prisma.project.aggregate({
-      where: { userId: session.user.id },
-      _max: { order: true },
-    });
-
-    const nextOrder = (maxOrderResult._max.order ?? -1) + 1;
-
     // Create project + default todo list in a single transaction
     const project = await prisma.$transaction(async (tx) => {
+      // Get all project IDs to shift orders
+      const existingProjects = await tx.project.findMany({
+        where: { userId: session.user.id },
+        select: { id: true },
+        orderBy: { order: "asc" },
+      });
+
+      // Shift all existing projects' orders up by 1
+      for (const p of existingProjects) {
+        await tx.project.update({
+          where: { id: p.id },
+          data: { order: { increment: 1 } },
+        });
+      }
+
+      // Create new project with order 0 (at the top)
       const newProject = await tx.project.create({
         data: {
           name,
           description: description || null,
           color: color || null,
           userId: session.user.id,
-          order: nextOrder,
+          order: 0,
         },
       });
 

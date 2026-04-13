@@ -15,6 +15,14 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -47,13 +55,12 @@ async function getRecentItems(userId: string) {
   const [recentProjects, recentNotes, recentTodoItems] = await Promise.all([
     prisma.project.findMany({
       where: { userId },
-      orderBy: { updatedAt: "desc" },
-      take: 3,
-      select: {
-        id: true,
-        name: true,
-        color: true,
-        updatedAt: true,
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      take: 5,
+      include: {
+        _count: {
+          select: { notes: true, todoLists: true },
+        },
       },
     }),
     prisma.note.findMany({
@@ -309,23 +316,51 @@ export default async function DashboardPage() {
               View all
             </Link>
           </div>
-          <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-3">
-            {recentItems.recentProjects.map((project) => (
-              <Link
-                key={project.id}
-                href={`/projects/${project.id}`}
-                className="flex items-center gap-3 p-3 hover:bg-accent/50 transition-colors group"
-              >
-                <div
-                  className="w-3 h-3 rounded shrink-0"
-                  style={{ backgroundColor: project.color || "#6b7280" }}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{project.name}</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-            ))}
+          <div className="rounded-lg border-x-0 border-b-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]"></TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-[100px]">Notes</TableHead>
+                  <TableHead className="w-[100px]">Todo Lists</TableHead>
+                  <TableHead className="w-[150px]">Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentItems.recentProjects.map((project) => (
+                  <TableRow key={project.id} className="group">
+                    <TableCell>
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: project.color || "#f97316" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="font-medium hover:text-primary transition-colors"
+                      >
+                        {project.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground max-w-[300px] truncate">
+                      {project.description || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {project._count?.notes || 0}
+                    </TableCell>
+                    <TableCell>
+                      {project._count?.todoLists || 0}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(project.updatedAt).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}

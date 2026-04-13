@@ -12,7 +12,7 @@ export async function GET() {
   const [recentProjects, recentNotes, recentTodoItems] = await Promise.all([
     prisma.project.findMany({
       where: { userId: session.user.id },
-      orderBy: { updatedAt: "desc" },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       take: 5,
       select: {
         id: true,
