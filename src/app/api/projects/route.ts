@@ -153,34 +153,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the maximum order value for user's projects
-    const maxOrderProject = await prisma.project.findFirst({
+    // Use aggregate for max order (more efficient than findFirst)
+    const maxOrderResult = await prisma.project.aggregate({
       where: { userId: session.user.id },
-      orderBy: { order: "desc" },
-      select: { order: true },
+      _max: { order: true },
     });
 
-    const nextOrder = (maxOrderProject?.order ?? -1) + 1;
+    const nextOrder = (maxOrderResult._max.order ?? -1) + 1;
 
-    const project = await prisma.project.create({
-      data: {
-        name,
-        description: description || null,
-        color: color || null,
-        userId: session.user.id,
-        order: nextOrder,
-      },
-    });
+    // Create project + default todo list in a single transaction
+    const project = await prisma.$transaction(async (tx) => {
+      const newProject = await tx.project.create({
+        data: {
+          name,
+          description: description || null,
+          color: color || null,
+          userId: session.user.id,
+          order: nextOrder,
+        },
+      });
 
-    // Create a default todo list for the project
-    await prisma.todoList.create({
-      data: {
-        name: "Tasks",
-        description: `Default task list for ${name}`,
-        projectId: project.id,
-        userId: session.user.id,
-        isDefault: true,
-      },
+      await tx.todoList.create({
+        data: {
+          name: "Tasks",
+          description: `Default task list for ${name}`,
+          projectId: newProject.id,
+          userId: session.user.id,
+          isDefault: true,
+        },
+      });
+
+      return newProject;
     });
 
     return NextResponse.json(project, { status: 201 });

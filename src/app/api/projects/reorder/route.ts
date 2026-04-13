@@ -19,56 +19,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all owned projects ordered by current order
-    const allProjects = await prisma.project.findMany({
-      where: { userId: session.user.id },
-      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-      select: { id: true, order: true },
-    });
+    // Get both projects and verify ownership in one query
+    const [projectToMove, targetProject] = await Promise.all([
+      prisma.project.findFirst({
+        where: { id: projectId, userId: session.user.id },
+        select: { id: true, order: true },
+      }),
+      targetProjectId
+        ? prisma.project.findFirst({
+            where: { id: targetProjectId, userId: session.user.id },
+            select: { id: true, order: true },
+          })
+        : undefined,
+    ]);
 
-    const currentIndex = allProjects.findIndex((p) => p.id === projectId);
-
-    if (currentIndex === -1) {
+    if (!projectToMove) {
       return NextResponse.json(
         { error: "Project not found or not owned by user" },
         { status: 404 }
       );
     }
 
+    // Fast path: simple swap when both projects have unique orders
+    if (targetProject && targetProject.order !== projectToMove.order) {
+      await prisma.$transaction([
+        prisma.project.update({
+          where: { id: projectToMove.id },
+          data: { order: targetProject.order },
+        }),
+        prisma.project.update({
+          where: { id: targetProject.id },
+          data: { order: projectToMove.order },
+        }),
+      ]);
+      return NextResponse.json({ success: true });
+    }
+
+    // Slow path: orders collide (e.g. all at 0) or direction-based reordering
+    // Recalculate all orders sequentially
+    const allProjects = await prisma.project.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      select: { id: true },
+    });
+
+    const currentIndex = allProjects.findIndex((p) => p.id === projectId);
+    if (currentIndex === -1) {
+      return NextResponse.json(
+        { error: "Project not found" },
+        { status: 404 }
+      );
+    }
+
     let targetIndex: number;
 
-    // Handle legacy direction-based reordering
-    if (direction && !targetProjectId) {
-      if (direction !== "up" && direction !== "down") {
-        return NextResponse.json(
-          { error: "direction must be 'up' or 'down'" },
-          { status: 400 }
-        );
-      }
-
-      if (direction === "up") {
-        targetIndex = currentIndex - 1;
-        if (targetIndex < 0) {
-          return NextResponse.json({ error: "Already at top" }, { status: 400 });
-        }
-      } else {
-        targetIndex = currentIndex + 1;
-        if (targetIndex >= allProjects.length) {
-          return NextResponse.json({ error: "Already at bottom" }, { status: 400 });
-        }
-      }
-    } else if (targetProjectId) {
-      // Handle drag-and-drop reordering with targetProjectId
+    if (targetProjectId) {
       targetIndex = allProjects.findIndex((p) => p.id === targetProjectId);
       if (targetIndex === -1) {
         return NextResponse.json(
-          { error: "Target project not found or not owned by user" },
+          { error: "Target project not found" },
           { status: 404 }
         );
       }
+    } else if (direction === "up") {
+      targetIndex = currentIndex - 1;
+      if (targetIndex < 0) {
+        return NextResponse.json({ error: "Already at top" }, { status: 400 });
+      }
+    } else if (direction === "down") {
+      targetIndex = currentIndex + 1;
+      if (targetIndex >= allProjects.length) {
+        return NextResponse.json({ error: "Already at bottom" }, { status: 400 });
+      }
     } else {
       return NextResponse.json(
-        { error: "targetProjectId is required for drag-and-drop" },
+        { error: "targetProjectId or direction is required" },
         { status: 400 }
       );
     }
@@ -77,21 +102,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // Recalculate all orders to ensure they're sequential
-    // This handles the case where all projects have order: 0
+    // Reorder the array and assign sequential orders
     const reorderedProjects = [...allProjects];
     const [movedProject] = reorderedProjects.splice(currentIndex, 1);
     reorderedProjects.splice(targetIndex, 0, movedProject);
 
-    // Update all projects with new sequential orders
-    const updates = reorderedProjects.map((project, index) =>
-      prisma.project.update({
-        where: { id: project.id },
-        data: { order: index },
-      })
+    await prisma.$transaction(
+      reorderedProjects.map((project, index) =>
+        prisma.project.update({
+          where: { id: project.id },
+          data: { order: index },
+        })
+      )
     );
-
-    await prisma.$transaction(updates);
 
     return NextResponse.json({ success: true });
   } catch (error) {

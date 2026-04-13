@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -17,7 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Pencil, Trash2, GripVertical } from "lucide-react";
-import { useState } from "react";
 import Link from "next/link";
 import { ProjectForm } from "./project-form";
 import { RoleBadge } from "./role-badge";
@@ -32,7 +31,6 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -145,9 +143,14 @@ export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTabl
   const [editingProject, setEditingProject] = useState<ProjectWithRole | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // Derive owned project IDs from projects prop
+  // All project IDs for dnd-kit tracking (needed for correct position calculations)
+  const allProjectIds = useMemo(() => {
+    return projects.map((p) => p.id);
+  }, [projects]);
+
+  // Owned project IDs for checking drag eligibility
   const ownedProjectIds = useMemo(() => {
-    return projects.filter((p) => p.isOwner).map((p) => p.id);
+    return new Set(projects.filter((p) => p.isOwner).map((p) => p.id));
   }, [projects]);
 
   const filteredProjects = useMemo(() => {
@@ -163,7 +166,11 @@ export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTabl
   }, [projects, searchQuery]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -175,7 +182,7 @@ export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTabl
     if (!over || active.id === over.id) return;
 
     // Only allow reordering owned projects
-    if (!ownedProjectIds.includes(active.id as string) || !ownedProjectIds.includes(over.id as string)) {
+    if (!ownedProjectIds.has(active.id as string) || !ownedProjectIds.has(over.id as string)) {
       return;
     }
 
@@ -249,7 +256,7 @@ export function ProjectsTable({ projects, searchQuery, onRefresh }: ProjectsTabl
                 </TableRow>
               ) : (
                 <SortableContext
-                  items={ownedProjectIds}
+                  items={allProjectIds}
                   strategy={verticalListSortingStrategy}
                 >
                   {filteredProjects.map((project) => (
