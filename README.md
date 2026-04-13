@@ -1,6 +1,6 @@
 # Zotes
 
-A personal CRM and productivity tool designed to help you stay organized with notes, tasks, projects, job applications, and daily prayer tracking.
+A personal CRM and productivity tool designed to help you stay organized with notes, tasks, projects, job applications, networking contacts, and daily prayer tracking.
 
 ![Zotes](https://img.shields.io/badge/Next.js-16.1-black?style=flat&logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2-blue?style=flat&logo=react)
@@ -32,6 +32,14 @@ A personal CRM and productivity tool designed to help you stay organized with no
 - Track daily prayers: Fajr, Zohar, Asr, Maghrib, Isha, and Jumah
 - Mark prayer status: Yes, No, or Qazaa (missed)
 - Daily prayer history and statistics
+
+### 👥 Leads & Contacts
+- Track networking contacts and recruiters during your job search
+- Contact statuses: New, Reached Out, Replied, In Conversation, Meeting Scheduled, Not Interested, Unresponsive
+- Store contact details: name, email, phone, company, title, LinkedIn URL
+- Add notes for each contact
+- Search and filter by status or keywords
+- Pagination for large contact lists
 
 ### 💼 Job Application Tracker
 - Track job applications through the entire hiring pipeline
@@ -130,6 +138,7 @@ The application uses a PostgreSQL database with the following main entities:
 - **TodoLists** - Containers for todo items
 - **TodoItems** - Tasks with recurrence support and sub-items
 - **PrayerRecords** - Daily prayer tracking
+- **Leads** - Networking contacts with status tracking
 - **JobApplications** - Job hunting pipeline tracking
 - **JobInterviews** - Interview details and scheduling
 
