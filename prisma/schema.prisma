@@ -65,6 +65,16 @@ enum InterviewType {
   FINAL
 }
 
+enum LeadStatus {
+  NEW
+  REACHED_OUT
+  REPLIED
+  IN_CONVERSATION
+  MEETING_SCHEDULED
+  NOT_INTERESTED
+  UNRESPONSIVE
+}
+
 // Auth.js User model
 model User {
   id            String    @id @default(cuid())
@@ -86,6 +96,7 @@ model User {
   prayerRecords         PrayerRecord[]
   recurringCompletions  RecurringCompletion[]
   jobApplications       JobApplication[]
+  leads                 Lead[]
 
   @@map("users")
 }
@@ -331,4 +342,26 @@ model JobInterview {
   @@index([jobApplicationId])
   @@index([scheduledAt])
   @@map("job_interviews")
+}
+
+// Lead - track networking contacts during job hunt
+model Lead {
+  id          String     @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  company     String?
+  title       String?
+  linkedinUrl String?    @map("linkedin_url") @db.Text
+  notes       String?    @db.Text
+  status      LeadStatus @default(NEW)
+  userId      String     @map("user_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("leads")
 }
