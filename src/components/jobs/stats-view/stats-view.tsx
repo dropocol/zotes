@@ -8,18 +8,12 @@ import {
   Clock,
   TrendingUp,
   Users,
-  Calendar,
+  Link2,
+  Mail,
+  Globe,
+  Building2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { getJobSourceDisplayName, getStatusDisplayName } from "@/types/jobs";
 
 interface JobStats {
   range: string;
@@ -43,11 +37,42 @@ interface JobStats {
 
 interface StatsViewProps {
   stats: JobStats | null;
-  onRangeChange: (range: string) => void;
-  range: string;
 }
 
-export function StatsView({ stats, onRangeChange, range }: StatsViewProps) {
+const sourceIcons: Record<string, React.ReactNode> = {
+  linkedin: <Link2 className="size-4 text-blue-600" />,
+  slack: <Mail className="size-4 text-purple-600" />,
+  facebook: <Globe className="size-4 text-blue-500" />,
+  x: <Globe className="size-4 text-slate-800" />,
+  companyWebsite: <Building2 className="size-4 text-emerald-600" />,
+  referral: <Users className="size-4 text-amber-600" />,
+  jobBoard: <Briefcase className="size-4 text-indigo-600" />,
+  other: <Globe className="size-4 text-slate-500" />,
+};
+
+const sourceColors: Record<string, string> = {
+  linkedin: "bg-blue-500",
+  slack: "bg-purple-500",
+  facebook: "bg-blue-400",
+  x: "bg-slate-700",
+  companyWebsite: "bg-emerald-500",
+  referral: "bg-amber-500",
+  jobBoard: "bg-indigo-500",
+  other: "bg-slate-400",
+};
+
+const statusColors: Record<string, string> = {
+  saved: "bg-slate-400",
+  applied: "bg-blue-500",
+  phoneScreen: "bg-purple-500",
+  interview: "bg-amber-500",
+  offer: "bg-emerald-500",
+  rejected: "bg-red-500",
+  withdrawn: "bg-slate-500",
+  noResponse: "bg-slate-300",
+};
+
+export function StatsView({ stats }: StatsViewProps) {
   if (!stats) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -67,148 +92,175 @@ export function StatsView({ stats, onRangeChange, range }: StatsViewProps) {
     .filter(([_, count]) => count > 0)
     .sort((a, b) => b[1] - a[1]);
 
+  const totalSources = sourceEntries.reduce((sum, [_, count]) => sum + count, 0);
+
   return (
     <div className="space-y-6">
-      {/* Range Selector */}
-      <div className="flex justify-end">
-        <Select value={range} onValueChange={onRangeChange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">Last 7 days</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-            <SelectItem value="year">Last Year</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+      {/* Main Stats Grid - Dashboard Style */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Total Applications */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Total Applications</span>
             <Briefcase className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.total}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
-          </CardContent>
-        </Card>
+          </div>
+          <p className="text-2xl font-semibold mt-1">{summary.total}</p>
+          <p className="text-xs text-muted-foreground mt-1">All time</p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Response Rate</CardTitle>
-            <CheckCircle2 className="size-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.responseRate}%</div>
-            <Progress value={summary.responseRate} className="mt-2 h-2" />
-          </CardContent>
-        </Card>
+        {/* Response Rate */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Response Rate</span>
+            <TrendingUp className="size-4 text-emerald-500" />
+          </div>
+          <p className="text-2xl font-semibold mt-1">{summary.responseRate}%</p>
+          <div className="mt-2">
+            <Progress value={summary.responseRate} className="h-1.5" />
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Interview Rate</CardTitle>
+        {/* Interview Rate */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Interview Rate</span>
             <Users className="size-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.interviewRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {summary.jobsWithInterviews} of {summary.total} jobs
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <p className="text-2xl font-semibold mt-1">{summary.interviewRate}%</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {summary.jobsWithInterviews} of {summary.total} jobs
+          </p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Offer Rate</CardTitle>
-            <TrendingUp className="size-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.offerRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {byStatus.offer || 0} offers received
-            </p>
-          </CardContent>
-        </Card>
+        {/* Offer Rate */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Offer Rate</span>
+            <CheckCircle2 className="size-4 text-blue-500" />
+          </div>
+          <p className="text-2xl font-semibold mt-1">{summary.offerRate}%</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {byStatus.offer || 0} offers received
+          </p>
+        </div>
       </div>
 
-      {/* Status Breakdown */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Applications by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* Response Summary Cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border bg-emerald-500/5 border-emerald-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10">
+              <CheckCircle2 className="size-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{summary.respondedYes}</p>
+              <p className="text-sm text-muted-foreground">Positive Responses</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-red-500/5 border-red-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-red-500/10">
+              <XCircle className="size-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{summary.respondedNo}</p>
+              <p className="text-sm text-muted-foreground">Rejected</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-amber-500/5 border-amber-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/10">
+              <Clock className="size-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-semibold">{summary.pending}</p>
+              <p className="text-sm text-muted-foreground">Pending</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Status Breakdown */}
+        <div className="rounded-lg border bg-card">
+          <div className="p-4 border-b">
+            <h3 className="font-medium">Applications by Status</h3>
+          </div>
+          <div className="p-4">
             {statusEntries.length === 0 ? (
               <p className="text-sm text-muted-foreground">No applications yet</p>
             ) : (
               <div className="space-y-3">
                 {statusEntries.map(([status, count]) => {
                   const percentage = Math.round((count / totalForStatus) * 100);
-                  // Map status keys to display names
-                  const statusKey = status as keyof typeof byStatus;
-                  const displayName = statusKey === 'saved' ? 'Saved' :
-                    statusKey === 'applied' ? 'Applied' :
-                    statusKey === 'phoneScreen' ? 'Phone Screen' :
-                    statusKey === 'interview' ? 'Interview' :
-                    statusKey === 'offer' ? 'Offer' :
-                    statusKey === 'rejected' ? 'Rejected' :
-                    statusKey === 'withdrawn' ? 'Withdrawn' :
-                    statusKey === 'noResponse' ? 'No Response' : status;
+                  const displayName = status === 'saved' ? 'Saved' :
+                    status === 'applied' ? 'Applied' :
+                    status === 'phoneScreen' ? 'Phone Screen' :
+                    status === 'interview' ? 'Interview' :
+                    status === 'offer' ? 'Offer' :
+                    status === 'rejected' ? 'Rejected' :
+                    status === 'withdrawn' ? 'Withdrawn' :
+                    status === 'noResponse' ? 'No Response' : status;
 
                   return (
-                    <div key={status} className="space-y-1">
+                    <div key={status} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
-                        <span>{displayName}</span>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${statusColors[status] || 'bg-slate-400'}`} />
+                          <span>{displayName}</span>
+                        </div>
                         <span className="text-muted-foreground">
                           {count} ({percentage}%)
                         </span>
                       </div>
-                      <Progress value={percentage} className="h-2" />
+                      <Progress value={percentage} className="h-1.5" />
                     </div>
                   );
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Applications by Source</CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Applications by Source */}
+        <div className="rounded-lg border bg-card">
+          <div className="p-4 border-b">
+            <h3 className="font-medium">Applications by Source</h3>
+          </div>
+          <div className="p-4">
             {sourceEntries.length === 0 ? (
               <p className="text-sm text-muted-foreground">No applications yet</p>
             ) : (
               <div className="space-y-3">
                 {sourceEntries.map(([source, count]) => {
-                  const sourceKey = source.toUpperCase().replace(/_/g, '_') as
-                    'LINKEDIN' | 'SLACK' | 'FACEBOOK' | 'X' | 'COMPANY_WEBSITE' | 'REFERRAL' | 'JOB_BOARD' | 'OTHER';
-                  const total = sourceEntries.reduce((sum, [_, c]) => sum + c, 0);
-                  const percentage = Math.round((count / total) * 100);
+                  const percentage = Math.round((count / totalSources) * 100);
+                  const displayName = source === 'linkedin' ? 'LinkedIn' :
+                    source === 'slack' ? 'Slack' :
+                    source === 'facebook' ? 'Facebook' :
+                    source === 'x' ? 'X (Twitter)' :
+                    source === 'companyWebsite' ? 'Company Website' :
+                    source === 'referral' ? 'Referral' :
+                    source === 'jobBoard' ? 'Job Board' : 'Other';
 
                   return (
                     <div key={source} className="flex items-center justify-between">
-                      <span className="text-sm">
-                        {sourceKey === 'LINKEDIN' ? 'LinkedIn' :
-                         sourceKey === 'SLACK' ? 'Slack' :
-                         sourceKey === 'FACEBOOK' ? 'Facebook' :
-                         sourceKey === 'X' ? 'X (Twitter)' :
-                         sourceKey === 'COMPANY_WEBSITE' ? 'Company Website' :
-                         sourceKey === 'REFERRAL' ? 'Referral' :
-                         sourceKey === 'JOB_BOARD' ? 'Job Board' : 'Other'}
-                      </span>
                       <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                        {sourceIcons[source] || <Globe className="size-4 text-slate-500" />}
+                        <span className="text-sm">{displayName}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-primary rounded-full"
+                            className={`h-full rounded-full ${sourceColors[source] || 'bg-slate-400'}`}
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
-                        <span className="text-sm text-muted-foreground w-12 text-right">
+                        <span className="text-sm text-muted-foreground w-8 text-right">
                           {count}
                         </span>
                       </div>
@@ -217,32 +269,31 @@ export function StatsView({ stats, onRangeChange, range }: StatsViewProps) {
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Response Rate by Source */}
       {Object.keys(responseRateBySource).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Response Rate by Source</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border bg-card">
+          <div className="p-4 border-b">
+            <h3 className="font-medium">Response Rate by Source</h3>
+          </div>
+          <div className="p-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {Object.entries(responseRateBySource).map(([source, data]) => {
-                const sourceKey = source as 'LINKEDIN' | 'SLACK' | 'FACEBOOK' | 'X' | 'COMPANY_WEBSITE' | 'REFERRAL' | 'JOB_BOARD' | 'OTHER';
+                const displayName = source === 'LINKEDIN' ? 'LinkedIn' :
+                  source === 'SLACK' ? 'Slack' :
+                  source === 'FACEBOOK' ? 'Facebook' :
+                  source === 'X' ? 'X (Twitter)' :
+                  source === 'COMPANY_WEBSITE' ? 'Company Website' :
+                  source === 'REFERRAL' ? 'Referral' :
+                  source === 'JOB_BOARD' ? 'Job Board' : 'Other';
+
                 return (
                   <div key={source} className="p-3 rounded-lg border bg-muted/30">
-                    <div className="text-sm font-medium mb-1">
-                      {sourceKey === 'LINKEDIN' ? 'LinkedIn' :
-                       sourceKey === 'SLACK' ? 'Slack' :
-                       sourceKey === 'FACEBOOK' ? 'Facebook' :
-                       sourceKey === 'X' ? 'X (Twitter)' :
-                       sourceKey === 'COMPANY_WEBSITE' ? 'Company Website' :
-                       sourceKey === 'REFERRAL' ? 'Referral' :
-                       sourceKey === 'JOB_BOARD' ? 'Job Board' : 'Other'}
-                    </div>
-                    <div className="text-2xl font-bold">{data.rate}%</div>
+                    <div className="text-sm font-medium mb-1">{displayName}</div>
+                    <div className="text-2xl font-semibold">{data.rate}%</div>
                     <div className="text-xs text-muted-foreground">
                       {data.responded} of {data.total} responded
                     </div>
@@ -250,41 +301,9 @@ export function StatsView({ stats, onRangeChange, range }: StatsViewProps) {
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Response Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Response Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10">
-              <CheckCircle2 className="size-5 text-emerald-500" />
-              <div>
-                <div className="text-2xl font-bold">{summary.respondedYes}</div>
-                <div className="text-sm text-muted-foreground">Responded Yes</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-red-500/10">
-              <XCircle className="size-5 text-red-500" />
-              <div>
-                <div className="text-2xl font-bold">{summary.respondedNo}</div>
-                <div className="text-sm text-muted-foreground">Rejected</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10">
-              <Clock className="size-5 text-amber-500" />
-              <div>
-                <div className="text-2xl font-bold">{summary.pending}</div>
-                <div className="text-sm text-muted-foreground">Pending</div>
-              </div>
-            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }

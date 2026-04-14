@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { LeadStatus } from "@prisma/client";
+import { LeadStatus, LeadType } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
@@ -65,6 +65,11 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
+    // Validate type enum if provided
+    if (data.type && !Object.values(LeadType).includes(data.type)) {
+      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    }
+
     // Build update data
     const updateData: Record<string, unknown> = {};
 
@@ -75,6 +80,7 @@ export async function PUT(
     if (data.title !== undefined) updateData.title = data.title || null;
     if (data.linkedinUrl !== undefined) updateData.linkedinUrl = data.linkedinUrl || null;
     if (data.notes !== undefined) updateData.notes = data.notes || null;
+    if (data.type !== undefined) updateData.type = data.type;
     if (data.status !== undefined) updateData.status = data.status;
 
     const lead = await prisma.lead.update({

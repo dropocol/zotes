@@ -48,9 +48,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LeadStatusBadge } from "./lead-status-badge";
-import { LEAD_STATUSES, getLeadStatusDisplayName } from "@/types/leads";
+import { LeadTypeBadge } from "./lead-type-badge";
+import { LEAD_STATUSES, getLeadStatusDisplayName, LEAD_TYPES, getLeadTypeDisplayName } from "@/types/leads";
 import { cn } from "@/lib/utils";
-import type { Lead, LeadStatus } from "@prisma/client";
+import type { Lead, LeadStatus, LeadType } from "@prisma/client";
 
 interface LeadSheetProps {
   open: boolean;
@@ -65,6 +66,7 @@ interface LeadSheetProps {
     title: string | null;
     linkedinUrl: string | null;
     notes: string | null;
+    type: LeadType;
     status: LeadStatus;
   }) => Promise<void>;
   onDelete: () => void;
@@ -118,6 +120,7 @@ export function LeadSheet({
     title: "",
     linkedinUrl: "",
     notes: "",
+    type: "COLD_EMAIL" as LeadType,
     status: "NEW" as LeadStatus,
   });
 
@@ -132,6 +135,7 @@ export function LeadSheet({
         title: lead?.title || "",
         linkedinUrl: lead?.linkedinUrl || "",
         notes: lead?.notes || "",
+        type: lead?.type || ("COLD_EMAIL" as LeadType),
         status: lead?.status || ("NEW" as LeadStatus),
       });
     }
@@ -154,6 +158,7 @@ export function LeadSheet({
         title: formData.title || null,
         linkedinUrl: formData.linkedinUrl || null,
         notes: formData.notes || null,
+        type: formData.type,
         status: formData.status,
       });
       onOpenChange(false);
@@ -224,7 +229,7 @@ export function LeadSheet({
           {isCreating && (
             <div className="px-6 pt-6 pb-6">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 p-3 shadow-lg shadow-blue-500/25">
+                <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 p-3">
                   <Briefcase className="size-6 text-white" />
                 </div>
                 <div>
@@ -288,6 +293,7 @@ export function LeadSheet({
                   onChange={(e) => updateField("name", e.target.value)}
                   placeholder="John Doe"
                   required
+                  className="w-full"
                 />
               </div>
               <div className="space-y-2">
@@ -297,11 +303,12 @@ export function LeadSheet({
                   value={formData.company}
                   onChange={(e) => updateField("company", e.target.value)}
                   placeholder="Acme Inc."
+                  className="w-full"
                 />
               </div>
             </div>
 
-            {/* Title & Status */}
+            {/* Title & Type */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
@@ -312,28 +319,48 @@ export function LeadSheet({
                     value={formData.title}
                     onChange={(e) => updateField("title", e.target.value)}
                     placeholder="Engineering Manager"
-                    className="pl-9"
+                    className="pl-9 w-full"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label>Type</Label>
                 <Select
-                  value={formData.status}
-                  onValueChange={(value) => updateField("status", value)}
+                  value={formData.type}
+                  onValueChange={(value) => updateField("type", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {LEAD_STATUSES.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {getLeadStatusDisplayName(status)}
+                    {LEAD_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {getLeadTypeDisplayName(type)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Status */}
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => updateField("status", value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEAD_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {getLeadStatusDisplayName(status)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Email & Phone */}
@@ -348,7 +375,7 @@ export function LeadSheet({
                     value={formData.email}
                     onChange={(e) => updateField("email", e.target.value)}
                     placeholder="john@example.com"
-                    className="pl-9"
+                    className="pl-9 w-full"
                   />
                 </div>
               </div>
@@ -362,7 +389,7 @@ export function LeadSheet({
                     value={formData.phone}
                     onChange={(e) => updateField("phone", e.target.value)}
                     placeholder="+1 555 000 0000"
-                    className="pl-9"
+                    className="pl-9 w-full"
                   />
                 </div>
               </div>
@@ -379,7 +406,7 @@ export function LeadSheet({
                   value={formData.linkedinUrl}
                   onChange={(e) => updateField("linkedinUrl", e.target.value)}
                   placeholder="https://linkedin.com/in/..."
-                  className="pl-9"
+                  className="pl-9 w-full"
                 />
               </div>
             </div>
@@ -393,6 +420,7 @@ export function LeadSheet({
                 onChange={(e) => updateField("notes", e.target.value)}
                 placeholder="Add notes about this contact..."
                 rows={6}
+                className="w-full"
               />
             </div>
           </div>

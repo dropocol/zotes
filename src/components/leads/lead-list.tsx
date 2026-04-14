@@ -12,6 +12,10 @@ import {
   Phone,
   Clock,
   Loader2,
+  Users,
+  MessageSquare,
+  Calendar,
+  Link2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { LeadStatusBadge } from "./lead-status-badge";
+import { LeadTypeBadge } from "./lead-type-badge";
 import {
   LEAD_STATUSES,
   getLeadStatusDisplayName,
@@ -51,7 +56,19 @@ interface PaginatedLeadsResponse {
   };
 }
 
-export function LeadList() {
+interface LeadStats {
+  total: number;
+  newLeads: number;
+  reachedOut: number;
+  inConversation: number;
+  meetingScheduled: number;
+}
+
+interface LeadListProps {
+  stats?: LeadStats;
+}
+
+export function LeadList({ stats }: LeadListProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -182,6 +199,51 @@ export function LeadList() {
 
   return (
     <div className="space-y-4">
+      {/* Stats Grid - Dashboard Style */}
+      {stats && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-4">
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total Contacts</span>
+              <Users className="size-4 text-muted-foreground" />
+            </div>
+            <p className="text-2xl font-semibold mt-1">{stats.total}</p>
+          </div>
+
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">New</span>
+              <Mail className="size-4 text-blue-500" />
+            </div>
+            <p className="text-2xl font-semibold mt-1">{stats.newLeads}</p>
+          </div>
+
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Reached Out</span>
+              <Link2 className="size-4 text-amber-500" />
+            </div>
+            <p className="text-2xl font-semibold mt-1">{stats.reachedOut}</p>
+          </div>
+
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">In Conversation</span>
+              <MessageSquare className="size-4 text-purple-500" />
+            </div>
+            <p className="text-2xl font-semibold mt-1">{stats.inConversation}</p>
+          </div>
+
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Meeting Scheduled</span>
+              <Calendar className="size-4 text-emerald-500" />
+            </div>
+            <p className="text-2xl font-semibold mt-1">{stats.meetingScheduled}</p>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -222,6 +284,7 @@ export function LeadList() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Company</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Phone</TableHead>
@@ -232,7 +295,7 @@ export function LeadList() {
                 {leads.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center py-8 text-muted-foreground"
                     >
                       No contacts found
@@ -262,6 +325,9 @@ export function LeadList() {
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <LeadTypeBadge type={lead.type} />
                       </TableCell>
                       <TableCell>
                         {lead.email ? (

@@ -3,9 +3,9 @@
 // ============================================================================
 
 // Re-export from Prisma generated types
-import type { LeadStatus } from "@prisma/client";
+import type { LeadStatus, LeadType } from "@prisma/client";
 
-export type { LeadStatus };
+export type { LeadStatus, LeadType };
 
 // ============================================================================
 // CONSTANTS FOR DROPDOWNS
@@ -21,9 +21,76 @@ export const LEAD_STATUSES: LeadStatus[] = [
   "UNRESPONSIVE",
 ];
 
+export const LEAD_TYPES: LeadType[] = [
+  "COLD_EMAIL",
+  "JOB",
+  "REFERRAL",
+  "NETWORKING",
+  "RECRUITER",
+  "AGENCY",
+];
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+/**
+ * Get the display name for a lead type
+ */
+export function getLeadTypeDisplayName(type: LeadType): string {
+  const names: Record<LeadType, string> = {
+    COLD_EMAIL: "Cold Email",
+    JOB: "Job Opportunity",
+    REFERRAL: "Referral",
+    NETWORKING: "Networking",
+    RECRUITER: "Recruiter",
+    AGENCY: "Agency",
+  };
+  return names[type];
+}
+
+/**
+ * Get the color classes for a lead type
+ */
+export function getLeadTypeColor(type: LeadType): {
+  bg: string;
+  text: string;
+  border: string;
+} {
+  const colors: Record<LeadType, { bg: string; text: string; border: string }> = {
+    COLD_EMAIL: {
+      bg: "bg-blue-100 dark:bg-blue-900/30",
+      text: "text-blue-700 dark:text-blue-300",
+      border: "border-blue-200 dark:border-blue-700",
+    },
+    JOB: {
+      bg: "bg-emerald-100 dark:bg-emerald-900/30",
+      text: "text-emerald-700 dark:text-emerald-300",
+      border: "border-emerald-200 dark:border-emerald-700",
+    },
+    REFERRAL: {
+      bg: "bg-amber-100 dark:bg-amber-900/30",
+      text: "text-amber-700 dark:text-amber-300",
+      border: "border-amber-200 dark:border-amber-700",
+    },
+    NETWORKING: {
+      bg: "bg-purple-100 dark:bg-purple-900/30",
+      text: "text-purple-700 dark:text-purple-300",
+      border: "border-purple-200 dark:border-purple-700",
+    },
+    RECRUITER: {
+      bg: "bg-cyan-100 dark:bg-cyan-900/30",
+      text: "text-cyan-700 dark:text-cyan-300",
+      border: "border-cyan-200 dark:border-cyan-700",
+    },
+    AGENCY: {
+      bg: "bg-pink-100 dark:bg-pink-900/30",
+      text: "text-pink-700 dark:text-pink-300",
+      border: "border-pink-200 dark:border-pink-700",
+    },
+  };
+  return colors[type];
+}
 
 /**
  * Get the display name for a lead status

@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
     const jobs = await prisma.jobApplication.findMany({
       where: {
         userId: session.user.id,
+        dateApplied: {
+          gte: startDate,
+          lte: endDate,
+        },
       },
       include: {
         interviews: true,

@@ -4,6 +4,13 @@ import * as React from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Briefcase, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ViewSwitcher } from "./shared/view-switcher";
 import { JobForm } from "./job-form/job-form";
 import { JobDetailsSheet } from "./job-form/job-details-sheet";
@@ -222,7 +229,7 @@ export function JobBoard({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-500/25">
+          <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5">
             <Briefcase className="size-5 text-white" />
           </div>
           <div>
@@ -236,6 +243,18 @@ export function JobBoard({
         </div>
         <div className="flex items-center gap-2">
           <ViewSwitcher view={view} onViewChange={handleViewChange} />
+          {view === JobBoardView.STATS && (
+            <Select value={statsRange} onValueChange={setStatsRange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">Last 7 days</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="year">Last Year</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Button onClick={() => setShowJobForm(true)}>
             <Plus className="size-4 mr-2" />
             Add Job
@@ -260,11 +279,7 @@ export function JobBoard({
           )}
 
           {view === JobBoardView.STATS && (
-            <StatsView
-              stats={stats}
-              range={statsRange}
-              onRangeChange={setStatsRange}
-            />
+            <StatsView stats={stats} />
           )}
         </>
       )}

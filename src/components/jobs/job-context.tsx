@@ -132,7 +132,6 @@ export function JobsProvider({
 
     const needsFetch = initialJobs.length === 0 || !initialStats;
     if (needsFetch) {
-      setHasInitiallyFetched(true);
       if (initialJobs.length === 0) {
         fetchJobs();
       }
@@ -140,6 +139,9 @@ export function JobsProvider({
         fetchStats(statsRange);
       }
     }
+    // Mark as initialized regardless of whether we needed to fetch
+    // This allows the range change effect to work
+    setHasInitiallyFetched(true);
   }, [
     hasInitiallyFetched,
     initialJobs.length,
@@ -294,9 +296,9 @@ export function JobViewHeader({
   const { showAddJobForm } = useJobs();
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5 shadow-lg shadow-emerald-500/25">
+        <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5">
           <Briefcase className="size-5 text-white" />
         </div>
         <div>

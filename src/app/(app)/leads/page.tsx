@@ -11,6 +11,28 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+async function getLeadStats(userId: string) {
+  const leads = await prisma.lead.findMany({
+    where: { userId },
+  });
+
+  const total = leads.length;
+  const newLeads = leads.filter((l) => l.status === "NEW").length;
+  const reachedOut = leads.filter((l) => l.status === "REACHED_OUT").length;
+  const inConversation = leads.filter(
+    (l) => l.status === "REPLIED" || l.status === "IN_CONVERSATION"
+  ).length;
+  const meetingScheduled = leads.filter((l) => l.status === "MEETING_SCHEDULED").length;
+
+  return {
+    total,
+    newLeads,
+    reachedOut,
+    inConversation,
+    meetingScheduled,
+  };
+}
+
 export default async function LeadsPage() {
   const session = await auth();
 
@@ -18,16 +40,19 @@ export default async function LeadsPage() {
     return null;
   }
 
-  const initialLeads = await prisma.lead.findMany({
-    where: { userId: session.user.id },
-    orderBy: [{ createdAt: "desc" }],
-  });
+  const [initialLeads, stats] = await Promise.all([
+    prisma.lead.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ createdAt: "desc" }],
+    }),
+    getLeadStats(session.user.id),
+  ]);
 
   return (
     <DashboardLayout breadcrumbs={[{ title: "Leads", href: "/leads" }]}>
       <LeadsProvider initialLeads={initialLeads}>
         <LeadViewHeader />
-        <LeadList />
+        <LeadList stats={stats} />
       </LeadsProvider>
     </DashboardLayout>
   );

@@ -4,7 +4,7 @@ import * as React from "react";
 import { Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadSheet } from "./lead-sheet";
-import type { Lead, LeadStatus } from "@prisma/client";
+import type { Lead, LeadStatus, LeadType } from "@prisma/client";
 
 interface LeadsContextValue {
   leads: Lead[];
@@ -78,6 +78,7 @@ export function LeadsProvider({
     title: string | null;
     linkedinUrl: string | null;
     notes: string | null;
+    type: LeadType;
     status: LeadStatus;
   }) => {
     if (isCreating) {
@@ -162,9 +163,9 @@ export function LeadViewHeader() {
   const { showAddLead } = useLeads();
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 p-2.5 shadow-lg shadow-blue-500/25">
+        <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 p-2.5">
           <Users className="size-5 text-white" />
         </div>
         <div>

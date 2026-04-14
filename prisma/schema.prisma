@@ -65,6 +65,15 @@ enum InterviewType {
   FINAL
 }
 
+enum LeadType {
+  COLD_EMAIL
+  JOB
+  REFERRAL
+  NETWORKING
+  RECRUITER
+  AGENCY
+}
+
 enum LeadStatus {
   NEW
   REACHED_OUT
@@ -354,6 +363,7 @@ model Lead {
   title       String?
   linkedinUrl String?    @map("linkedin_url") @db.Text
   notes       String?    @db.Text
+  type        LeadType   @default(COLD_EMAIL)
   status      LeadStatus @default(NEW)
   userId      String     @map("user_id")
   createdAt   DateTime   @default(now()) @map("created_at")
@@ -363,5 +373,6 @@ model Lead {
 
   @@index([userId])
   @@index([status])
+  @@index([type])
   @@map("leads")
 }

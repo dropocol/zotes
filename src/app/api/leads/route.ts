@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { LeadStatus } from "@prisma/client";
+import { LeadStatus, LeadType } from "@prisma/client";
 import { getPaginationParams, createPaginatedResponse } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
@@ -85,6 +85,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
+    // Validate type enum
+    if (data.type && !Object.values(LeadType).includes(data.type)) {
+      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    }
+
     const lead = await prisma.lead.create({
       data: {
         name: data.name,
@@ -94,6 +99,7 @@ export async function POST(request: NextRequest) {
         title: data.title || null,
         linkedinUrl: data.linkedinUrl || null,
         notes: data.notes || null,
+        type: data.type || "COLD_EMAIL",
         status: data.status || "NEW",
         userId: session.user.id,
       },
