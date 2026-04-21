@@ -80,6 +80,7 @@ export function LeadsProvider({
     notes: string | null;
     type: LeadType;
     status: LeadStatus;
+    createdAt: Date | null;
   }) => {
     if (isCreating) {
       const response = await fetch("/api/leads", {

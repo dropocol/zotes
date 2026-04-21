@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
         notes: data.notes || null,
         type: data.type || "COLD_EMAIL",
         status: data.status || "NEW",
+        createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
         userId: session.user.id,
       },
     });

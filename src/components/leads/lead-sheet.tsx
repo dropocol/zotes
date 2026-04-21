@@ -11,7 +11,9 @@ import {
   MoreHorizontal,
   X,
   Loader2,
+  Calendar as CalendarIcon,
 } from "lucide-react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +49,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { LeadStatusBadge } from "./lead-status-badge";
 import { LeadTypeBadge } from "./lead-type-badge";
 import { LEAD_STATUSES, getLeadStatusDisplayName, LEAD_TYPES, getLeadTypeDisplayName } from "@/types/leads";
@@ -68,6 +76,7 @@ interface LeadSheetProps {
     notes: string | null;
     type: LeadType;
     status: LeadStatus;
+    createdAt: Date | null;
   }) => Promise<void>;
   onDelete: () => void;
 }
@@ -122,6 +131,7 @@ export function LeadSheet({
     notes: "",
     type: "COLD_EMAIL" as LeadType,
     status: "NEW" as LeadStatus,
+    createdAt: null as Date | null,
   });
 
   // Reset form when lead or open state changes
@@ -137,6 +147,7 @@ export function LeadSheet({
         notes: lead?.notes || "",
         type: lead?.type || ("COLD_EMAIL" as LeadType),
         status: lead?.status || ("NEW" as LeadStatus),
+        createdAt: lead?.createdAt ? new Date(lead.createdAt) : new Date(),
       });
     }
   }, [open, lead]);
@@ -160,6 +171,7 @@ export function LeadSheet({
         notes: formData.notes || null,
         type: formData.type,
         status: formData.status,
+        createdAt: formData.createdAt,
       });
       onOpenChange(false);
     } catch (error) {
@@ -361,6 +373,38 @@ export function LeadSheet({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Added Date */}
+            <div className="space-y-2">
+              <Label htmlFor="createdAt">Added Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="createdAt"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.createdAt && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.createdAt ? (
+                      format(formData.createdAt, "MMM d, yyyy")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.createdAt ?? undefined}
+                    onSelect={(date) => updateField("createdAt", date ?? null)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Email & Phone */}

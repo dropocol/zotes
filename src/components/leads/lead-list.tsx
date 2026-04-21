@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Calendar,
   Link2,
+  Briefcase,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -283,6 +284,7 @@ export function LeadList({ stats }: LeadListProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Title</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Email</TableHead>
@@ -295,7 +297,7 @@ export function LeadList({ stats }: LeadListProps) {
                 {leads.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className="text-center py-8 text-muted-foreground"
                     >
                       No contacts found
@@ -310,10 +312,15 @@ export function LeadList({ stats }: LeadListProps) {
                     >
                       <TableCell>
                         <div className="font-medium">{lead.name}</div>
-                        {lead.title && (
-                          <div className="text-xs text-muted-foreground">
-                            {lead.title}
+                      </TableCell>
+                      <TableCell>
+                        {lead.title ? (
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="size-4 text-muted-foreground" />
+                            <span className="text-sm">{lead.title}</span>
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell>

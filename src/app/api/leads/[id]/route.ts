@@ -82,6 +82,7 @@ export async function PUT(
     if (data.notes !== undefined) updateData.notes = data.notes || null;
     if (data.type !== undefined) updateData.type = data.type;
     if (data.status !== undefined) updateData.status = data.status;
+    if (data.createdAt !== undefined) updateData.createdAt = data.createdAt ? new Date(data.createdAt) : existingLead.createdAt;
 
     const lead = await prisma.lead.update({
       where: { id },
