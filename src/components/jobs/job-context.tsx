@@ -3,12 +3,14 @@
 import * as React from "react";
 import { Briefcase, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { JobForm } from "./job-form/job-form";
 import { JobDetailsSheet } from "./job-form/job-details-sheet";
 import type {
   JobApplication,
   JobInterview,
   JobApplicationStatus,
+  JobSource,
+  ApplicationMethod,
+  ResponseStatus,
 } from "@prisma/client";
 
 export interface InterviewWithJob extends JobInterview {
@@ -86,15 +88,9 @@ export function JobsProvider({
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasInitiallyFetched, setHasInitiallyFetched] = React.useState(false);
 
-  // Form state
-  const [showJobForm, setShowJobForm] = React.useState(false);
-  const [editingJob, setEditingJob] = React.useState<JobWithInterviews | null>(
-    null,
-  );
-
-  // Details sheet state
-  const [selectedJob, setSelectedJob] =
-    React.useState<JobWithInterviews | null>(null);
+  // Sheet state - unified for both create and edit
+  const [selectedJob, setSelectedJob] = React.useState<JobWithInterviews | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
   // Fetch jobs
   const fetchJobs = React.useCallback(async () => {
@@ -160,11 +156,7 @@ export function JobsProvider({
 
   const handleJobClick = (job: JobWithInterviews) => {
     setSelectedJob(job);
-  };
-
-  const handleEditJob = () => {
-    setEditingJob(selectedJob);
-    setShowJobForm(true);
+    setIsSheetOpen(true);
   };
 
   const handleDeleteJob = async () => {
@@ -176,6 +168,7 @@ export function JobsProvider({
       });
 
       if (response.ok) {
+        setIsSheetOpen(false);
         setSelectedJob(null);
         fetchJobs();
         fetchStats(statsRange);
@@ -185,12 +178,50 @@ export function JobsProvider({
     }
   };
 
-  const handleJobFormSuccess = () => {
-    setShowJobForm(false);
-    setEditingJob(null);
-    setSelectedJob(null);
-    fetchJobs();
-    fetchStats(statsRange);
+  const handleSave = async (data: {
+    jobTitle: string;
+    companyName: string;
+    source: JobSource;
+    applicationMethod: ApplicationMethod;
+    jobPostingUrl: string | null;
+    salaryMin: number | null;
+    salaryMax: number | null;
+    salaryCurrency: string;
+    location: string | null;
+    isRemote: boolean;
+    status: JobApplicationStatus;
+    responseReceived: ResponseStatus;
+    notes: string | null;
+    dateFound: string | null;
+    dateApplied: string | null;
+  }) => {
+    const isEditing = !!selectedJob;
+
+    if (isEditing) {
+      const response = await fetch(`/api/jobs/${selectedJob.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        const updatedJob = await response.json();
+        setJobs((prev) =>
+          prev.map((j) => (j.id === updatedJob.id ? { ...updatedJob, interviews: j.interviews } : j))
+        );
+        fetchStats(statsRange);
+      }
+    } else {
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        const newJob = await response.json();
+        setJobs((prev) => [newJob, ...prev]);
+        fetchStats(statsRange);
+      }
+    }
   };
 
   const handleStatusChange = async (
@@ -221,8 +252,8 @@ export function JobsProvider({
   };
 
   const showAddJobForm = () => {
-    setEditingJob(null);
-    setShowJobForm(true);
+    setSelectedJob(null);
+    setIsSheetOpen(true);
   };
 
   // Get all interviews for calendar view
@@ -256,25 +287,16 @@ export function JobsProvider({
     <JobsContext.Provider value={contextValue}>
       {children}
 
-      {/* Job Form Dialog */}
-      <JobForm
-        open={showJobForm}
-        onOpenChange={(open) => {
-          setShowJobForm(open);
-          if (!open) setEditingJob(null);
-        }}
-        job={editingJob}
-        onSuccess={handleJobFormSuccess}
-      />
-
-      {/* Job Details Sheet */}
+      {/* Unified Job Details/Edit Sheet */}
       <JobDetailsSheet
-        open={!!selectedJob && !showJobForm}
+        open={isSheetOpen}
         onOpenChange={(open) => {
+          setIsSheetOpen(open);
           if (!open) setSelectedJob(null);
         }}
         job={selectedJob}
-        onEdit={handleEditJob}
+        isCreating={!selectedJob}
+        onSave={handleSave}
         onDelete={handleDeleteJob}
         onUpdate={() => {
           fetchJobs();

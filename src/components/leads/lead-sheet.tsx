@@ -55,8 +55,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { LeadStatusBadge } from "./lead-status-badge";
-import { LeadTypeBadge } from "./lead-type-badge";
 import { LEAD_STATUSES, getLeadStatusDisplayName, LEAD_TYPES, getLeadTypeDisplayName } from "@/types/leads";
 import { cn } from "@/lib/utils";
 import type { Lead, LeadStatus, LeadType } from "@prisma/client";
@@ -103,11 +101,11 @@ function ContactAvatar({ name }: { name: string }) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center size-14 rounded-xl bg-linear-to-br shadow-lg",
+        "flex items-center justify-center size-12 rounded-xl bg-linear-to-br shadow-lg",
         colors[index]
       )}
     >
-      <span className="text-white font-bold text-lg">{initials}</span>
+      <span className="text-white font-bold text-base">{initials}</span>
     </div>
   );
 }
@@ -152,7 +150,7 @@ export function LeadSheet({
     }
   }, [open, lead]);
 
-  const updateField = (field: string, value: string) => {
+  const updateField = (field: string, value: string | Date | null) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -239,13 +237,13 @@ export function LeadSheet({
 
           {/* Create Mode Header */}
           {isCreating && (
-            <div className="px-6 pt-6 pb-6">
+            <div className="px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 p-3">
-                  <Briefcase className="size-6 text-white" />
+                <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 p-2.5">
+                  <Briefcase className="size-5 text-white" />
                 </div>
                 <div>
-                  <SheetTitle className="text-xl font-bold text-left mb-0.5">
+                  <SheetTitle className="text-lg font-bold text-left mb-0.5">
                     Add New Contact
                   </SheetTitle>
                   <SheetDescription className="text-sm">
@@ -258,14 +256,14 @@ export function LeadSheet({
 
           {/* Edit Mode Header */}
           {!isCreating && (
-            <div className="px-6 pt-6 pb-6">
+            <div className="px-6 py-4">
               <div className="flex items-start gap-4">
                 <ContactAvatar name={formData.name || "?"} />
                 <div className="flex-1 min-w-0 pt-1">
-                  <SheetTitle className="text-xl font-bold text-left mb-1">
+                  <SheetTitle className="text-lg font-bold text-left mb-1">
                     {formData.name || "Unnamed"}
                   </SheetTitle>
-                  <SheetDescription className="text-base font-medium text-foreground/80 flex items-center gap-2">
+                  <SheetDescription className="text-sm font-medium text-foreground/80 flex items-center gap-2">
                     {formData.company && (
                       <>
                         <Building2 className="size-4" />
@@ -283,18 +281,13 @@ export function LeadSheet({
                   </SheetDescription>
                 </div>
               </div>
-
-              {/* Status badge */}
-              <div className="mt-4">
-                <LeadStatusBadge status={formData.status} className="text-sm px-3 py-1" />
-              </div>
             </div>
           )}
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-          <div className="px-6 py-6 space-y-4 flex-1">
+          <div className="px-6 pt-4 pb-6 space-y-4 flex-1">
             {/* Name & Company */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -355,56 +348,56 @@ export function LeadSheet({
               </div>
             </div>
 
-            {/* Status */}
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => updateField("status", value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LEAD_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {getLeadStatusDisplayName(status)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Added Date */}
-            <div className="space-y-2">
-              <Label htmlFor="createdAt">Added Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="createdAt"
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.createdAt && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.createdAt ? (
-                      format(formData.createdAt, "MMM d, yyyy")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.createdAt ?? undefined}
-                    onSelect={(date) => updateField("createdAt", date ?? null)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+            {/* Status & Added Date */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => updateField("status", value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEAD_STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {getLeadStatusDisplayName(status)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="createdAt">Added Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="createdAt"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.createdAt && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.createdAt ? (
+                        format(formData.createdAt, "MMM d, yyyy")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.createdAt ?? undefined}
+                      onSelect={(date) => updateField("createdAt", date ?? null)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             {/* Email & Phone */}

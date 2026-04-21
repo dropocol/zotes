@@ -9,15 +9,12 @@ import {
   DollarSign,
   Calendar,
   Clock,
-  ExternalLink,
-  Pencil,
   Trash2,
   Plus,
   Users,
   Video,
   Phone,
   MapPinned,
-  FileText,
   MoreHorizontal,
   CheckCircle2,
   XCircle,
@@ -25,9 +22,14 @@ import {
   Briefcase,
   Send,
   X,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Sheet,
   SheetContent,
@@ -52,20 +54,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { StatusBadge } from "../shared/status-badge";
-import { SourceIcon } from "../shared/source-icon";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { InterviewForm } from "./interview-form";
 import {
   getJobSourceDisplayName,
   getApplicationMethodDisplayName,
-  formatSalary,
   getInterviewTypeDisplayName,
+  JOB_SOURCES,
+  APPLICATION_METHODS,
+  JOB_APPLICATION_STATUSES,
+  RESPONSE_STATUSES,
 } from "@/types/jobs";
 import { cn } from "@/lib/utils";
 import type {
   JobApplication,
   JobInterview,
   ResponseStatus,
+  JobSource,
+  ApplicationMethod,
+  JobApplicationStatus,
 } from "@prisma/client";
 
 interface JobWithInterviews extends JobApplication {
@@ -76,7 +89,24 @@ interface JobDetailsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   job: JobWithInterviews | null;
-  onEdit: () => void;
+  isCreating: boolean;
+  onSave: (data: {
+    jobTitle: string;
+    companyName: string;
+    source: JobSource;
+    applicationMethod: ApplicationMethod;
+    jobPostingUrl: string | null;
+    salaryMin: number | null;
+    salaryMax: number | null;
+    salaryCurrency: string;
+    location: string | null;
+    isRemote: boolean;
+    status: JobApplicationStatus;
+    responseReceived: ResponseStatus;
+    notes: string | null;
+    dateFound: string | null;
+    dateApplied: string | null;
+  }) => Promise<void>;
   onDelete: () => void;
   onUpdate: () => void;
 }
@@ -103,44 +133,11 @@ function CompanyAvatar({ name }: { name: string }) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center size-14 rounded-xl bg-linear-to-br shadow-lg",
+        "flex items-center justify-center size-12 rounded-xl bg-linear-to-br shadow-lg",
         colors[index],
       )}
     >
-      <span className="text-white font-bold text-lg">{initials}</span>
-    </div>
-  );
-}
-
-// Response status indicator
-function ResponseIndicator({ status }: { status: ResponseStatus }) {
-  const config = {
-    YES: {
-      icon: CheckCircle2,
-      label: "Response Received",
-      color: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-50 dark:bg-emerald-950/30",
-    },
-    NO: {
-      icon: XCircle,
-      label: "No Response",
-      color: "text-red-600 dark:text-red-400",
-      bg: "bg-red-50 dark:bg-red-950/30",
-    },
-    PENDING: {
-      icon: AlertCircle,
-      label: "Awaiting Response",
-      color: "text-amber-600 dark:text-amber-400",
-      bg: "bg-amber-50 dark:bg-amber-950/30",
-    },
-  };
-
-  const { icon: Icon, label, color, bg } = config[status];
-
-  return (
-    <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-md", bg)}>
-      <Icon className={cn("size-3.5", color)} />
-      <span className={cn("text-xs font-medium", color)}>{label}</span>
+      <span className="text-white font-bold text-base">{initials}</span>
     </div>
   );
 }
@@ -216,12 +213,12 @@ function InterviewCard({
 
       {/* Content */}
       <div
-        className={cn("flex-1 pb-6 cursor-pointer", !isLast && "pb-6")}
+        className={cn("flex-1 cursor-pointer", !isLast && "pb-6")}
         onClick={onClick}
       >
         <div
           className={cn(
-            "p-4 rounded-xl border transition-all hover:shadow-md hover:border-primary/30",
+            "p-4 rounded-xl border transition-all hover:shadow-md hover:border-primary/50",
             isTodayInterview &&
               "ring-2 ring-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20",
           )}
@@ -286,19 +283,127 @@ function InterviewCard({
   );
 }
 
+// Response status display helper
+function ResponseStatusLabel({ status }: { status: ResponseStatus }) {
+  const config = {
+    YES: { label: "Yes", className: "text-emerald-600 dark:text-emerald-400" },
+    NO: { label: "No", className: "text-red-600 dark:text-red-400" },
+    PENDING: { label: "Pending", className: "text-amber-600 dark:text-amber-400" },
+  };
+
+  const { label, className } = config[status];
+  return <span className={className}>{label}</span>;
+}
+
 export function JobDetailsSheet({
   open,
   onOpenChange,
   job,
-  onEdit,
+  isCreating,
+  onSave,
   onDelete,
   onUpdate,
 }: JobDetailsSheetProps) {
+  const [isLoading, setIsLoading] = React.useState(false);
   const [showInterviewForm, setShowInterviewForm] = React.useState(false);
   const [editingInterview, setEditingInterview] =
     React.useState<JobInterview | null>(null);
 
-  if (!job) return null;
+  const [formData, setFormData] = React.useState({
+    jobTitle: "",
+    companyName: "",
+    source: "LINKEDIN" as JobSource,
+    applicationMethod: "WEB_PORTAL" as ApplicationMethod,
+    jobPostingUrl: "",
+    salaryMin: "",
+    salaryMax: "",
+    salaryCurrency: "USD",
+    location: "",
+    isRemote: false,
+    status: "SAVED" as JobApplicationStatus,
+    responseReceived: "PENDING" as ResponseStatus,
+    notes: "",
+    dateFound: "",
+    dateApplied: "",
+  });
+
+  // Reset form when job or open state changes
+  React.useEffect(() => {
+    if (open) {
+      setFormData({
+        jobTitle: job?.jobTitle || "",
+        companyName: job?.companyName || "",
+        source: job?.source || ("LINKEDIN" as JobSource),
+        applicationMethod: job?.applicationMethod || ("WEB_PORTAL" as ApplicationMethod),
+        jobPostingUrl: job?.jobPostingUrl || "",
+        salaryMin: job?.salaryMin?.toString() || "",
+        salaryMax: job?.salaryMax?.toString() || "",
+        salaryCurrency: job?.salaryCurrency || "USD",
+        location: job?.location || "",
+        isRemote: job?.isRemote ?? false,
+        status: job?.status || ("SAVED" as JobApplicationStatus),
+        responseReceived: job?.responseReceived || ("PENDING" as ResponseStatus),
+        notes: job?.notes || "",
+        dateFound: job?.dateFound ? new Date(job.dateFound).toISOString().split("T")[0] : "",
+        dateApplied: job?.dateApplied ? new Date(job.dateApplied).toISOString().split("T")[0] : "",
+      });
+    }
+  }, [open, job]);
+
+  const updateField = (field: string, value: string | boolean) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+
+      // Auto-set response received when status changes
+      if (field === "status") {
+        const respondedStatuses: JobApplicationStatus[] = [
+          JobApplicationStatus.PHONE_SCREEN,
+          JobApplicationStatus.INTERVIEW,
+          JobApplicationStatus.OFFER,
+          JobApplicationStatus.REJECTED,
+        ];
+        if (respondedStatuses.includes(value as JobApplicationStatus)) {
+          next.responseReceived = ResponseStatus.YES;
+        } else if (value === JobApplicationStatus.NO_RESPONSE) {
+          next.responseReceived = ResponseStatus.NO;
+        } else {
+          next.responseReceived = ResponseStatus.PENDING;
+        }
+      }
+
+      return next;
+    });
+  };
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      await onSave({
+        jobTitle: formData.jobTitle,
+        companyName: formData.companyName,
+        source: formData.source,
+        applicationMethod: formData.applicationMethod,
+        jobPostingUrl: formData.jobPostingUrl || null,
+        salaryMin: formData.salaryMin ? parseInt(formData.salaryMin) : null,
+        salaryMax: formData.salaryMax ? parseInt(formData.salaryMax) : null,
+        salaryCurrency: formData.salaryCurrency,
+        location: formData.location || null,
+        isRemote: formData.isRemote,
+        status: formData.status,
+        responseReceived: formData.responseReceived,
+        notes: formData.notes || null,
+        dateFound: formData.dateFound || null,
+        dateApplied: formData.dateApplied || null,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error saving job:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const handleInterviewAdded = () => {
     setShowInterviewForm(false);
@@ -306,59 +411,59 @@ export function JobDetailsSheet({
     onUpdate();
   };
 
+  if (!job && !isCreating) return null;
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
-          className="w-full sm:max-w-lg overflow-y-auto p-0"
+          className="w-full sm:max-w-lg overflow-y-auto p-0 flex flex-col"
           showCloseButton={false}
         >
-          {/* Header with subtle background */}
-          <div className="relative px-6 pt-6 pb-8 bg-muted/30">
-            {/* Actions - close and options aligned together */}
+          {/* Header */}
+          <div className="relative bg-muted/30">
+            {/* Actions */}
             <div className="absolute top-4 right-4 flex items-center gap-0.5">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={onEdit}>
-                    <Pencil className="size-4 mr-2" />
-                    Edit Application
-                  </DropdownMenuItem>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <Trash2 className="size-4 mr-2" />
-                        Delete Application
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Application</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this job application?
-                          This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={onDelete}
-                          className="bg-destructive text-destructive-foreground"
+              {!isCreating && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-8">
+                      <MoreHorizontal className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={(e) => e.preventDefault()}
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                          <Trash2 className="size-4 mr-2" />
+                          Delete Application
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Application</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this job application?
+                            This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={onDelete}
+                            className="bg-destructive text-destructive-foreground"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <SheetClose asChild>
                 <Button variant="ghost" size="icon" className="size-8">
                   <X className="size-4" />
@@ -366,215 +471,378 @@ export function JobDetailsSheet({
               </SheetClose>
             </div>
 
-            {/* Company and Title */}
-            <div className="flex items-start gap-4">
-              <CompanyAvatar name={job.companyName} />
-              <div className="flex-1 min-w-0 pt-1">
-                <SheetTitle className="text-xl font-bold text-left mb-1">
-                  {job.jobTitle}
-                </SheetTitle>
-                <SheetDescription className="text-base font-medium text-foreground/80 flex items-center gap-2">
-                  <Building2 className="size-4" />
-                  {job.companyName}
-                </SheetDescription>
-              </div>
-            </div>
-
-            {/* Status and Response */}
-            <div className="flex items-center gap-3 mt-4">
-              <StatusBadge status={job.status} className="text-sm px-3 py-1" />
-              <ResponseIndicator status={job.responseReceived} />
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="px-6 py-6 space-y-6">
-            {/* Quick Info Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Source */}
-              <div className="p-3 rounded-lg border bg-muted/30">
-                <div className="text-xs text-muted-foreground mb-1">Source</div>
-                <div className="flex items-center gap-2">
-                  <SourceIcon source={job.source} />
-                  <span className="text-sm font-medium">
-                    {getJobSourceDisplayName(job.source)}
-                  </span>
+            {/* Create Mode Header */}
+            {isCreating && (
+              <div className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5">
+                    <Briefcase className="size-5 text-white" />
+                  </div>
+                  <div>
+                    <SheetTitle className="text-lg font-bold text-left mb-0.5">
+                      Add New Job Application
+                    </SheetTitle>
+                    <SheetDescription className="text-sm">
+                      Track a new job application
+                    </SheetDescription>
+                  </div>
                 </div>
               </div>
-
-              {/* Method */}
-              <div className="p-3 rounded-lg border bg-muted/30">
-                <div className="text-xs text-muted-foreground mb-1">
-                  Applied Via
-                </div>
-                <div className="flex items-center gap-2">
-                  <Send className="size-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {getApplicationMethodDisplayName(job.applicationMethod)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Location */}
-              {(job.location || job.isRemote) && (
-                <div className="p-3 rounded-lg border bg-muted/30">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Location
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="size-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {job.location || "Remote"}
-                    </span>
-                    {job.isRemote && (
-                      <Badge variant="secondary" className="text-xs">
-                        Remote OK
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Salary */}
-              {formatSalary(
-                job.salaryMin,
-                job.salaryMax,
-                job.salaryCurrency || undefined,
-              ) && (
-                <div className="p-3 rounded-lg border bg-muted/30">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Salary Range
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="size-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {formatSalary(
-                        job.salaryMin,
-                        job.salaryMax,
-                        job.salaryCurrency || undefined,
-                      )}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Dates Row */}
-            <div className="flex items-center gap-4 text-sm">
-              {job.dateFound && (
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Calendar className="size-3.5" />
-                  <span>Found {format(new Date(job.dateFound), "MMM d")}</span>
-                </div>
-              )}
-              {job.dateApplied && (
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Send className="size-3.5" />
-                  <span>
-                    Applied {format(new Date(job.dateApplied), "MMM d, yyyy")}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Job Posting Link */}
-            {job.jobPostingUrl && (
-              <a
-                href={job.jobPostingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors group"
-              >
-                <div className="flex items-center gap-2">
-                  <Globe className="size-4 text-primary" />
-                  <span className="text-sm font-medium">View Job Posting</span>
-                </div>
-                <ExternalLink className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </a>
             )}
 
-            {/* Notes Section */}
-            {job.notes && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <FileText className="size-4 text-muted-foreground" />
-                  Notes
+            {/* Edit Mode Header */}
+            {!isCreating && (
+              <div className="px-6 py-4">
+                <div className="flex items-start gap-4">
+                  <CompanyAvatar name={formData.companyName || "?"} />
+                  <div className="flex-1 min-w-0 pt-1">
+                    <SheetTitle className="text-lg font-bold text-left mb-1">
+                      {formData.jobTitle || "Untitled Job"}
+                    </SheetTitle>
+                    <SheetDescription className="text-sm font-medium text-foreground/80 flex items-center gap-2">
+                      <Building2 className="size-4" />
+                      {formData.companyName}
+                    </SheetDescription>
+                  </div>
                 </div>
-                <div className="p-4 rounded-lg border bg-muted/30">
-                  <div
-                    className="text-sm text-muted-foreground prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: job.notes }}
+              </div>
+            )}
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+            <div className="px-6 pt-4 pb-6 space-y-4 flex-1">
+              {/* Job Title & Company */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="jobTitle">Job Title *</Label>
+                  <Input
+                    id="jobTitle"
+                    value={formData.jobTitle}
+                    onChange={(e) => updateField("jobTitle", e.target.value)}
+                    placeholder="Senior Software Engineer"
+                    required
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Company *</Label>
+                  <Input
+                    id="companyName"
+                    value={formData.companyName}
+                    onChange={(e) => updateField("companyName", e.target.value)}
+                    placeholder="Acme Inc."
+                    required
+                    className="w-full"
                   />
                 </div>
               </div>
-            )}
 
-            {/* Interviews Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="size-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Interviews</span>
-                  {job.interviews.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {job.interviews.length}
-                    </Badge>
-                  )}
+              {/* Source & Application Method */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Source *</Label>
+                  <Select
+                    value={formData.source}
+                    onValueChange={(value) => updateField("source", value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {JOB_SOURCES.map((source) => (
+                        <SelectItem key={source} value={source}>
+                          {getJobSourceDisplayName(source)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditingInterview(null);
-                    setShowInterviewForm(true);
-                  }}
-                >
-                  <Plus className="size-4 mr-1" />
-                  Add
-                </Button>
+                <div className="space-y-2">
+                  <Label>Application Method *</Label>
+                  <Select
+                    value={formData.applicationMethod}
+                    onValueChange={(value) => updateField("applicationMethod", value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {APPLICATION_METHODS.map((method) => (
+                        <SelectItem key={method} value={method}>
+                          {getApplicationMethodDisplayName(method)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {job.interviews.length > 0 ? (
-                <div className="pt-2">
-                  {job.interviews
-                    .sort((a, b) => a.roundNumber - b.roundNumber)
-                    .map((interview, index) => (
-                      <InterviewCard
-                        key={interview.id}
-                        interview={interview}
-                        jobTitle={job.jobTitle}
-                        companyName={job.companyName}
-                        onClick={() => {
-                          setEditingInterview(interview);
-                          setShowInterviewForm(true);
-                        }}
-                        isLast={index === job.interviews.length - 1}
-                      />
-                    ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg border-dashed">
-                  <div className="size-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <Calendar className="size-5 text-muted-foreground" />
+              {/* URL & Location */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="jobPostingUrl">Job Posting URL</Label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="jobPostingUrl"
+                      type="url"
+                      value={formData.jobPostingUrl}
+                      onChange={(e) => updateField("jobPostingUrl", e.target.value)}
+                      placeholder="https://..."
+                      className="pl-9 w-full"
+                    />
                   </div>
-                  <p className="text-sm font-medium mb-1">No interviews yet</p>
-                  <p className="text-xs text-muted-foreground">
-                    Add interview details to track your progress
-                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => updateField("location", e.target.value)}
+                      placeholder="San Francisco, CA"
+                      className="pl-9 w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Remote checkbox */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isRemote"
+                  checked={formData.isRemote}
+                  onCheckedChange={(checked) => updateField("isRemote", checked as boolean)}
+                />
+                <Label htmlFor="isRemote" className="font-normal">
+                  Remote position
+                </Label>
+              </div>
+
+              {/* Salary */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="salaryMin">Min Salary</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="salaryMin"
+                      type="number"
+                      value={formData.salaryMin}
+                      onChange={(e) => updateField("salaryMin", e.target.value)}
+                      placeholder="100000"
+                      className="pl-9 w-full"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="salaryMax">Max Salary</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      id="salaryMax"
+                      type="number"
+                      value={formData.salaryMax}
+                      onChange={(e) => updateField("salaryMax", e.target.value)}
+                      placeholder="150000"
+                      className="pl-9 w-full"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Currency</Label>
+                  <Select
+                    value={formData.salaryCurrency}
+                    onValueChange={(value) => updateField("salaryCurrency", value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="CAD">CAD</SelectItem>
+                      <SelectItem value="AUD">AUD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Status & Response */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => updateField("status", value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {JOB_APPLICATION_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status === "SAVED" ? "Saved" :
+                           status === "APPLIED" ? "Applied" :
+                           status === "PHONE_SCREEN" ? "Phone Screen" :
+                           status === "INTERVIEW" ? "Interview" :
+                           status === "OFFER" ? "Offer" :
+                           status === "REJECTED" ? "Rejected" :
+                           status === "WITHDRAWN" ? "Withdrawn" :
+                           status === "NO_RESPONSE" ? "No Response" : status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Response Received</Label>
+                  <Select
+                    value={formData.responseReceived}
+                    onValueChange={(value) => updateField("responseReceived", value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESPONSE_STATUSES.map((response) => (
+                        <SelectItem key={response} value={response}>
+                          {response === "YES" ? "Yes" : response === "NO" ? "No" : "Pending"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dateFound">Date Found</Label>
+                  <Input
+                    id="dateFound"
+                    type="date"
+                    value={formData.dateFound}
+                    onChange={(e) => updateField("dateFound", e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dateApplied">Date Applied</Label>
+                  <Input
+                    id="dateApplied"
+                    type="date"
+                    value={formData.dateApplied}
+                    onChange={(e) => updateField("dateApplied", e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => updateField("notes", e.target.value)}
+                  placeholder="Add any notes about this application..."
+                  rows={4}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Interviews Section - Only show in edit mode */}
+              {!isCreating && job && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="size-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Interviews</span>
+                      {job.interviews.length > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {job.interviews.length}
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      onClick={() => {
+                        setEditingInterview(null);
+                        setShowInterviewForm(true);
+                      }}
+                    >
+                      <Plus className="size-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+
+                  {job.interviews.length > 0 ? (
+                    <div className="pt-2">
+                      {job.interviews
+                        .sort((a, b) => a.roundNumber - b.roundNumber)
+                        .map((interview, index) => (
+                          <InterviewCard
+                            key={interview.id}
+                            interview={interview}
+                            jobTitle={job.jobTitle}
+                            companyName={job.companyName}
+                            onClick={() => {
+                              setEditingInterview(interview);
+                              setShowInterviewForm(true);
+                            }}
+                            isLast={index === job.interviews.length - 1}
+                          />
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg border-dashed">
+                      <div className="size-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                        <Calendar className="size-5 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-medium mb-1">No interviews yet</p>
+                      <p className="text-xs text-muted-foreground">
+                        Add interview details to track your progress
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 border-t bg-background px-6 py-4 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading || !formData.jobTitle || !formData.companyName}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isCreating ? "Create Application" : "Save Changes"}
+              </Button>
+            </div>
+          </form>
         </SheetContent>
       </Sheet>
 
-      <InterviewForm
-        open={showInterviewForm}
-        onOpenChange={setShowInterviewForm}
-        jobApplicationId={job.id}
-        interview={editingInterview}
-        onSuccess={handleInterviewAdded}
-      />
+      {/* Interview Form Dialog */}
+      {!isCreating && job && (
+        <InterviewForm
+          open={showInterviewForm}
+          onOpenChange={setShowInterviewForm}
+          jobApplicationId={job.id}
+          interview={editingInterview}
+          onSuccess={handleInterviewAdded}
+        />
+      )}
     </>
   );
 }
