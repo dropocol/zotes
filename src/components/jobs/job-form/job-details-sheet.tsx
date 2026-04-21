@@ -75,11 +75,10 @@ import { cn } from "@/lib/utils";
 import type {
   JobApplication,
   JobInterview,
-  ResponseStatus,
   JobSource,
   ApplicationMethod,
-  JobApplicationStatus,
 } from "@prisma/client";
+import { JobApplicationStatus, ResponseStatus } from "@prisma/client";
 
 interface JobWithInterviews extends JobApplication {
   interviews: JobInterview[];
