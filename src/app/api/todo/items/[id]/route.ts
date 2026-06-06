@@ -29,7 +29,7 @@ export async function GET(
       },
       include: {
         subItems: {
-          orderBy: { order: "asc" },
+          orderBy: { order: "desc" },
         },
         parent: true,
       },

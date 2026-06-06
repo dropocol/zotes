@@ -43,10 +43,10 @@ export async function GET(
         todoListId: id,
         parentId: null,
       },
-      orderBy: { order: "asc" },
+      orderBy: { order: "desc" },
       include: {
         subItems: {
-          orderBy: { order: "asc" },
+          orderBy: { order: "desc" },
         },
         completions: {
           where: {

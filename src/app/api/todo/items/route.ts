@@ -127,11 +127,11 @@ export async function GET(request: NextRequest) {
     // Build ORDER BY based on sort param
     let orderByClause: string;
     if (filter === "upcoming") {
-      orderByClause = "ti.due_date ASC, ti.order ASC";
+      orderByClause = "ti.due_date ASC, ti.order DESC";
     } else if (sort === "dueDate") {
-      orderByClause = "ti.due_date ASC, ti.order ASC";
+      orderByClause = "ti.due_date ASC, ti.order DESC";
     } else if (sort === "dueDateDesc") {
-      orderByClause = "ti.due_date DESC, ti.order ASC";
+      orderByClause = "ti.due_date DESC, ti.order DESC";
     } else if (sort === "priority") {
       // Use CASE for priority weight: urgent(0) > high(1) > medium(2) > low(3)
       orderByClause = `CASE ti.priority
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
         WHEN 'medium' THEN 2
         WHEN 'low' THEN 3
         ELSE 4
-      END ASC, ti.order ASC`;
+      END ASC, ti.order DESC`;
     } else if (sort === "status") {
       // Use CASE for status order: todo(0) > in-progress(1) > done(2)
       orderByClause = `CASE ti.status
@@ -148,14 +148,14 @@ export async function GET(request: NextRequest) {
         WHEN 'in-progress' THEN 1
         WHEN 'done' THEN 2
         ELSE 3
-      END ASC, ti.order ASC`;
+      END ASC, ti.order DESC`;
     } else if (sort === "createdAt") {
-      orderByClause = "ti.created_at DESC, ti.order ASC";
+      orderByClause = "ti.created_at DESC, ti.order DESC";
     } else if (sort === "updatedAt") {
-      orderByClause = "ti.updated_at DESC, ti.order ASC";
+      orderByClause = "ti.updated_at DESC, ti.order DESC";
     } else {
-      // Default: project name -> list name -> order
-      orderByClause = "p.name ASC, tl.name ASC, ti.order ASC";
+      // Default: project name -> list name -> order (newest first)
+      orderByClause = "p.name ASC, tl.name ASC, ti.order DESC";
     }
 
     // Get total count
@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
           created_at, updated_at, parent_id, todo_list_id, user_id
         FROM todo_items
         WHERE parent_id = ANY($1::text[])
-        ORDER BY "order" ASC
+        ORDER BY "order" DESC
       `;
       const subItems = await prisma.$queryRawUnsafe<RawSubItem[]>(
         subItemsQuery,
