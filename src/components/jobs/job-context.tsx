@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Briefcase, Plus } from "lucide-react";
+import { Briefcase, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobDetailsSheet } from "./job-form/job-details-sheet";
+import { JobQuickAdd, type QuickAddJobPayload } from "./job-quick-add";
 import type {
   JobApplication,
   JobInterview,
@@ -59,6 +60,11 @@ interface JobsContextValue {
     newStatus: JobApplicationStatus,
   ) => Promise<void>;
   showAddJobForm: () => void;
+  showQuickAdd: () => void;
+  isQuickAddOpen: boolean;
+  setQuickAddOpen: (open: boolean) => void;
+  handleQuickAdd: (data: QuickAddJobPayload) => Promise<void>;
+  jobsVersion: number;
 }
 
 const JobsContext = React.createContext<JobsContextValue | null>(null);
@@ -91,6 +97,13 @@ export function JobsProvider({
   // Sheet state - unified for both create and edit
   const [selectedJob, setSelectedJob] = React.useState<JobWithInterviews | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  // Quick add state - inline fast entry for progress tracking
+  const [isQuickAddOpen, setIsQuickAddOpen] = React.useState(false);
+
+  // Bumped whenever jobs mutate, so views that keep their own data
+  // (e.g. ListView's paginated fetch) know to refetch.
+  const [jobsVersion, setJobsVersion] = React.useState(0);
 
   // Fetch jobs
   const fetchJobs = React.useCallback(async () => {
@@ -172,6 +185,7 @@ export function JobsProvider({
         setSelectedJob(null);
         fetchJobs();
         fetchStats(statsRange);
+        setJobsVersion((v) => v + 1);
       }
     } catch (error) {
       console.error("Error deleting job:", error);
@@ -209,6 +223,7 @@ export function JobsProvider({
           prev.map((j) => (j.id === updatedJob.id ? { ...updatedJob, interviews: j.interviews } : j))
         );
         fetchStats(statsRange);
+        setJobsVersion((v) => v + 1);
       }
     } else {
       const response = await fetch("/api/jobs", {
@@ -220,6 +235,7 @@ export function JobsProvider({
         const newJob = await response.json();
         setJobs((prev) => [newJob, ...prev]);
         fetchStats(statsRange);
+        setJobsVersion((v) => v + 1);
       }
     }
   };
@@ -256,6 +272,26 @@ export function JobsProvider({
     setIsSheetOpen(true);
   };
 
+  const showQuickAdd = () => {
+    setIsQuickAddOpen((prev) => !prev);
+  };
+
+  const handleQuickAdd = async (data: QuickAddJobPayload) => {
+    const response = await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (response.ok) {
+      const newJob = await response.json();
+      setJobs((prev) => [newJob, ...prev]);
+      fetchStats(statsRange);
+      setJobsVersion((v) => v + 1);
+    } else {
+      throw new Error("Failed to quick-add job");
+    }
+  };
+
   // Get all interviews for calendar view
   const allInterviews: InterviewWithJob[] = React.useMemo(() => {
     return jobs.flatMap((job) =>
@@ -281,6 +317,11 @@ export function JobsProvider({
     handleJobClick,
     handleStatusChange,
     showAddJobForm,
+    showQuickAdd,
+    isQuickAddOpen,
+    setQuickAddOpen: setIsQuickAddOpen,
+    handleQuickAdd,
+    jobsVersion,
   };
 
   return (
@@ -315,25 +356,43 @@ export function JobViewHeader({
   title: string;
   subtitle?: string;
 }) {
-  const { showAddJobForm } = useJobs();
+  const { showAddJobForm, showQuickAdd, isQuickAddOpen, setQuickAddOpen, handleQuickAdd } = useJobs();
 
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5">
-          <Briefcase className="size-5 text-white" />
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 p-2.5">
+            <Briefcase className="size-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+            <p className="text-sm text-muted-foreground">
+              {subtitle || "Track your job search progress"}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">
-            {subtitle || "Track your job search progress"}
-          </p>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={isQuickAddOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={showQuickAdd}
+          >
+            <Zap className="size-4 mr-2" />
+            Quick Add
+          </Button>
+          <Button onClick={showAddJobForm}>
+            <Plus className="size-4 mr-2" />
+            Add Job
+          </Button>
         </div>
       </div>
-      <Button onClick={showAddJobForm}>
-        <Plus className="size-4 mr-2" />
-        Add Job
-      </Button>
+
+      <JobQuickAdd
+        open={isQuickAddOpen}
+        onOpenChange={setQuickAddOpen}
+        onAdd={handleQuickAdd}
+      />
     </div>
   );
 }

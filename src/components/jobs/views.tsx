@@ -16,12 +16,12 @@ import { CalendarView } from "./calendar-view/calendar-view";
 import { StatsView } from "./stats-view/stats-view";
 
 export function JobListView() {
-  const { handleJobClick } = useJobs();
+  const { handleJobClick, jobsVersion } = useJobs();
 
   return (
     <>
       <JobViewHeader title="Job List" subtitle="All your job applications in one place" />
-      <ListView onJobClick={handleJobClick} />
+      <ListView onJobClick={handleJobClick} refreshKey={jobsVersion} />
     </>
   );
 }
