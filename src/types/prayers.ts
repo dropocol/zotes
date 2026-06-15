@@ -3,9 +3,9 @@
 // ============================================================================
 
 // Re-export from Prisma generated types
-import type { PrayerType, PrayerStatus } from "@prisma/client";
+import { PrayerType, PrayerStatus } from "@prisma/client";
 
-export type { PrayerType, PrayerStatus };
+export { PrayerType, PrayerStatus };
 
 export const PRAYER_TYPES: PrayerType[] = [
   "FAJR",
@@ -16,7 +16,7 @@ export const PRAYER_TYPES: PrayerType[] = [
   "JUMAH",
 ];
 
-export const PRAYER_STATUSES: PrayerStatus[] = ["YES", "NO", "QAZAA"];
+export const PRAYER_STATUSES: PrayerStatus[] = ["YES", "NO", "NO_QASR", "QAZAA", "QAZAA_QASR"];
 
 // ============================================================================
 // CALENDAR VIEW TYPES
@@ -92,6 +92,8 @@ export function getStatusDisplayName(status: PrayerStatus): string {
     YES: "Prayed",
     NO: "Not Prayed",
     QAZAA: "Qazaa",
+    NO_QASR: "Not Prayed (Qasr)",
+    QAZAA_QASR: "Qazaa (Qasr)",
   };
   return names[status];
 }
@@ -104,6 +106,8 @@ export function getStatusBgColor(status: PrayerStatus): string {
     YES: "bg-emerald-500",
     NO: "bg-muted",
     QAZAA: "bg-amber-500",
+    NO_QASR: "bg-sky-500",
+    QAZAA_QASR: "bg-indigo-500",
   };
   return colors[status];
 }
@@ -116,6 +120,8 @@ export function getStatusTextColor(status: PrayerStatus): string {
     YES: "text-emerald-700 dark:text-emerald-400",
     NO: "text-muted-foreground",
     QAZAA: "text-amber-700 dark:text-amber-400",
+    NO_QASR: "text-sky-700 dark:text-sky-400",
+    QAZAA_QASR: "text-indigo-700 dark:text-indigo-400",
   };
   return colors[status];
 }
@@ -128,6 +134,8 @@ export function getStatusRingColor(status: PrayerStatus): string {
     YES: "border-emerald-200 dark:border-emerald-800/50",
     NO: "border-border",
     QAZAA: "border-amber-200 dark:border-amber-800/50",
+    NO_QASR: "border-sky-200 dark:border-sky-800/50",
+    QAZAA_QASR: "border-indigo-200 dark:border-indigo-800/50",
   };
   return colors[status];
 }
@@ -140,6 +148,8 @@ export function getStatusDotColor(status: PrayerStatus): string {
     YES: "bg-emerald-500",
     NO: "bg-muted-foreground/40",
     QAZAA: "bg-amber-500",
+    NO_QASR: "bg-sky-500",
+    QAZAA_QASR: "bg-indigo-500",
   };
   return colors[status];
 }

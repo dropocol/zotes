@@ -12,6 +12,7 @@ import {
 import {
   PrayerStatus,
   PrayerType,
+  PRAYER_STATUSES,
   getStatusDisplayName,
   getPrayerDisplayName,
   getPrayerTimeHint,
@@ -25,7 +26,6 @@ interface PrayerStatusSelectorProps {
   compact?: boolean;
 }
 
-const STATUS_OPTIONS: PrayerStatus[] = ["YES", "NO", "QAZAA"];
 
 const PRAYER_ICONS: Record<PrayerType, React.ComponentType<{ className?: string }>> = {
   FAJR: Sunrise,
@@ -39,7 +39,7 @@ const PRAYER_ICONS: Record<PrayerType, React.ComponentType<{ className?: string 
 // Status colors following shadcn/ui patterns
 const getStatusStyles = (status: PrayerStatus) => {
   switch (status) {
-    case "YES":
+    case PrayerStatus.YES:
       return {
         bg: "bg-emerald-100 dark:bg-emerald-950/50",
         text: "text-emerald-700 dark:text-emerald-400",
@@ -49,7 +49,7 @@ const getStatusStyles = (status: PrayerStatus) => {
         hover: "hover:bg-emerald-50 dark:hover:bg-emerald-950/30",
         border: "border-emerald-200 dark:border-emerald-800/50",
       };
-    case "QAZAA":
+    case PrayerStatus.QAZAA:
       return {
         bg: "bg-amber-100 dark:bg-amber-950/50",
         text: "text-amber-700 dark:text-amber-400",
@@ -59,7 +59,27 @@ const getStatusStyles = (status: PrayerStatus) => {
         hover: "hover:bg-amber-50 dark:hover:bg-amber-950/30",
         border: "border-amber-200 dark:border-amber-800/50",
       };
-    case "NO":
+    case PrayerStatus.NO_QASR:
+      return {
+        bg: "bg-sky-100 dark:bg-sky-950/50",
+        text: "text-sky-700 dark:text-sky-400",
+        icon: "text-sky-600 dark:text-sky-500",
+        indicator: "bg-sky-500",
+        badge: "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-400",
+        hover: "hover:bg-sky-50 dark:hover:bg-sky-950/30",
+        border: "border-sky-200 dark:border-sky-800/50",
+      };
+    case PrayerStatus.QAZAA_QASR:
+      return {
+        bg: "bg-indigo-100 dark:bg-indigo-950/50",
+        text: "text-indigo-700 dark:text-indigo-400",
+        icon: "text-indigo-600 dark:text-indigo-500",
+        indicator: "bg-indigo-500",
+        badge: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400",
+        hover: "hover:bg-indigo-50 dark:hover:bg-indigo-950/30",
+        border: "border-indigo-200 dark:border-indigo-800/50",
+      };
+    case PrayerStatus.NO:
     default:
       return {
         bg: "bg-muted/50",
@@ -99,15 +119,16 @@ export function PrayerStatusSelector({
         >
           <div className={cn(
             "flex items-center justify-center rounded-md p-1.5",
-            status === "YES" && "bg-emerald-500",
-            status === "QAZAA" && "bg-amber-500",
-            status === "NO" && "bg-muted"
+            status === PrayerStatus.YES && "bg-emerald-500",
+            status === PrayerStatus.QAZAA && "bg-amber-500",
+            status === PrayerStatus.NO_QASR && "bg-sky-500",
+            status === PrayerStatus.QAZAA_QASR && "bg-indigo-500",
+            status === PrayerStatus.NO && "bg-muted"
           )}>
             <Icon className={cn(
               "size-4",
-              status === "YES" && "text-white",
-              status === "QAZAA" && "text-white",
-              status === "NO" && "text-muted-foreground"
+              (status === PrayerStatus.YES || status === PrayerStatus.QAZAA || status === PrayerStatus.NO_QASR || status === PrayerStatus.QAZAA_QASR) && "text-white",
+              status === PrayerStatus.NO && "text-muted-foreground"
             )} />
           </div>
           <div className="flex flex-col items-start min-w-0 flex-1">
@@ -134,8 +155,8 @@ export function PrayerStatusSelector({
           </div>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        {STATUS_OPTIONS.map((option) => {
+      <DropdownMenuContent align="end" className="w-56">
+        {PRAYER_STATUSES.map((option) => {
           const optionStyles = getStatusStyles(option);
           return (
             <DropdownMenuItem
@@ -187,15 +208,16 @@ export function PrayerStatusPill({
         >
           <div className={cn(
             "flex items-center justify-center rounded-md p-1",
-            status === "YES" && "bg-emerald-500",
-            status === "QAZAA" && "bg-amber-500",
-            status === "NO" && "bg-muted"
+            status === PrayerStatus.YES && "bg-emerald-500",
+            status === PrayerStatus.QAZAA && "bg-amber-500",
+            status === PrayerStatus.NO_QASR && "bg-sky-500",
+            status === PrayerStatus.QAZAA_QASR && "bg-indigo-500",
+            status === PrayerStatus.NO && "bg-muted"
           )}>
             <Icon className={cn(
               "size-3.5",
-              status === "YES" && "text-white",
-              status === "QAZAA" && "text-white",
-              status === "NO" && "text-muted-foreground"
+              (status === PrayerStatus.YES || status === PrayerStatus.QAZAA || status === PrayerStatus.NO_QASR || status === PrayerStatus.QAZAA_QASR) && "text-white",
+              status === PrayerStatus.NO && "text-muted-foreground"
             )} />
           </div>
           <span className={cn(
@@ -210,8 +232,8 @@ export function PrayerStatusPill({
           )} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36">
-        {STATUS_OPTIONS.map((option) => {
+      <DropdownMenuContent align="end" className="w-48">
+        {PRAYER_STATUSES.map((option) => {
           const optionStyles = getStatusStyles(option);
           return (
             <DropdownMenuItem

@@ -11,7 +11,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "zotes - Personal CMS",
+  title: "Zotes - Personal CMS",
   description: "Your personal knowledge management system",
 };
 
@@ -28,9 +28,7 @@ export default function RootLayout({
     >
       <body>
         <SessionProvider>
-          <TooltipProvider>
-            {children}
-          </TooltipProvider>
+          <TooltipProvider>{children}</TooltipProvider>
         </SessionProvider>
       </body>
     </html>

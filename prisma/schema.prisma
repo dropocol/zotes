@@ -19,6 +19,8 @@ enum PrayerStatus {
   YES
   NO
   QAZAA
+  NO_QASR
+  QAZAA_QASR
 }
 
 enum JobSource {
