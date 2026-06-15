@@ -22,6 +22,14 @@ export interface JobWithInterviews extends JobApplication {
   interviews: JobInterview[];
 }
 
+/** Fields that can be bulk-updated across many jobs at once. All optional. */
+export interface BulkUpdatePayload {
+  status?: JobApplicationStatus;
+  responseReceived?: ResponseStatus;
+  source?: JobSource;
+  applicationMethod?: ApplicationMethod;
+}
+
 interface JobStats {
   range: string;
   summary: {
@@ -65,6 +73,10 @@ interface JobsContextValue {
   setQuickAddOpen: (open: boolean) => void;
   handleQuickAdd: (data: QuickAddJobPayload) => Promise<void>;
   jobsVersion: number;
+  handleBulkUpdate: (
+    ids: string[],
+    data: BulkUpdatePayload,
+  ) => Promise<{ count: number } | null>;
 }
 
 const JobsContext = React.createContext<JobsContextValue | null>(null);
@@ -292,6 +304,31 @@ export function JobsProvider({
     }
   };
 
+  const handleBulkUpdate = async (
+    ids: string[],
+    data: BulkUpdatePayload,
+  ): Promise<{ count: number } | null> => {
+    const response = await fetch("/api/jobs/bulk", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, data }),
+    });
+    if (!response.ok) return null;
+
+    const result = await response.json();
+
+    // Optimistically apply the changes to local state.
+    setJobs((prev) =>
+      prev.map((job) =>
+        ids.includes(job.id) ? { ...job, ...data } : job,
+      ),
+    );
+    fetchStats(statsRange);
+    setJobsVersion((v) => v + 1);
+
+    return { count: result.count as number };
+  };
+
   // Get all interviews for calendar view
   const allInterviews: InterviewWithJob[] = React.useMemo(() => {
     return jobs.flatMap((job) =>
@@ -322,6 +359,7 @@ export function JobsProvider({
     setQuickAddOpen: setIsQuickAddOpen,
     handleQuickAdd,
     jobsVersion,
+    handleBulkUpdate,
   };
 
   return (

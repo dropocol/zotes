@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -34,10 +35,13 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { StatusBadge } from "../shared/status-badge";
 import { SourceIcon } from "../shared/source-icon";
+import { useJobs } from "../job-context";
+import { BulkActionBar } from "./bulk-action-bar";
 import {
   JOB_SOURCES,
   JOB_APPLICATION_STATUSES,
   getJobSourceDisplayName,
+  getApplicationMethodDisplayName,
   getStatusDisplayName,
   formatSalary,
   getResponseStatusColor,
@@ -88,6 +92,10 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const { handleBulkUpdate } = useJobs();
+
+  // Multi-select state for bulk updates
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
 
   // Track if component has mounted (to avoid URL sync during SSR/hydration)
   const mountedRef = React.useRef(false);
@@ -231,6 +239,49 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
     }
   }, [debouncedSearch, statusFilter, sourceFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // --- Selection helpers (operate on rows rendered on the current page) ---
+  const pageIds = React.useMemo(() => jobs.map((j) => j.id), [jobs]);
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const someSelected = pageIds.some((id) => selectedIds.has(id));
+
+  const toggleOne = React.useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = React.useCallback(() => {
+    setSelectedIds((prev) => {
+      // If everything on the page is selected, clear the page's ids;
+      // otherwise select all of them.
+      if (pageIds.every((id) => prev.has(id))) {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }, [pageIds]);
+
+  const clearSelection = React.useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  async function handleBulkApply(data: Parameters<typeof handleBulkUpdate>[1]) {
+    if (selectedIds.size === 0) return;
+    try {
+      await handleBulkUpdate(Array.from(selectedIds), data);
+      clearSelection();
+    } catch (error) {
+      console.error("Error applying bulk update:", error);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -286,9 +337,18 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      onCheckedChange={toggleAll}
+                      aria-label="Select all on page"
+                      disabled={jobs.length === 0}
+                    />
+                  </TableHead>
                   <TableHead>Job Title</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Source</TableHead>
+                  <TableHead>Method</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Response</TableHead>
                   <TableHead>Location</TableHead>
@@ -302,7 +362,7 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
               <TableBody>
                 {jobs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                       No job applications found
                     </TableCell>
                   </TableRow>
@@ -312,7 +372,15 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
                       key={job.id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => onJobClick(job)}
+                      data-state={selectedIds.has(job.id) ? "selected" : undefined}
                     >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(job.id)}
+                          onCheckedChange={() => toggleOne(job.id)}
+                          aria-label={`Select ${job.jobTitle} at ${job.companyName}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="font-medium">{job.jobTitle}</div>
                       </TableCell>
@@ -324,6 +392,9 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
                       </TableCell>
                       <TableCell>
                         <SourceIcon source={job.source} showLabel />
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{getApplicationMethodDisplayName(job.applicationMethod)}</span>
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={job.status} />
@@ -399,6 +470,14 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
             onLimitChange={pagination.setLimit}
           />
         </>
+      )}
+
+      {selectedIds.size > 0 && (
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onClear={clearSelection}
+          onApply={handleBulkApply}
+        />
       )}
     </div>
   );

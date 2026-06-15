@@ -208,6 +208,18 @@ export function getResponseStatusColor(response: ResponseStatus): {
 }
 
 /**
+ * Get the display name for a response status
+ */
+export function getResponseStatusDisplayName(response: ResponseStatus): string {
+  const names: Record<ResponseStatus, string> = {
+    YES: "Yes",
+    NO: "No",
+    PENDING: "Pending",
+  };
+  return names[response];
+}
+
+/**
  * Format salary range for display
  */
 export function formatSalary(
