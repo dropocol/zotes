@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Sunrise, Sun, CloudSun, Sunset, Moon, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sunrise, Sun, CloudSun, Sunset, Moon, Users, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import {
   format,
   addWeeks,
@@ -19,6 +19,8 @@ import {
   PrayerStatus,
   getPrayersForDate,
   getPrayerDisplayName,
+  PRAYER_STATUSES,
+  getStatusDisplayName,
 } from "@/types/prayers";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +44,8 @@ const PRAYER_ICONS: Record<PrayerType, React.ComponentType<{ className?: string 
   JUMAH: Users,
 };
 
-const STATUS_CYCLE: PrayerStatus[] = ["NO", "YES", "QAZAA"];
+// Use centralized prayer statuses from types
+const STATUS_CYCLE: PrayerStatus[] = PRAYER_STATUSES;
 
 // Prayer status cell - click to cycle through statuses
 function PrayerStatusCell({
@@ -58,18 +61,31 @@ function PrayerStatusCell({
 }) {
   const getStyles = () => {
     switch (status) {
-      case "YES":
+      case PrayerStatus.YES:
         return {
           bg: "bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-900/60",
           icon: "✓",
           text: "text-emerald-600 dark:text-emerald-400",
         };
-      case "QAZAA":
+      case PrayerStatus.QAZAA:
         return {
           bg: "bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-900/60",
           icon: "⊙",
           text: "text-amber-600 dark:text-amber-400",
         };
+      case PrayerStatus.NO_QASR:
+        return {
+          bg: "bg-sky-100 dark:bg-sky-900/40 hover:bg-sky-200 dark:hover:bg-sky-900/60",
+          icon: "○",
+          text: "text-sky-600 dark:text-sky-400",
+        };
+      case PrayerStatus.QAZAA_QASR:
+        return {
+          bg: "bg-indigo-100 dark:bg-indigo-900/40 hover:bg-indigo-200 dark:hover:bg-indigo-900/60",
+          icon: "⊙",
+          text: "text-indigo-600 dark:text-indigo-400",
+        };
+      case PrayerStatus.NO:
       default:
         return {
           bg: "bg-muted hover:bg-muted/80",
@@ -92,7 +108,7 @@ function PrayerStatusCell({
         disabled && "opacity-40 cursor-not-allowed",
         isLoading && "opacity-50"
       )}
-      title={status === "YES" ? "Prayed" : status === "QAZAA" ? "Qazaa" : "Missed"}
+      title={getStatusDisplayName(status)}
     >
       {styles.icon}
     </button>
@@ -128,6 +144,34 @@ export function WeeklyView({
   const goToNext = () => onDateChange(addWeeks(date, 1));
   const goToToday = () => onDateChange(new Date());
 
+  // Aggregate stats across the current week. Only counts prayers that occur
+  // on each day and skips future days, so the rate reflects markable prayers.
+  const weekStats = React.useMemo(() => {
+    let prayed = 0;
+    let qazaa = 0;
+    let missed = 0;
+
+    days.forEach((day) => {
+      if (isFuture(startOfDay(day))) return;
+      const dateKey = format(day, "yyyy-MM-dd");
+      const dayRecords = records.get(dateKey);
+      getPrayersForDate(day).forEach((prayer) => {
+        const status = dayRecords?.get(prayer) || PrayerStatus.NO;
+        if (status === PrayerStatus.YES) prayed++;
+        else if (status === PrayerStatus.QAZAA) qazaa++;
+        else missed++;
+      });
+    });
+
+    const total = prayed + qazaa + missed;
+    return {
+      prayed,
+      qazaa,
+      missed,
+      rate: total > 0 ? Math.round((prayed / total) * 100) : 0,
+    };
+  }, [days, records]);
+
   const formatWeekRange = () => {
     const startMonth = format(weekStart, "MMM");
     const endMonth = format(weekEnd, "MMM");
@@ -158,7 +202,7 @@ export function WeeklyView({
   const getPrayerStatus = (prayer: PrayerType, day: Date): PrayerStatus => {
     const dateKey = format(day, "yyyy-MM-dd");
     const dayRecords = records.get(dateKey);
-    return dayRecords?.get(prayer) || "NO";
+    return dayRecords?.get(prayer) || PrayerStatus.NO;
   };
 
   const isPrayerOnDay = (prayer: PrayerType, day: Date): boolean => {
@@ -181,6 +225,39 @@ export function WeeklyView({
           </Button>
         </div>
         <h2 className="text-lg font-semibold">{formatWeekRange()}</h2>
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="flex flex-col items-center gap-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3">
+          <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{weekStats.prayed}</span>
+          <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Prayed</span>
+        </div>
+        <div className="flex flex-col items-center gap-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3">
+          <AlertCircle className="size-5 text-amber-600 dark:text-amber-400" />
+          <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{weekStats.qazaa}</span>
+          <span className="text-xs text-amber-600/70 dark:text-amber-400/70">Qazaa</span>
+        </div>
+        <div className="flex flex-col items-center gap-1 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 p-3">
+          <XCircle className="size-5 text-slate-400" />
+          <span className="text-2xl font-bold text-slate-400">{weekStats.missed}</span>
+          <span className="text-xs text-slate-400/70">Missed</span>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Weekly Progress</span>
+          <span className="font-medium">{weekStats.rate}%</span>
+        </div>
+        <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
+            style={{ width: `${weekStats.rate}%` }}
+          />
+        </div>
       </div>
 
       {/* Weekly Grid */}
@@ -285,7 +362,7 @@ export function WeeklyView({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-4 rounded bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs">
             ✓
@@ -303,6 +380,18 @@ export function WeeklyView({
             ⊙
           </div>
           <span>Qazaa</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center text-sky-600 dark:text-sky-400 text-xs">
+            ○
+          </div>
+          <span>Not Prayed (Qasr)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs">
+            ⊙
+          </div>
+          <span>Qazaa (Qasr)</span>
         </div>
       </div>
     </div>

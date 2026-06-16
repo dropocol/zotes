@@ -35,9 +35,9 @@ export function DailyView({
   const goToToday = () => onDateChange(new Date());
 
   // Calculate stats
-  const prayedCount = prayers.filter((p) => records.get(p) === "YES").length;
-  const qazaaCount = prayers.filter((p) => records.get(p) === "QAZAA").length;
-  const missedCount = prayers.filter((p) => records.get(p) === "NO").length;
+  const prayedCount = prayers.filter((p) => records.get(p) === PrayerStatus.YES).length;
+  const qazaaCount = prayers.filter((p) => records.get(p) === PrayerStatus.QAZAA).length;
+  const missedCount = prayers.filter((p) => records.get(p) === PrayerStatus.NO).length;
   const completionRate = Math.round((prayedCount / prayers.length) * 100);
 
   return (
@@ -137,7 +137,7 @@ export function DailyView({
             <PrayerStatusSelector
               key={prayer}
               prayer={prayer}
-              status={records.get(prayer) || "NO"}
+              status={records.get(prayer) || PrayerStatus.NO}
               onStatusChange={onStatusChange}
               disabled={dateIsFuture}
             />

@@ -72,9 +72,36 @@ export function MonthlyView({
 
   // Calculate stats for selected day
   const prayers = getPrayersForDate(selected);
-  const prayedCount = prayers.filter((p) => selectedDayRecords.get(p) === "YES").length;
-  const qazaaCount = prayers.filter((p) => selectedDayRecords.get(p) === "QAZAA").length;
-  const missedCount = prayers.filter((p) => selectedDayRecords.get(p) === "NO").length;
+  const prayedCount = prayers.filter((p) => selectedDayRecords.get(p) === PrayerStatus.YES).length;
+  const qazaaCount = prayers.filter((p) => selectedDayRecords.get(p) === PrayerStatus.QAZAA).length;
+  const missedCount = prayers.filter((p) => selectedDayRecords.get(p) === PrayerStatus.NO).length;
+
+  // Aggregate stats across the whole viewed month (excluding future days,
+  // which can't be marked yet, so the rate reflects markable prayers).
+  const monthStats = React.useMemo(() => {
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(date);
+    let prayed = 0;
+    let qazaa = 0;
+    let missed = 0;
+
+    records.forEach((record) => {
+      const d = new Date(record.date);
+      if (d < monthStart || d > monthEnd) return;
+      if (isFuture(startOfDay(d))) return;
+      if (record.status === PrayerStatus.YES) prayed++;
+      else if (record.status === PrayerStatus.QAZAA) qazaa++;
+      else missed++;
+    });
+
+    const total = prayed + qazaa + missed;
+    return {
+      prayed,
+      qazaa,
+      missed,
+      rate: total > 0 ? Math.round((prayed / total) * 100) : 0,
+    };
+  }, [records, date]);
 
   const handleDayClick = (day: Date) => {
     setInternalSelectedDay(day);
@@ -98,6 +125,41 @@ export function MonthlyView({
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Calendar Grid */}
       <div className="flex-1">
+        {/* Month Stats Summary */}
+        <div className="mb-4 space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col items-center gap-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3">
+              <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{monthStats.prayed}</span>
+              <span className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Prayed</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3">
+              <AlertCircle className="size-5 text-amber-600 dark:text-amber-400" />
+              <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{monthStats.qazaa}</span>
+              <span className="text-xs text-amber-600/70 dark:text-amber-400/70">Qazaa</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 p-3">
+              <XCircle className="size-5 text-slate-400" />
+              <span className="text-2xl font-bold text-slate-400">{monthStats.missed}</span>
+              <span className="text-xs text-slate-400/70">Missed</span>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Monthly Progress</span>
+              <span className="font-medium">{monthStats.rate}%</span>
+            </div>
+            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
+                style={{ width: `${monthStats.rate}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Month Navigation */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">{format(date, "MMMM yyyy")}</h2>
@@ -142,7 +204,7 @@ export function MonthlyView({
             const dayIsFuture = isFuture(startOfDay(day));
 
             // Calculate completion for this day
-            const dayPrayed = prayersForDay.filter((p) => dayRecords?.get(p) === "YES").length;
+            const dayPrayed = prayersForDay.filter((p) => dayRecords?.get(p) === PrayerStatus.YES).length;
             const completionRate = (dayPrayed / prayersForDay.length) * 100;
 
             return (
@@ -174,7 +236,7 @@ export function MonthlyView({
                 {isCurrentMonth && !dayIsFuture && (
                   <div className="flex gap-0.5 justify-center">
                     {prayersForDay.map((prayer) => {
-                      const status = dayRecords?.get(prayer) || "NO";
+                      const status = dayRecords?.get(prayer) || PrayerStatus.NO;
                       return (
                         <span
                           key={prayer}
@@ -246,7 +308,7 @@ export function MonthlyView({
             <PrayerStatusPill
               key={prayer}
               prayer={prayer}
-              status={selectedDayRecords.get(prayer) || "NO"}
+              status={selectedDayRecords.get(prayer) || PrayerStatus.NO}
               onStatusChange={(p, s) => onStatusChange(selected, p, s)}
               disabled={selectedIsFuture}
             />

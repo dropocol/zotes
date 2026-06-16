@@ -47,9 +47,9 @@ export function YearlyView({
     records.forEach((record) => {
       const dateKey = format(record.date, "yyyy-MM-dd");
       const existing = map.get(dateKey) || { completed: 0, qazaa: 0, missed: 0, total: 0 };
-      if (record.status === "YES") {
+      if (record.status === PrayerStatus.YES) {
         existing.completed++;
-      } else if (record.status === "QAZAA") {
+      } else if (record.status === PrayerStatus.QAZAA) {
         existing.qazaa++;
       } else {
         existing.missed++;
@@ -76,8 +76,8 @@ export function YearlyView({
       const recordYear = new Date(record.date).getFullYear();
       if (recordYear === year) {
         total++;
-        if (record.status === "YES") completed++;
-        if (record.status === "QAZAA") qazaa++;
+        if (record.status === PrayerStatus.YES) completed++;
+        if (record.status === PrayerStatus.QAZAA) qazaa++;
       }
     });
 

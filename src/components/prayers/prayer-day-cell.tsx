@@ -43,7 +43,7 @@ export function PrayerDayCell({
       </span>
       <div className="flex gap-0.5">
         {prayers.map((prayer) => {
-          const status = records.get(prayer) || "NO";
+          const status = records.get(prayer) || PrayerStatus.NO;
           return (
             <span
               key={prayer}
