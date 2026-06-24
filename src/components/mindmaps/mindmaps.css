@@ -1,0 +1,78 @@
+/* ============================================================================
+   Mind Map canvas (React Flow) — clean, Figma-like styling
+
+   Imported globally from src/app/globals.css so the React Flow class names
+   (`.react-flow__*`) resolve regardless of where the canvas is rendered.
+   ============================================================================ */
+
+.react-flow {
+  --xy-edge-stroke-default: hsl(var(--muted-foreground) / 0.45);
+  --xy-edge-stroke-selected-default: hsl(var(--primary));
+  --xy-edge-stroke-width-default: 1.5;
+}
+
+/* Smooth, soft edges */
+.react-flow__edge path {
+  stroke-linecap: round;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+}
+.react-flow__edge:hover path,
+.react-flow__edge.selected path {
+  stroke: hsl(var(--primary) / 0.8);
+  stroke-width: 2;
+}
+.react-flow__edge.animated path {
+  stroke-dasharray: 0;
+}
+
+/* Connection line while dragging a new edge */
+.react-flow__connectionline path,
+.react-flow__connection path {
+  stroke: hsl(var(--primary) / 0.6);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+/* Connection handles are styled directly on the <Handle> components via
+   Tailwind utilities (which beat the React Flow base layer under Tailwind v4),
+   so the dots are always visible regardless of whether RF's --xy-handle-*
+   variables resolve. No CSS rules needed here. */
+
+/* Controls — match card aesthetic */
+.react-flow__controls {
+  border-radius: 0.625rem;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.react-flow__controls-button {
+  background: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+.react-flow__controls-button:hover {
+  background: hsl(var(--accent));
+}
+.react-flow__controls-button svg {
+  fill: hsl(var(--foreground));
+}
+
+/* MiniMap theming */
+.react-flow__minimap {
+  border-radius: 0.625rem;
+  overflow: hidden;
+}
+.react-flow__minimap-mask {
+  fill: hsl(var(--muted-foreground) / 0.08);
+}
+
+/* Selection box + multi-select */
+.react-flow__selection {
+  border: 1px solid hsl(var(--primary) / 0.4);
+  background: hsl(var(--primary) / 0.05);
+  border-radius: 0.375rem;
+}
+
+/* Attribution is hidden via proOptions; keep area clean */
+.react-flow__attribution {
+  display: none;
+}

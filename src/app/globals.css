@@ -2,6 +2,17 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+/* React Flow base styles must load after Tailwind (and shadcn) to keep the
+   cascade correct under Tailwind v4. Imported inside @layer base per the
+   official React Flow + Tailwind v4 integration guidance. */
+@layer base {
+  @import "@xyflow/react/dist/style.css";
+}
+
+/* Our React Flow overrides — loaded after the base stylesheet above so they
+   win the cascade. */
+@import "../components/mindmaps/mindmaps.css";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -285,7 +296,7 @@
   color: var(--muted-foreground);
   border-left-width: 3px;
   border-left-color: var(--primary);
-  quotes: "\201C""\201D""\2018""\2019";
+  quotes: "\201C" "\201D" "\2018" "\2019";
   margin-top: 1em;
   margin-bottom: 1em;
   padding-left: 1em;
@@ -678,8 +689,9 @@ table p {
 
 /* Code inline */
 .prose code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   font-size: 0.875em;
   font-weight: 500;
   background-color: oklch(0.967 0.001 286.375);
@@ -695,8 +707,9 @@ table p {
 
 /* Code block */
 .prose pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   font-size: 0.875em;
   line-height: 1.6;
   background-color: oklch(0.967 0.001 286.375);
@@ -729,7 +742,7 @@ table p {
   font-style: italic;
   color: oklch(0.552 0.016 285.938);
   border-left: 4px solid oklch(0.586 0.253 17.585);
-  quotes: "\201C""\201D""\2018""\2019";
+  quotes: "\201C" "\201D" "\2018" "\2019";
   margin-top: 1.5em;
   margin-bottom: 1.5em;
   padding-left: 1rem;
@@ -906,8 +919,9 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
 /* Keyboard */
 .prose kbd {
   display: inline-block;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1;
