@@ -1,78 +1,117 @@
 /* ============================================================================
-   Mind Map canvas (React Flow) — clean, Figma-like styling
+   Mind Map canvas — app-specific overrides
 
-   Imported globally from src/app/globals.css so the React Flow class names
-   (`.react-flow__*`) resolve regardless of where the canvas is rendered.
+   The base xyflow look lives in ./xy-theme.css (the official xyflow example
+   theme). Anything project-specific that needs to override the theme goes here,
+   loaded AFTER xy-theme.css so it wins the cascade (see globals.css).
    ============================================================================ */
 
-.react-flow {
-  --xy-edge-stroke-default: hsl(var(--muted-foreground) / 0.45);
-  --xy-edge-stroke-selected-default: hsl(var(--primary));
-  --xy-edge-stroke-width-default: 1.5;
+/* ---------------------------------------------------------------------------
+   Pill node — a simple capsule with two connectors (left/right).
+
+   The capsule hugs its content: short text → small pill, long text → wider
+   pill (capped), all centered vertically by the flex layout below.
+--------------------------------------------------------------------------- */
+
+.pill-node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 40px;
+  max-width: 200px;
+  padding: 3px 12px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid #e3e3e3;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 11px;
+  line-height: 1.1;
+  color: #33363a;
+  /* Keep the node self-sizing; React Flow positions it absolutely. */
+  width: max-content;
 }
 
-/* Smooth, soft edges */
-.react-flow__edge path {
-  stroke-linecap: round;
-  transition: stroke 0.15s ease, stroke-width 0.15s ease;
-}
-.react-flow__edge:hover path,
-.react-flow__edge.selected path {
-  stroke: hsl(var(--primary) / 0.8);
-  stroke-width: 2;
-}
-.react-flow__edge.animated path {
-  stroke-dasharray: 0;
+/* React Flow wraps the node in .react-flow__node-textNode which has its own
+   border/shadow from xy-theme.css — neutralize those so only the pill shows. */
+.react-flow__node-textNode {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  font-size: inherit;
 }
 
-/* Connection line while dragging a new edge */
-.react-flow__connectionline path,
-.react-flow__connection path {
-  stroke: hsl(var(--primary) / 0.6);
-  stroke-width: 1.75;
-  stroke-linecap: round;
+/* Kill the focus ring that xy-theme.css draws around the node while it's being
+   dragged or focused. We opt out of the `box-shadow`-based focus indicator on
+   pill nodes entirely (the pill keeps its own subtle selected ring instead). */
+.react-flow__node-textNode.selectable:focus,
+.react-flow__node-textNode.selectable:focus:active {
+  box-shadow: none;
+  border-color: transparent;
+  outline: none;
 }
 
-/* Connection handles are styled directly on the <Handle> components via
-   Tailwind utilities (which beat the React Flow base layer under Tailwind v4),
-   so the dots are always visible regardless of whether RF's --xy-handle-*
-   variables resolve. No CSS rules needed here. */
-
-/* Controls — match card aesthetic */
-.react-flow__controls {
-  border-radius: 0.625rem;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-.react-flow__controls-button {
-  background: hsl(var(--card));
-  border-bottom: 1px solid hsl(var(--border));
-  color: hsl(var(--foreground));
-}
-.react-flow__controls-button:hover {
-  background: hsl(var(--accent));
-}
-.react-flow__controls-button svg {
-  fill: hsl(var(--foreground));
+.pill-node input {
+  /* Input IS the editor. Borderless so only the pill chrome shows. */
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  width: 100%;
+  min-width: 40px;
 }
 
-/* MiniMap theming */
-.react-flow__minimap {
-  border-radius: 0.625rem;
-  overflow: hidden;
-}
-.react-flow__minimap-mask {
-  fill: hsl(var(--muted-foreground) / 0.08);
+.pill-node input::placeholder {
+  color: #b3b6bb;
 }
 
-/* Selection box + multi-select */
-.react-flow__selection {
-  border: 1px solid hsl(var(--primary) / 0.4);
-  background: hsl(var(--primary) / 0.05);
-  border-radius: 0.375rem;
+/* Left-side drag affordance. Sits flush at the pill's left, muted until hover. */
+.pill-node__grip {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  color: #b9bdc4;
+  cursor: grab;
 }
 
-/* Attribution is hidden via proOptions; keep area clean */
-.react-flow__attribution {
-  display: none;
+.pill-node__grip:active {
+  cursor: grabbing;
+}
+
+.pill-node:hover .pill-node__grip {
+  color: #868b94;
+}
+
+/* Connector handles sit flush at the pill's rounded edges. */
+.react-flow__node-textNode .react-flow__handle {
+  width: 9px;
+  height: 9px;
+  border-width: 1px;
+  background: #ffffff;
+  border-color: #b9bdc4;
+}
+
+/* Selected state.
+   React Flow draws the selection styling on the rectangular node *wrapper*
+   (.react-flow__node-textNode.selected), which xy-theme.css paints with a
+   pink border. Because the wrapper is a rectangle, that shows up as a box
+   *behind* the pill — we neutralize it on the wrapper and instead put the
+   pink ring on the pill itself, so the highlight hugs the capsule shape. */
+.react-flow__node-textNode.selectable.selected,
+.react-flow__node-textNode.selected {
+  border: none;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+.react-flow__node-textNode.selected .pill-node {
+  border-color: #f57dbd;
+  box-shadow: 0 0 0 2px rgba(245, 125, 189, 0.35);
 }

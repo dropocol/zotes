@@ -11,24 +11,43 @@ import {
   useNodesState,
   useEdgesState,
   useReactFlow,
-  BackgroundVariant,
   type Connection,
+  type DefaultEdgeOptions,
   type Edge,
   type Node,
   type OnConnect,
   type OnNodesChange,
   type OnEdgesChange,
 } from "@xyflow/react";
-// React Flow base styles are imported once, globally, in src/app/globals.css
-// (inside @layer base, after tailwindcss) per the Tailwind v4 + React Flow
-// guidance. Do NOT import the stylesheet here.
+// React Flow base styles. Imported here (per component) because the
+// `@layer base` import in globals.css does not reliably inline these styles
+// under this Turbopack/Next setup — omitting it leaves handles without
+// pointer-events/sizing, which silently breaks connections.
+import "@xyflow/react/dist/style.css";
 import { Button } from "@/components/ui/button";
 import { Plus, GitBranch } from "lucide-react";
 import { TextNode, type TextNodeData } from "./text-node";
+import { findFreePosition, viewportCenter } from "./layout-utils";
 import type { MindMapData, MindMapNode } from "@/types";
 
 // Plain object (not inline) so React Flow's nodeTypes reference is stable.
 const nodeTypes = { textNode: TextNode };
+
+// Solid edges for the default look (no marching-ants animation). Light grey
+// so connections stay subtle against the light canvas.
+const defaultEdgeOptions: DefaultEdgeOptions = {
+  style: { stroke: "#c4c9d2", strokeWidth: 1.5 },
+};
+
+// Assumed footprint of a freshly added pill node, used for collision-aware
+// placement before React Flow has measured the node.
+const NEW_NODE_SIZE = { width: 120, height: 32 };
+
+// Match the sample's snap-to-grid behaviour.
+const snapGrid: [number, number] = [20, 20];
+
+// Match the sample's starting viewport.
+const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
 
 function genId() {
   return `n_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -45,6 +64,7 @@ function MindMapCanvasInner({ data, onChange, readOnly = false }: MindMapCanvasP
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(data.edges as unknown as Edge[]);
   const [lastClickAt, setLastClickAt] = useState(0);
   const reactFlow = useReactFlow();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Keep a live ref of nodes/edges so `emit` reads the latest state without
   // being recreated on every change.
@@ -79,7 +99,7 @@ function MindMapCanvasInner({ data, onChange, readOnly = false }: MindMapCanvasP
 
   const handleConnect: OnConnect = useCallback(
     (connection: Connection) => {
-      setEdges((eds) => addEdge(connection, eds));
+      setEdges((eds) => addEdge({ ...connection, style: defaultEdgeOptions.style }, eds));
       queueMicrotask(emit);
     },
     [setEdges, emit],
@@ -108,10 +128,21 @@ function MindMapCanvasInner({ data, onChange, readOnly = false }: MindMapCanvasP
     [nodes, updateNodeText],
   );
 
+  // Drop a new node at `position` (flow coordinates). `position` is taken as
+  // the node's top-left. When `findFree` is set we treat `position` as an
+  // anchor and spiral outward to avoid overlapping existing nodes — used by
+  // the "Add Node" button so the new node lands in open space.
   const createNodeAt = useCallback(
-    (position: { x: number; y: number }) => {
+    (position: { x: number; y: number }, findFree = false) => {
       const id = genId();
-      setNodes((nds) => [...nds, { id, type: "textNode", position, data: { text: "" } }]);
+      const finalPos = findFree
+        ? findFreePosition({
+            anchor: position,
+            existing: stateRef.current.nodes,
+            size: NEW_NODE_SIZE,
+          })
+        : position;
+      setNodes((nds) => [...nds, { id, type: "textNode", position: finalPos, data: { text: "" } }]);
       queueMicrotask(emit);
     },
     [setNodes, emit],
@@ -137,11 +168,22 @@ function MindMapCanvasInner({ data, onChange, readOnly = false }: MindMapCanvasP
   const handleAddNode = useCallback(() => {
     if (readOnly) return;
     const viewport = reactFlow.getViewport();
-    createNodeAt({ x: -viewport.x / viewport.zoom, y: -viewport.y / viewport.zoom });
+    const pane = containerRef.current?.getBoundingClientRect();
+    // Anchor = center of the visible viewport. Falls back to the old top-left
+    // computation if the container isn't measured yet.
+    const anchor = pane
+      ? viewportCenter(viewport, { width: pane.width, height: pane.height })
+      : { x: -viewport.x / viewport.zoom, y: -viewport.y / viewport.zoom };
+    // Shift from "center point" to the node's top-left, then find a free spot
+    // that doesn't collide with existing nodes.
+    createNodeAt(
+      { x: anchor.x - NEW_NODE_SIZE.width / 2, y: anchor.y - NEW_NODE_SIZE.height / 2 },
+      true,
+    );
   }, [readOnly, reactFlow, createNodeAt]);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full" ref={containerRef}>
       {!readOnly && (
         <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
           <Button type="button" size="sm" variant="default" onClick={handleAddNode}>
@@ -163,27 +205,23 @@ function MindMapCanvasInner({ data, onChange, readOnly = false }: MindMapCanvasP
         onConnect={handleConnect}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
+        snapToGrid={!readOnly}
+        snapGrid={snapGrid}
+        defaultViewport={defaultViewport}
         fitView
-        fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
+        colorMode="light"
         deleteKeyCode={readOnly ? null : ["Backspace", "Delete"]}
         multiSelectionKeyCode={["Meta", "Control", "Shift"]}
         nodesDraggable={!readOnly}
         nodesConnectable={!readOnly}
         elementsSelectable={!readOnly}
-        className="bg-background"
-        proOptions={{ hideAttribution: true }}
+        attributionPosition="bottom-left"
+        style={{ backgroundColor: "#f7f9fb" }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} className="text-muted-foreground/40" />
-        <Controls className="!bg-card !border !shadow-sm" showInteractive={!readOnly} />
-        <MiniMap
-          pannable
-          zoomable
-          className="!bg-card !border"
-          maskColor="rgb(0 0 0 / 0.05)"
-          nodeColor={(n) =>
-            (n.data as TextNodeData)?.isRoot ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.4)"
-          }
-        />
+        <Background />
+        <Controls showInteractive={!readOnly} />
+        <MiniMap />
       </ReactFlow>
     </div>
   );

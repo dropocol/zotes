@@ -9,8 +9,10 @@
   @import "@xyflow/react/dist/style.css";
 }
 
-/* Our React Flow overrides — loaded after the base stylesheet above so they
-   win the cascade. */
+/* React Flow theme (official xyflow example theme) + app-specific overrides.
+   xy-theme first so it beats the base styles; mindmaps.css second so any
+   project-specific tweaks win over the theme. */
+@import "../components/mindmaps/xy-theme.css";
 @import "../components/mindmaps/mindmaps.css";
 
 @custom-variant dark (&:is(.dark *));
