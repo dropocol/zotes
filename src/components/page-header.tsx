@@ -25,7 +25,7 @@ const defaultGradients: Record<string, { gradient: string; shadow: string }> = {
     gradient: "from-amber-500 to-orange-600",
     shadow: "shadow-amber-500/25",
   },
-  "mind maps": {
+  "mindmaps": {
     gradient: "from-fuchsia-500 to-pink-600",
     shadow: "shadow-fuchsia-500/25",
   },

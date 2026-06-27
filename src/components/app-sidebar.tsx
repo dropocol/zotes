@@ -45,7 +45,7 @@ const data = {
       isActive: false,
     },
     {
-      title: "Mind Maps",
+      title: "Mindmaps",
       url: "/mindmaps",
       icon: Network,
       isActive: false,

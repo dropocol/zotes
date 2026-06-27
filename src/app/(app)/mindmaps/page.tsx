@@ -56,9 +56,9 @@ export default function MindMapsPage() {
   };
 
   return (
-    <DashboardLayout breadcrumbs={[{ title: "Mind Maps", href: "/mindmaps" }]}>
+    <DashboardLayout breadcrumbs={[{ title: "Mindmaps", href: "/mindmaps" }]}>
       <PageHeader
-        title="Mind Maps"
+        title="Mindmaps"
         description="Map out ideas and mental models"
         icon={Network}
         className="mb-6"
@@ -66,7 +66,7 @@ export default function MindMapsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search mind maps..."
+            placeholder="Search mindmaps..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 w-[200px]"
@@ -75,7 +75,7 @@ export default function MindMapsPage() {
         <Button asChild>
           <Link href="/mindmaps/new">
             <Plus className="mr-1.5 h-4 w-4" />
-            New Mind Map
+            New Mindmap
           </Link>
         </Button>
       </PageHeader>

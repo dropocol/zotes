@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     if (!title || title.trim() === "") {
       return NextResponse.json(
-        { error: "Mind map title is required" },
+        { error: "Mindmap title is required" },
         { status: 400 }
       );
     }

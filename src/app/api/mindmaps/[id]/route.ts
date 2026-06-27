@@ -37,7 +37,7 @@ export async function GET(
     });
 
     if (!mindMap) {
-      return NextResponse.json({ error: "Mind map not found" }, { status: 404 });
+      return NextResponse.json({ error: "Mindmap not found" }, { status: 404 });
     }
 
     // Determine user role for the project
@@ -91,7 +91,7 @@ export async function PUT(
     });
 
     if (!existingMindMap) {
-      return NextResponse.json({ error: "Mind map not found" }, { status: 404 });
+      return NextResponse.json({ error: "Mindmap not found" }, { status: 404 });
     }
 
     // Check if user can modify (only owner of mindmap or admin of project)
@@ -160,7 +160,7 @@ export async function DELETE(
     });
 
     if (!existingMindMap) {
-      return NextResponse.json({ error: "Mind map not found" }, { status: 404 });
+      return NextResponse.json({ error: "Mindmap not found" }, { status: 404 });
     }
 
     // Check if user can modify (only owner of mindmap or admin of project)

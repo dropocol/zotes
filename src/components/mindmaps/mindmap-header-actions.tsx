@@ -78,9 +78,9 @@ export function MindMapHeaderActions({
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete Mind Map</DialogTitle>
+              <DialogTitle>Delete Mindmap</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this mind map? This action cannot
+                Are you sure you want to delete this mindmap? This action cannot
                 be undone.
               </DialogDescription>
             </DialogHeader>

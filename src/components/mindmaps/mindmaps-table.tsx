@@ -58,7 +58,7 @@ export function MindMapsTable({
   }, [mindMaps, searchQuery]);
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this mind map?")) return;
+    if (!confirm("Are you sure you want to delete this mindmap?")) return;
 
     try {
       const response = await fetch(`/api/mindmaps/${id}`, {
@@ -113,7 +113,7 @@ export function MindMapsTable({
           {filteredMindMaps.length === 0 ? (
             <TableRow>
               <TableCell colSpan={showProjectColumn ? 6 : 5} className="text-center text-muted-foreground py-8">
-                {emptyMessage || (searchQuery ? "No mind maps found matching your search" : "No mind maps yet. Create your first one to get started.")}
+                {emptyMessage || (searchQuery ? "No mindmaps found matching your search" : "No mindmaps yet. Create your first one to get started.")}
               </TableCell>
             </TableRow>
           ) : (
