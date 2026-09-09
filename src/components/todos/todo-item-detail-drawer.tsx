@@ -251,7 +251,6 @@ export function TodoItemDetailDrawer({
                     mode="single"
                     selected={dueDate}
                     onSelect={setDueDate}
-                    initialFocus
                     className="rounded-lg border"
                   />
                 </PopoverContent>

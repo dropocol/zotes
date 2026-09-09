@@ -393,7 +393,6 @@ export function LeadSheet({
                       mode="single"
                       selected={formData.createdAt ?? undefined}
                       onSelect={(date) => updateField("createdAt", date ?? null)}
-                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
