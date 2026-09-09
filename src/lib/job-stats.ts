@@ -20,6 +20,15 @@ function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * DAY_MS);
 }
 
+/** UTC midnight of the given date. Applied dates are stored at UTC midnight
+ *  (@db.Date), so range windows must be midnight-aligned or the oldest day
+ *  of a range falls before the window start and gets dropped. */
+function startOfUtcDay(date: Date): Date {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+}
+
 /** Monday-based week start (UTC midnight). */
 function weekStart(date: Date): Date {
   const utc = new Date(
@@ -73,7 +82,7 @@ function buildBuckets(
 
   if (range === "7d" || range === "30d" || range === "90d") {
     const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
-    const start = addDays(now, -(days - 1));
+    const start = addDays(startOfUtcDay(now), -(days - 1));
     for (let i = 0; i < days; i++) {
       const day = addDays(start, i);
       const key = dayKey(day);
@@ -267,10 +276,10 @@ export function computeJobStats(
     prevTime = time;
   }
 
-  const windowDays = Math.max(
-    1,
-    Math.ceil((windowEnd.getTime() - windowStart.getTime()) / DAY_MS),
-  );
+  // Count today as an elapsed day so day ranges divide by their full label
+  // (7 for "7d", …) regardless of the current time.
+  const windowDays =
+    Math.floor((windowEnd.getTime() - windowStart.getTime()) / DAY_MS) + 1;
   const windowAppliedCount = windowJobs.filter((j) => appliedDate(j)).length;
   const prevPeriodApplied =
     range === "all"
