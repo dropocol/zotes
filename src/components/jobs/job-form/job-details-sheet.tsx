@@ -31,12 +31,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-  SheetClose,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -414,13 +414,14 @@ export function JobDetailsSheet({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          className="w-full sm:max-w-lg overflow-y-auto p-0 flex flex-col"
-          showCloseButton={false}
+      <Drawer open={open} onOpenChange={onOpenChange} swipeDirection="right">
+        <DrawerContent
+          style={
+            { "--drawer-content-width": "min(92vw, 42rem)" } as React.CSSProperties
+          }
         >
           {/* Header */}
-          <div className="relative bg-muted/30">
+          <div className="relative shrink-0 bg-muted/30">
             {/* Actions */}
             <div className="absolute top-4 right-4 flex items-center gap-0.5">
               {!isCreating && (
@@ -463,11 +464,13 @@ export function JobDetailsSheet({
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <SheetClose asChild>
-                <Button variant="ghost" size="icon" className="size-8">
-                  <X className="size-4" />
-                </Button>
-              </SheetClose>
+              <DrawerClose
+                render={
+                  <Button variant="ghost" size="icon" className="size-8" />
+                }
+              >
+                <X className="size-4" />
+              </DrawerClose>
             </div>
 
             {/* Create Mode Header */}
@@ -478,12 +481,12 @@ export function JobDetailsSheet({
                     <Briefcase className="size-5 text-white" />
                   </div>
                   <div>
-                    <SheetTitle className="text-lg font-bold text-left mb-0.5">
+                    <DrawerTitle className="text-lg font-bold text-left mb-0.5">
                       Add New Job Application
-                    </SheetTitle>
-                    <SheetDescription className="text-sm">
+                    </DrawerTitle>
+                    <DrawerDescription className="text-sm">
                       Track a new job application
-                    </SheetDescription>
+                    </DrawerDescription>
                   </div>
                 </div>
               </div>
@@ -495,13 +498,13 @@ export function JobDetailsSheet({
                 <div className="flex items-start gap-4">
                   <CompanyAvatar name={formData.companyName || "?"} />
                   <div className="flex-1 min-w-0 pt-1">
-                    <SheetTitle className="text-lg font-bold text-left mb-1">
+                    <DrawerTitle className="text-lg font-bold text-left mb-1">
                       {formData.jobTitle || "Untitled Job"}
-                    </SheetTitle>
-                    <SheetDescription className="text-sm font-medium text-foreground/80 flex items-center gap-2">
+                    </DrawerTitle>
+                    <DrawerDescription className="text-sm font-medium text-foreground/80 flex items-center gap-2">
                       <Building2 className="size-4" />
                       {formData.companyName}
-                    </SheetDescription>
+                    </DrawerDescription>
                   </div>
                 </div>
               </div>
@@ -509,8 +512,8 @@ export function JobDetailsSheet({
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-            <div className="px-6 pt-4 pb-6 space-y-4 flex-1">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <div className="px-6 pt-4 pb-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
               {/* Job Title & Company */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -829,8 +832,8 @@ export function JobDetailsSheet({
               </Button>
             </div>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DrawerContent>
+      </Drawer>
 
       {/* Interview Form Dialog */}
       {!isCreating && job && (

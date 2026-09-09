@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetClose,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group";
-import { CalendarIcon, Loader2, Circle, CheckCircle2, Clock } from "lucide-react";
+import { CalendarIcon, Loader2, Circle, CheckCircle2, Clock, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TodoItem, TodoItemStatus, TodoItemPriority } from "@/types";
@@ -133,16 +133,22 @@ export function TodoItemDetailDrawer({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[500px]">
-        <SheetHeader className="border-b px-6 py-4">
-          <SheetTitle className="text-left font-semibold">
+    <Drawer open={open} onOpenChange={onOpenChange} swipeDirection="right">
+      <DrawerContent
+        style={
+          { "--drawer-content-width": "min(92vw, 42rem)" } as CSSProperties
+        }
+      >
+        <DrawerHeader className="relative border-b px-6 py-4">
+          <DrawerTitle className="text-left font-semibold">
             Task Details
-          </SheetTitle>
-          <SheetClose className="rounded-sm opacity-70 hover:opacity-100" />
-        </SheetHeader>
+          </DrawerTitle>
+          <DrawerClose className="absolute top-4 right-4 flex size-8 items-center justify-center rounded-sm opacity-70 transition-opacity hover:opacity-100">
+            <X className="size-4" />
+          </DrawerClose>
+        </DrawerHeader>
 
-        <div className="px-6 py-6 space-y-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium">Title</Label>
@@ -332,7 +338,7 @@ export function TodoItemDetailDrawer({
             </Button>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   );
 }
