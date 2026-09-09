@@ -104,7 +104,15 @@ export async function PUT(
     if (data.location !== undefined) updateData.location = data.location || null;
     if (data.isRemote !== undefined) updateData.isRemote = data.isRemote;
     if (data.status !== undefined) updateData.status = data.status;
-    if (data.responseReceived !== undefined) updateData.responseReceived = data.responseReceived;
+    if (data.responseReceived !== undefined) {
+      updateData.responseReceived = data.responseReceived;
+      if (data.responseReceived === "PENDING") {
+        updateData.responseDate = null;
+      } else if (!existingJob.responseDate) {
+        // First time marking a response — stamp when it happened
+        updateData.responseDate = new Date();
+      }
+    }
     if (data.notes !== undefined) updateData.notes = data.notes || null;
     if (dateFound !== undefined) updateData.dateFound = dateFound;
     if (dateApplied !== undefined) updateData.dateApplied = dateApplied;

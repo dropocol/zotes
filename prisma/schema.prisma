@@ -341,6 +341,7 @@ model JobApplication {
   isRemote          Boolean               @default(false) @map("is_remote")
   status            JobApplicationStatus  @default(SAVED)
   responseReceived  ResponseStatus        @default(PENDING) @map("response_received")
+  responseDate      DateTime?             @map("response_date")
   notes             String?               @db.Text // Rich text HTML
   dateFound         DateTime?             @map("date_found") @db.Date
   dateApplied       DateTime?             @map("date_applied") @db.Date
@@ -351,8 +352,9 @@ model JobApplication {
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   interviews JobInterview[]
 
-  @@index([userId])
-  @@index([status])
+  @@index([userId, status])
+  @@index([userId, dateApplied])
+  @@index([userId, createdAt])
   @@map("job_applications")
 }
 

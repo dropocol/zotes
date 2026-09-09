@@ -120,6 +120,10 @@ export async function POST(request: NextRequest) {
         isRemote: data.isRemote ?? false,
         status: data.status || "SAVED",
         responseReceived: data.responseReceived || "PENDING",
+        responseDate:
+          data.responseReceived && data.responseReceived !== "PENDING"
+            ? new Date()
+            : null,
         notes: data.notes || null,
         dateFound,
         dateApplied,

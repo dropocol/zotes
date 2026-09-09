@@ -64,6 +64,82 @@ export const INTERVIEW_TYPES: InterviewType[] = [
 ];
 
 // ============================================================================
+// JOB STATS
+// ============================================================================
+
+export type StatsRange = "7d" | "30d" | "90d" | "6m" | "1y" | "all";
+
+export interface StatsSeriesPoint {
+  /** ISO date key of the bucket start, e.g. "2026-09-07" (week start for weekly buckets) */
+  date: string;
+  applied: number;
+  responses: number;
+  interviews: number;
+}
+
+export interface JobStats {
+  range: StatsRange;
+  bucket: "day" | "week" | "month";
+  /** Time-bucketed activity for the selected window, zero-filled */
+  series: StatsSeriesPoint[];
+  summary: {
+    /** All jobs in the selected window, including saved ones */
+    total: number;
+    /** Jobs actually applied to in the window (denominator for all rates) */
+    applied: number;
+    saved: number;
+    responseRate: number;
+    interviewRate: number;
+    offerRate: number;
+    /** responseReceived === YES */
+    responded: number;
+    /** responseReceived === NO */
+    noResponse: number;
+    pending: number;
+    offers: number;
+    rejections: number;
+    totalInterviews: number;
+    jobsWithInterviews: number;
+    /** Average days from dateApplied to responseDate, null when unknown */
+    avgResponseDays: number | null;
+  };
+  pace: {
+    thisWeek: number;
+    lastWeek: number;
+    avgPerDay: number;
+    avgPerWeek: number;
+    activeDays: number;
+    currentStreak: number;
+    longestStreak: number;
+    /** Applications in the previous window of equal length; null for "all" */
+    prevPeriodApplied: number | null;
+  };
+  funnel: {
+    applied: number;
+    responded: number;
+    interviewed: number;
+    offers: number;
+  };
+  byStatus: Record<string, number>;
+  bySource: Record<string, number>;
+  byMethod: Record<string, number>;
+  /** Daily application counts for the last 26 weeks (all-time data), Monday-aligned */
+  heatmap: { date: string; count: number }[];
+  responseRateBySource: Record<
+    string,
+    { total: number; responded: number; rate: number }
+  >;
+  upcomingInterviews: {
+    id: string;
+    jobTitle: string;
+    companyName: string;
+    type: string;
+    roundNumber: number;
+    scheduledAt: string;
+  }[];
+}
+
+// ============================================================================
 // VIEW TYPES
 // ============================================================================
 

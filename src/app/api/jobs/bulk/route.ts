@@ -60,7 +60,12 @@ export async function PATCH(request: NextRequest) {
     // Build update payload from only the provided fields
     const updateData: Record<string, unknown> = {};
     if (data.status !== undefined) updateData.status = data.status;
-    if (data.responseReceived !== undefined) updateData.responseReceived = data.responseReceived;
+    if (data.responseReceived !== undefined) {
+      updateData.responseReceived = data.responseReceived;
+      // Clear response dates when bulk-resetting to pending; existing dates
+      // are kept otherwise so we don't overwrite real history with "now".
+      if (data.responseReceived === "PENDING") updateData.responseDate = null;
+    }
     if (data.source !== undefined) updateData.source = data.source;
     if (data.applicationMethod !== undefined) updateData.applicationMethod = data.applicationMethod;
 

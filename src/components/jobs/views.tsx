@@ -3,13 +3,6 @@
 import React from "react";
 import { Briefcase, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useJobs, JobViewHeader } from "./job-context";
 import { ListView } from "./list-view/list-view";
 import { CalendarView } from "./calendar-view/calendar-view";
@@ -62,6 +55,15 @@ export function JobStatsView() {
     );
   }
 
+  const ranges = [
+    { value: "7d", label: "7D" },
+    { value: "30d", label: "30D" },
+    { value: "90d", label: "90D" },
+    { value: "6m", label: "6M" },
+    { value: "1y", label: "1Y" },
+    { value: "all", label: "All" },
+  ] as const;
+
   return (
     <>
       {/* Custom Header with Range Selector and Add Job Button on same line */}
@@ -78,16 +80,21 @@ export function JobStatsView() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={statsRange} onValueChange={setStatsRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">Last 7 days</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">Last Year</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center rounded-lg border bg-muted/40 p-0.5">
+            {ranges.map((r) => (
+              <button
+                key={r.value}
+                onClick={() => setStatsRange(r.value)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  statsRange === r.value
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
           <Button onClick={showAddJobForm}>
             <Plus className="size-4 mr-2" />
             Add Job

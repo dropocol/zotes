@@ -17,7 +17,7 @@ import { JobDetailsSheet } from "./job-form/job-details-sheet";
 import { ListView } from "./list-view/list-view";
 import { CalendarView } from "./calendar-view/calendar-view";
 import { StatsView } from "./stats-view/stats-view";
-import { JobBoardViewType, JobBoardView } from "@/types/jobs";
+import { JobBoardViewType, JobBoardView, type JobStats } from "@/types/jobs";
 import type {
   JobApplication,
   JobInterview,
@@ -37,28 +37,7 @@ interface JobWithInterviews extends JobApplication {
 
 interface JobBoardProps {
   initialJobs?: JobWithInterviews[];
-  initialStats?: {
-    range: string;
-    summary: {
-      total: number;
-      responseRate: number;
-      interviewRate: number;
-      offerRate: number;
-      respondedYes: number;
-      respondedNo: number;
-      pending: number;
-      totalInterviews: number;
-      jobsWithInterviews: number;
-    };
-    byStatus: Record<string, number>;
-    bySource: Record<string, number>;
-    byMethod: Record<string, number>;
-    applicationsOverTime: Record<string, number>;
-    responseRateBySource: Record<
-      string,
-      { total: number; responded: number; rate: number }
-    >;
-  } | null;
+  initialStats?: JobStats | null;
 }
 
 export function JobBoard({
@@ -84,7 +63,7 @@ export function JobBoard({
   const [view, setView] = React.useState<JobBoardViewType>(getInitialView);
   const [jobs, setJobs] = React.useState<JobWithInterviews[]>(initialJobs);
   const [stats, setStats] = React.useState(initialStats);
-  const [statsRange, setStatsRange] = React.useState("month");
+  const [statsRange, setStatsRange] = React.useState("1y");
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasInitiallyFetched, setHasInitiallyFetched] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);

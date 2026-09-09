@@ -2,26 +2,9 @@
 
 import * as React from "react";
 import { JobsProvider, JobWithInterviews } from "./job-context";
+import type { JobStats } from "@/types/jobs";
 
-interface JobStats {
-  range: string;
-  summary: {
-    total: number;
-    responseRate: number;
-    interviewRate: number;
-    offerRate: number;
-    respondedYes: number;
-    respondedNo: number;
-    pending: number;
-    totalInterviews: number;
-    jobsWithInterviews: number;
-  };
-  byStatus: Record<string, number>;
-  bySource: Record<string, number>;
-  byMethod: Record<string, number>;
-  applicationsOverTime: Record<string, number>;
-  responseRateBySource: Record<string, { total: number; responded: number; rate: number }>;
-}
+export type { JobStats };
 
 interface JobViewLayoutProps {
   children: React.ReactNode;
