@@ -19,11 +19,17 @@ export default async function JobStatsPage() {
     return null;
   }
 
-  const initialJobs = await prisma.jobApplication.findMany({
-    where: { userId: session.user.id },
-    include: { interviews: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [initialJobs, user] = await Promise.all([
+    prisma.jobApplication.findMany({
+      where: { userId: session.user.id },
+      include: { interviews: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { shareToken: true },
+    }),
+  ]);
 
   const initialStats = computeJobStats(initialJobs, "1y");
 
@@ -35,7 +41,7 @@ export default async function JobStatsPage() {
       ]}
     >
       <JobViewLayout initialJobs={initialJobs} initialStats={initialStats}>
-        <JobStatsView />
+        <JobStatsView shareToken={user?.shareToken ?? null} />
       </JobViewLayout>
     </DashboardLayout>
   );

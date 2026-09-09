@@ -8,6 +8,7 @@ import {
   Clock,
   Flame,
   Inbox,
+  MoveHorizontal,
   Send,
   Trophy,
   TrendingDown,
@@ -38,6 +39,8 @@ import type {
 
 interface StatsViewProps {
   stats: JobStats | null;
+  /** "public" renders the same stats without links to in-app pages (share page). */
+  variant?: "default" | "public";
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +92,24 @@ function Heatmap({ stats }: { stats: JobStats }) {
   for (let i = 0; i < stats.heatmap.length; i += 7) {
     weeks.push(stats.heatmap.slice(i, i + 7));
   }
+
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [isScrollable, setIsScrollable] = React.useState(false);
+
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const scrollable = el.scrollWidth > el.clientWidth + 1;
+      setIsScrollable(scrollable);
+      // Newest data sits at the right edge — start the view there
+      if (scrollable) el.scrollLeft = el.scrollWidth;
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const maxCount = Math.max(1, ...stats.heatmap.map((d) => d.count));
   const level = (count: number) => {
     if (count === 0) return "bg-muted";
@@ -103,8 +124,10 @@ function Heatmap({ stats }: { stats: JobStats }) {
     <div className="stat-fade-up rounded-xl border bg-card" style={{ animationDelay: "180ms" }}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
         <div>
-          <h3 className="font-medium">Consistency</h3>
-          <p className="text-xs text-muted-foreground">Daily applications, last 26 weeks</p>
+          <h3 className="text-base font-semibold sm:text-lg">Consistency</h3>
+          <p className="text-xs text-muted-foreground sm:text-sm">
+            Daily applications, last 26 weeks
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 rounded-full bg-orange-500/10 px-2.5 py-1 text-xs font-medium text-orange-600 dark:text-orange-400">
@@ -122,68 +145,78 @@ function Heatmap({ stats }: { stats: JobStats }) {
       </div>
 
       <div className="p-4 sm:p-5">
-        <div className="flex w-full flex-col gap-1.5">
-          {/* month labels, aligned over the week columns */}
-          <div className="flex gap-1 pl-6">
-            {weeks.map((w, i) => {
-              const month = format(parseISO(w[0].date + "T00:00:00Z"), "MMM");
-              const prev = i > 0 ? format(parseISO(weeks[i - 1][0].date + "T00:00:00Z"), "MMM") : null;
-              return (
-                <div key={w[0].date} className="min-w-0 flex-1 text-[10px] leading-none text-muted-foreground">
-                  {month !== prev ? month : ""}
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex gap-1.5">
-            {/* weekday labels */}
-            <div className="grid w-5 shrink-0 grid-rows-7 gap-1 text-[10px] leading-none text-muted-foreground">
-              <span className="flex items-center">M</span>
-              <span />
-              <span className="flex items-center">W</span>
-              <span />
-              <span className="flex items-center">F</span>
-              <span />
-              <span />
+        {/* Scrollable on phones so cells stay readable instead of shrinking
+            to a few px; desktop widths fit without scrolling. */}
+        <div ref={scrollRef} className="overflow-x-auto pb-1">
+          <div className="flex w-full min-w-[560px] flex-col gap-1.5">
+            {/* month labels, aligned over the week columns */}
+            <div className="flex gap-1 pl-6">
+              {weeks.map((w, i) => {
+                const month = format(parseISO(w[0].date + "T00:00:00Z"), "MMM");
+                const prev = i > 0 ? format(parseISO(weeks[i - 1][0].date + "T00:00:00Z"), "MMM") : null;
+                return (
+                  <div key={w[0].date} className="min-w-0 flex-1 text-[10px] leading-none text-muted-foreground">
+                    {month !== prev ? month : ""}
+                  </div>
+                );
+              })}
             </div>
-            {/* grid — cells scale with the card width */}
-            <div className="flex flex-1 gap-1">
-              {weeks.map((week) => (
-                <div key={week[0].date} className="flex min-w-0 flex-1 flex-col gap-1">
-                  {week.map((day) => (
-                    <Tooltip key={day.date}>
-                      <TooltipTrigger asChild>
-                        <span
-                          className={cn(
-                            "aspect-square w-full rounded-[3px] transition-transform hover:scale-110 hover:ring-2 hover:ring-emerald-500/50",
-                            level(day.count),
-                          )}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p className="font-medium">
-                          {day.count} application{day.count === 1 ? "" : "s"}
-                        </p>
-                        <p className="opacity-80">
-                          {format(parseISO(day.date + "T00:00:00Z"), "EEE, d MMM yyyy")}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
-              ))}
+            <div className="flex gap-1.5">
+              {/* weekday labels — sticky so they stay visible while scrolling */}
+              <div className="sticky left-0 z-10 grid w-5 shrink-0 grid-rows-7 gap-1 bg-card text-[10px] leading-none text-muted-foreground">
+                <span className="flex items-center">M</span>
+                <span />
+                <span className="flex items-center">W</span>
+                <span />
+                <span className="flex items-center">F</span>
+                <span />
+                <span />
+              </div>
+              {/* grid — cells scale with the card width */}
+              <div className="flex flex-1 gap-1">
+                {weeks.map((week) => (
+                  <div key={week[0].date} className="flex min-w-0 flex-1 flex-col gap-1">
+                    {week.map((day) => (
+                      <Tooltip key={day.date}>
+                        <TooltipTrigger asChild>
+                          <span
+                            className={cn(
+                              "aspect-square w-full rounded-[3px] transition-transform hover:scale-110 hover:ring-2 hover:ring-emerald-500/50",
+                              level(day.count),
+                            )}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="font-medium">
+                            {day.count} application{day.count === 1 ? "" : "s"}
+                          </p>
+                          <p className="opacity-80">
+                            {format(parseISO(day.date + "T00:00:00Z"), "EEE, d MMM yyyy")}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          {/* legend */}
-          <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
-            Less
-            <span className="size-3 rounded-[2px] bg-muted" />
-            <span className="size-3 rounded-[2px] bg-emerald-200 dark:bg-emerald-900" />
-            <span className="size-3 rounded-[2px] bg-emerald-400 dark:bg-emerald-700" />
-            <span className="size-3 rounded-[2px] bg-emerald-500 dark:bg-emerald-500" />
-            More
+            {/* legend */}
+            <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
+              Less
+              <span className="size-3 rounded-[2px] bg-muted" />
+              <span className="size-3 rounded-[2px] bg-emerald-200 dark:bg-emerald-900" />
+              <span className="size-3 rounded-[2px] bg-emerald-400 dark:bg-emerald-700" />
+              <span className="size-3 rounded-[2px] bg-emerald-500 dark:bg-emerald-500" />
+              More
+            </div>
           </div>
         </div>
+        {isScrollable && (
+          <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <MoveHorizontal className="size-3.5" />
+            Scroll to see the full timeline
+          </p>
+        )}
       </div>
     </div>
   );
@@ -206,8 +239,8 @@ function Funnel({ stats }: { stats: JobStats }) {
   return (
     <div className="stat-fade-up rounded-xl border bg-card" style={{ animationDelay: "240ms" }}>
       <div className="border-b p-4">
-        <h3 className="font-medium">Pipeline funnel</h3>
-        <p className="text-xs text-muted-foreground">How applications convert downstream</p>
+          <h3 className="text-base font-semibold sm:text-lg">Pipeline funnel</h3>
+          <p className="text-xs text-muted-foreground sm:text-sm">How applications convert downstream</p>
       </div>
       <div className="space-y-4 p-4">
         {stages.map((stage, i) => {
@@ -257,8 +290,8 @@ function StatusDonut({ stats }: { stats: JobStats }) {
   return (
     <div className="stat-fade-up rounded-xl border bg-card" style={{ animationDelay: "300ms" }}>
       <div className="border-b p-4">
-        <h3 className="font-medium">Status breakdown</h3>
-        <p className="text-xs text-muted-foreground">Where every application stands</p>
+          <h3 className="text-base font-semibold sm:text-lg">Status breakdown</h3>
+          <p className="text-xs text-muted-foreground sm:text-sm">Where every application stands</p>
       </div>
       <div className="p-4">
         {total === 0 ? (
@@ -328,8 +361,8 @@ function SourcePerformance({ stats }: { stats: JobStats }) {
   return (
     <div className="stat-fade-up rounded-xl border bg-card" style={{ animationDelay: "360ms" }}>
       <div className="border-b p-4">
-        <h3 className="font-medium">Source performance</h3>
-        <p className="text-xs text-muted-foreground">Which channels actually reply</p>
+          <h3 className="text-base font-semibold sm:text-lg">Source performance</h3>
+          <p className="text-xs text-muted-foreground sm:text-sm">Which channels actually reply</p>
       </div>
       <div className="p-4">
         {rows.length === 0 ? (
@@ -375,8 +408,8 @@ function UpcomingInterviews({ stats }: { stats: JobStats }) {
   return (
     <div className="stat-fade-up rounded-xl border bg-card" style={{ animationDelay: "420ms" }}>
       <div className="border-b p-4">
-        <h3 className="font-medium">Upcoming interviews</h3>
-        <p className="text-xs text-muted-foreground">Next on your calendar</p>
+          <h3 className="text-base font-semibold sm:text-lg">Upcoming interviews</h3>
+          <p className="text-xs text-muted-foreground sm:text-sm">Next on your calendar</p>
       </div>
       <div className="p-4">
         {upcoming.length === 0 ? (
@@ -424,7 +457,7 @@ function UpcomingInterviews({ stats }: { stats: JobStats }) {
 // Main view
 // ---------------------------------------------------------------------------
 
-export function StatsView({ stats }: StatsViewProps) {
+export function StatsView({ stats, variant = "default" }: StatsViewProps) {
   if (!stats) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -451,6 +484,10 @@ export function StatsView({ stats }: StatsViewProps) {
     pace.prevPeriodApplied !== null && pace.prevPeriodApplied > 0
       ? Math.round(((summary.applied - pace.prevPeriodApplied) / pace.prevPeriodApplied) * 100)
       : null;
+
+  const linkProps = variant === "public" ? {} : { href: "/jobs/list" };
+  const linkPropsCalendar =
+    variant === "public" ? {} : { href: "/jobs/calendar" };
 
   return (
     <div className="space-y-6">
@@ -481,7 +518,7 @@ export function StatsView({ stats }: StatsViewProps) {
                 rangeLabels[stats.range] ?? stats.range
               )
             }
-            href="/jobs/list"
+            {...linkProps}
           />
           <KpiCell
             icon={Send}
@@ -510,7 +547,7 @@ export function StatsView({ stats }: StatsViewProps) {
             label="Interviews"
             value={String(summary.totalInterviews)}
             sub={`${summary.jobsWithInterviews} jobs · ${summary.interviewRate}%`}
-            href="/jobs/calendar"
+            {...linkPropsCalendar}
           />
           <KpiCell
             icon={Trophy}
@@ -522,7 +559,7 @@ export function StatsView({ stats }: StatsViewProps) {
                 ? "text-emerald-600 dark:text-emerald-400"
                 : undefined
             }
-            href="/jobs/list"
+            {...linkProps}
           />
       </KpiBand>
 

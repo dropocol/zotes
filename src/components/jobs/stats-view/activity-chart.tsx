@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   Bar,
   BarChart,
@@ -7,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { MoveHorizontal } from "lucide-react";
 import {
   ChartLegend,
   ChartLegendContent,
@@ -48,13 +50,43 @@ export function BarActivityChart({
     (d) => d.applied > 0 || d.responses > 0 || d.interviews > 0,
   );
 
+  // Give bars room to breathe on narrow screens: render the canvas at a
+  // minimum width (per-bucket) inside a horizontal scroller below lg, where
+  // cards get too narrow for every bucket. Desktop cards fit as before.
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [isScrollable, setIsScrollable] = React.useState(false);
+
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const scrollable = el.scrollWidth > el.clientWidth + 1;
+      setIsScrollable(scrollable);
+      // Newest data sits at the right edge — start the view there
+      if (scrollable) el.scrollLeft = el.scrollWidth;
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [series.length, hasData]);
+
+  const perBucket = bucket === "day" ? 28 : 44;
+  const minWidth = Math.max(560, series.length * perBucket);
+
   return (
     <div className={cn("flex flex-1 flex-col", className)}>
       {hasData ? (
-        <ChartContainer
-          config={activityChartConfig}
-          className="aspect-auto h-[260px] w-full"
-        >
+        <>
+          <div ref={scrollRef} className="overflow-x-auto">
+            <div
+              className="w-full max-lg:min-w-(--chart-min-w)"
+              style={{ "--chart-min-w": `${minWidth}px` } as React.CSSProperties}
+            >
+              <ChartContainer
+                config={activityChartConfig}
+                className="aspect-auto h-[300px] w-full sm:h-[300px] lg:h-[340px]"
+              >
           <BarChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid vertical={false} />
             <XAxis
@@ -107,9 +139,18 @@ export function BarActivityChart({
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
-        </ChartContainer>
+              </ChartContainer>
+            </div>
+          </div>
+          {isScrollable && (
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              <MoveHorizontal className="size-3.5" />
+              Scroll to see the full timeline
+            </p>
+          )}
+        </>
       ) : (
-        <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+        <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
           No applications in this period
         </div>
       )}
@@ -132,8 +173,10 @@ export function ActivityChart({
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b p-4">
         <div>
-          <h3 className="font-medium">Application activity</h3>
-          <p className="text-xs text-muted-foreground">
+          <h3 className="text-base font-semibold sm:text-lg">
+            Application activity
+          </h3>
+          <p className="text-xs text-muted-foreground sm:text-sm">
             Per {bucket}, with replies &amp; interviews
           </p>
         </div>

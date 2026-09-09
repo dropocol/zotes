@@ -7,6 +7,7 @@ import { useJobs, JobViewHeader } from "./job-context";
 import { ListView } from "./list-view/list-view";
 import { CalendarView } from "./calendar-view/calendar-view";
 import { StatsView } from "./stats-view/stats-view";
+import { ShareStatsButton } from "./stats-view/share-stats-button";
 
 export function JobListView() {
   const { handleJobClick, jobsVersion } = useJobs();
@@ -41,7 +42,11 @@ export function JobCalendarView() {
   );
 }
 
-export function JobStatsView() {
+export function JobStatsView({
+  shareToken = null,
+}: {
+  shareToken?: string | null;
+}) {
   const { stats, statsRange, setStatsRange, isLoading, showAddJobForm } = useJobs();
 
   if (isLoading && !stats) {
@@ -95,6 +100,7 @@ export function JobStatsView() {
               </button>
             ))}
           </div>
+          <ShareStatsButton shareToken={shareToken} />
           <Button onClick={showAddJobForm}>
             <Plus className="size-4 mr-2" />
             Add Job
