@@ -182,7 +182,7 @@ export function JobQuickAdd({ open, onOpenChange, onAdd }: JobQuickAddProps) {
               }
             }}
             disabled={isAdding}
-            className="border-0 shadow-none focus-visible:ring-0 px-0 h-auto py-1"
+            className="border-0 shadow-none focus-visible:ring-0 px-3 h-auto py-1"
           />
           {recent.length > 0 && (
             <Button

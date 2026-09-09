@@ -1,30 +1,35 @@
 "use client";
 
 import * as React from "react";
-import { Layers, StickyNote, Home, CheckSquare, Moon, Briefcase, List, BarChart3, Users, Network } from "lucide-react";
+import {
+  Briefcase,
+  CheckSquare,
+  Home,
+  Layers,
+  Moon,
+  NotebookPen,
+  StickyNote,
+  User,
+  Users,
+  Network,
+} from "lucide-react";
+import Link from "next/link";
 
 import { NavMain } from "@/components/nav-main";
-import { NavRecent } from "@/components/nav-recent";
+import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { TeamSwitcher } from "@/components/team-switcher";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const data = {
-  teams: [
-    {
-      name: "Zotes",
-      logo: StickyNote,
-      plan: "Personal",
-    },
-  ],
   navMain: [
     {
       title: "Dashboard",
@@ -103,20 +108,37 @@ const data = {
       isActive: false,
     },
   ],
+  navSecondary: [
+    {
+      title: "Account",
+      url: "/account",
+      icon: <User />,
+    },
+  ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
+            >
+              <Link href="/dashboard">
+                <NotebookPen className="size-5!" />
+                <span className="text-base font-semibold">Zotes</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="overflow-x-hidden">
-        <ScrollArea className="h-full">
-          <NavMain items={data.navMain} />
-          <SidebarSeparator />
-          <NavRecent />
-        </ScrollArea>
+      <SidebarContent>
+        <NavMain items={data.navMain} />
+        {/* Recent items hidden for now — re-enable with <NavRecent /> */}
+        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

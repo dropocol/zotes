@@ -34,13 +34,28 @@ export function DashboardLayout({
   usePageTitle();
 
   return (
-    <SidebarProvider suppressHydrationWarning>
-      <AppSidebar />
-      <SidebarInset className={fullHeight ? "flex flex-col h-screen overflow-hidden" : undefined}>
-        <header className="flex h-14 shrink-0 items-center justify-between border-b px-4 sticky top-0 bg-background z-20">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <SidebarTrigger className="-ml-1 shrink-0" />
-            <Separator orientation="vertical" className="mr-2 h-4 shrink-0" />
+    <SidebarProvider
+      suppressHydrationWarning
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset
+        className={
+          fullHeight ? "flex h-screen flex-col overflow-hidden" : undefined
+        }
+      >
+        <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+          <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mx-2 h-4 data-vertical:self-auto"
+            />
             {breadcrumbs && (
               <Breadcrumb>
                 <BreadcrumbList>
@@ -68,17 +83,19 @@ export function DashboardLayout({
               </Breadcrumb>
             )}
             {headerContent}
+            {headerActions && (
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                {headerActions}
+              </div>
+            )}
           </div>
-          {headerActions && (
-            <div className="flex items-center gap-2 shrink-0 ml-4">
-              {headerActions}
-            </div>
-          )}
         </header>
         {fullHeight ? (
-          <div className="flex-1 overflow-hidden flex flex-col">{children}</div>
+          <div className="flex flex-1 flex-col overflow-hidden">{children}</div>
         ) : (
-          <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
+          <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6 lg:px-6">
+            {children}
+          </div>
         )}
       </SidebarInset>
     </SidebarProvider>

@@ -324,7 +324,7 @@ export function TodoItemRow({
                 value={subItemForm.title}
                 onChange={(e) => subItemForm.onTitleChange(e.target.value)}
                 autoFocus
-                className="border-0 shadow-none focus-visible:ring-0 px-0 h-auto py-1 text-sm"
+                className="border-0 shadow-none focus-visible:ring-0 px-3 h-auto py-1 text-sm"
               />
               <Button
                 type="submit"

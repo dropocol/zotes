@@ -54,7 +54,7 @@ export function TodoItemInput({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           disabled={disabled || isAdding}
-          className="border-0 shadow-none focus-visible:ring-0 px-0 h-auto py-1 text-sm"
+          className="border-0 shadow-none focus-visible:ring-0 px-3 h-auto py-1 text-sm"
         />
         {title.trim() && (
           <Button

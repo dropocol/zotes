@@ -17,6 +17,8 @@ import {
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { SourceIcon } from "../shared/source-icon";
+import { ActivityChart } from "./activity-chart";
+import { KpiCell, KpiBand } from "@/components/kpi-band";
 import {
   Tooltip,
   TooltipContent,
@@ -32,7 +34,6 @@ import type {
   JobApplicationStatus,
   JobSource,
   JobStats,
-  StatsSeriesPoint,
 } from "@/types/jobs";
 
 interface StatsViewProps {
@@ -78,211 +79,6 @@ const statusStrokes: Record<string, string> = {
   WITHDRAWN: "#9ca3af",
   NO_RESPONSE: "#c084fc",
 };
-
-// ---------------------------------------------------------------------------
-// KPI band
-// ---------------------------------------------------------------------------
-
-function KpiCard({
-  label,
-  value,
-  sub,
-  icon,
-  accent,
-  delay,
-  delta,
-}: {
-  label: string;
-  value: React.ReactNode;
-  sub: React.ReactNode;
-  icon: React.ReactNode;
-  accent: string;
-  delay: number;
-  delta?: number | null;
-}) {
-  return (
-    <div className="stat-fade-up relative overflow-hidden rounded-xl border bg-card p-4" style={{ animationDelay: `${delay}ms` }}>
-      <div className={cn("absolute inset-x-0 top-0 h-0.5", accent)} />
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-          {label}
-        </span>
-        {icon}
-      </div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <p className="font-mono text-3xl font-semibold tracking-tighter tabular-nums">
-          {value}
-        </p>
-        {delta !== null && delta !== undefined && (
-          <span
-            className={cn(
-              "flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
-              delta >= 0
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : "bg-red-500/10 text-red-600 dark:text-red-400",
-            )}
-          >
-            {delta >= 0 ? (
-              <TrendingUp className="size-3" />
-            ) : (
-              <TrendingDown className="size-3" />
-            )}
-            {Math.abs(delta)}%
-          </span>
-        )}
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Activity chart — daily bars + response/interview markers
-// ---------------------------------------------------------------------------
-
-function ActivityChart({
-  series,
-  bucket,
-}: {
-  series: StatsSeriesPoint[];
-  bucket: JobStats["bucket"];
-}) {
-  const [hover, setHover] = React.useState<number | null>(null);
-  const n = series.length;
-  const max = Math.max(1, ...series.map((p) => p.applied));
-  const labelEvery = Math.max(1, Math.ceil(n / 8));
-
-  const pointLabel = (dateStr: string) =>
-    bucket === "month"
-      ? format(parseISO(dateStr + "T00:00:00Z"), "MMM yy")
-      : format(parseISO(dateStr + "T00:00:00Z"), "d MMM");
-
-  const hovered = hover !== null ? series[hover] : null;
-
-  return (
-    <div className="stat-fade-up rounded-xl border bg-card" style={{ animationDelay: "120ms" }}>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b p-4">
-        <div>
-          <h3 className="font-medium">Application activity</h3>
-          <p className="text-xs text-muted-foreground">Per {bucket}, with replies &amp; interviews</p>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-sm bg-emerald-500" /> Applied
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-sky-500" /> Response
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rotate-45 bg-amber-500" /> Interview
-          </span>
-        </div>
-      </div>
-
-      <div className="relative p-4" onMouseLeave={() => setHover(null)}>
-        {/* hover tooltip */}
-        {hovered && (
-          <div
-            className={cn(
-              "pointer-events-none absolute top-2 z-10 min-w-36 rounded-lg border bg-popover p-2.5 shadow-md",
-              hover !== null && hover < 2
-                ? "translate-x-0"
-                : hover !== null && hover > n - 3
-                  ? "-translate-x-full"
-                  : "-translate-x-1/2",
-            )}
-            style={{ left: `${((hover ?? 0) + 0.5) * (100 / n)}%` }}
-          >
-            <p className="mb-1.5 text-xs font-medium">
-              {pointLabel(hovered.date)}
-            </p>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-sm bg-emerald-500" /> Applied
-                </span>
-                <span className="font-mono font-medium tabular-nums">{hovered.applied}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-sky-500" /> Responses
-                </span>
-                <span className="font-mono font-medium tabular-nums">{hovered.responses}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rotate-45 bg-amber-500" /> Interviews
-                </span>
-                <span className="font-mono font-medium tabular-nums">{hovered.interviews}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex h-44 items-end gap-px">
-          {series.map((p, i) => {
-            const barPct = (p.applied / max) * 100;
-            return (
-              <div
-                key={p.date}
-                className="relative flex h-full flex-1 items-end"
-                onMouseEnter={() => setHover(i)}
-              >
-                {hover === i && (
-                  <div className="pointer-events-none absolute inset-0 rounded-sm bg-muted-foreground/10" />
-                )}
-                <div
-                  className={cn(
-                    "stat-rise w-full rounded-t-[2px]",
-                    p.applied > 0
-                      ? "bg-linear-to-t from-emerald-600 to-emerald-400"
-                      : "bg-border/60",
-                    hover === i && p.applied > 0 && "from-emerald-500 to-emerald-300",
-                  )}
-                  style={{
-                    height: p.applied > 0 ? `${Math.max(barPct, 3)}%` : "2px",
-                    animationDelay: `${Math.min(i * 8, 600)}ms`,
-                  }}
-                />
-                {p.responses > 0 && (
-                  <span
-                    className="stat-pop absolute left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-sky-500"
-                    style={{
-                      bottom: `calc(${Math.max(barPct, 3)}% + 8px)`,
-                      animationDelay: `${Math.min(400 + i * 8, 900)}ms`,
-                    }}
-                  />
-                )}
-                {p.interviews > 0 && (
-                  <span
-                    className="stat-pop absolute left-1/2 size-1.5 -translate-x-1/2 rotate-45 bg-amber-500"
-                    style={{
-                      bottom: `calc(${Math.max(barPct, 3)}% + 17px)`,
-                      animationDelay: `${Math.min(400 + i * 8, 900)}ms`,
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* x axis labels */}
-        <div className="mt-2 flex gap-px">
-          {series.map((p, i) => (
-            <div key={p.date} className="flex-1 overflow-visible text-center">
-              {i % labelEvery === 0 && (
-                <span className="text-[10px] text-muted-foreground">
-                  {pointLabel(p.date)}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Consistency heatmap + streaks
@@ -658,58 +454,77 @@ export function StatsView({ stats }: StatsViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* KPI band */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-        <KpiCard
-          label="Applications"
-          value={summary.applied}
-          delta={delta}
-          sub={`${rangeLabels[stats.range] ?? stats.range}${summary.saved > 0 ? ` · ${summary.saved} saved` : ""}`}
-          icon={<Briefcase className="size-4 text-muted-foreground" />}
-          accent="bg-emerald-500"
-          delay={0}
-        />
-        <KpiCard
-          label="Avg / day"
-          value={num(pace.avgPerDay)}
-          sub={`${num(pace.avgPerWeek)}/week pace`}
-          icon={<Send className="size-4 text-muted-foreground" />}
-          accent="bg-teal-500"
-          delay={40}
-        />
-        <KpiCard
-          label="Response rate"
-          value={`${summary.responseRate}%`}
-          sub={`${summary.responded} of ${summary.applied} replied`}
-          icon={<CheckCircle2 className="size-4 text-emerald-500" />}
-          accent="bg-sky-500"
-          delay={80}
-        />
-        <KpiCard
-          label="Avg reply"
-          value={summary.avgResponseDays !== null ? `${num(summary.avgResponseDays)}d` : "—"}
-          sub="days to hear back"
-          icon={<Clock className="size-4 text-muted-foreground" />}
-          accent="bg-sky-400"
-          delay={120}
-        />
-        <KpiCard
-          label="Interviews"
-          value={summary.totalInterviews}
-          sub={`${summary.jobsWithInterviews} jobs · ${summary.interviewRate}%`}
-          icon={<Users className="size-4 text-amber-500" />}
-          accent="bg-amber-500"
-          delay={160}
-        />
-        <KpiCard
-          label="Offers"
-          value={summary.offers}
-          sub={`${summary.offerRate}% of applications`}
-          icon={<Trophy className="size-4 text-violet-500" />}
-          accent="bg-violet-500"
-          delay={200}
-        />
-      </div>
+      {/* KPI band — one card, hairline-divided cells (zounty design) */}
+      <KpiBand className="stat-fade-up" colsClassName="grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+          <KpiCell
+            icon={Briefcase}
+            label="Applications"
+            value={String(summary.applied)}
+            sub={
+              delta !== null ? (
+                <span
+                  className={cn(
+                    "flex items-center gap-1",
+                    delta >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-600 dark:text-red-400",
+                  )}
+                >
+                  {delta >= 0 ? (
+                    <TrendingUp className="size-3" />
+                  ) : (
+                    <TrendingDown className="size-3" />
+                  )}
+                  {Math.abs(delta)}% vs prev
+                </span>
+              ) : (
+                rangeLabels[stats.range] ?? stats.range
+              )
+            }
+            href="/jobs/list"
+          />
+          <KpiCell
+            icon={Send}
+            label="Avg / day"
+            value={num(pace.avgPerDay)}
+            sub={`${num(pace.avgPerWeek)}/week pace`}
+          />
+          <KpiCell
+            icon={CheckCircle2}
+            label="Response rate"
+            value={`${summary.responseRate}%`}
+            sub={`${summary.responded} of ${summary.applied} replied`}
+          />
+          <KpiCell
+            icon={Clock}
+            label="Avg reply"
+            value={
+              summary.avgResponseDays !== null
+                ? `${num(summary.avgResponseDays)}d`
+                : "—"
+            }
+            sub="days to hear back"
+          />
+          <KpiCell
+            icon={Users}
+            label="Interviews"
+            value={String(summary.totalInterviews)}
+            sub={`${summary.jobsWithInterviews} jobs · ${summary.interviewRate}%`}
+            href="/jobs/calendar"
+          />
+          <KpiCell
+            icon={Trophy}
+            label="Offers"
+            value={String(summary.offers)}
+            sub={`${summary.offerRate}% of applications`}
+            valueClassName={
+              summary.offers > 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : undefined
+            }
+            href="/jobs/list"
+          />
+      </KpiBand>
 
       {/* Main activity chart */}
       <ActivityChart series={stats.series} bucket={stats.bucket} />
