@@ -35,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
+import { KpiBand, KpiCell } from "@/components/kpi-band";
 import { LeadStatusBadge } from "./lead-status-badge";
 import { LeadTypeBadge } from "./lead-type-badge";
 import {
@@ -200,49 +201,15 @@ export function LeadList({ stats }: LeadListProps) {
 
   return (
     <div className="space-y-4">
-      {/* Stats Grid - Dashboard Style */}
+      {/* Stats — same KPI band as Dashboard */}
       {stats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-4">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Total Contacts</span>
-              <Users className="size-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-semibold mt-1">{stats.total}</p>
-          </div>
-
-          <div className="rounded-lg border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">New</span>
-              <Mail className="size-4 text-blue-500" />
-            </div>
-            <p className="text-2xl font-semibold mt-1">{stats.newLeads}</p>
-          </div>
-
-          <div className="rounded-lg border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Reached Out</span>
-              <Link2 className="size-4 text-amber-500" />
-            </div>
-            <p className="text-2xl font-semibold mt-1">{stats.reachedOut}</p>
-          </div>
-
-          <div className="rounded-lg border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">In Conversation</span>
-              <MessageSquare className="size-4 text-purple-500" />
-            </div>
-            <p className="text-2xl font-semibold mt-1">{stats.inConversation}</p>
-          </div>
-
-          <div className="rounded-lg border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Meeting Scheduled</span>
-              <Calendar className="size-4 text-emerald-500" />
-            </div>
-            <p className="text-2xl font-semibold mt-1">{stats.meetingScheduled}</p>
-          </div>
-        </div>
+        <KpiBand colsClassName="grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          <KpiCell icon={Users} label="Total Contacts" value={String(stats.total)} />
+          <KpiCell icon={Mail} label="New" value={String(stats.newLeads)} />
+          <KpiCell icon={Link2} label="Reached Out" value={String(stats.reachedOut)} />
+          <KpiCell icon={MessageSquare} label="In Conversation" value={String(stats.inConversation)} />
+          <KpiCell icon={Calendar} label="Meeting Scheduled" value={String(stats.meetingScheduled)} />
+        </KpiBand>
       )}
 
       {/* Filters */}
