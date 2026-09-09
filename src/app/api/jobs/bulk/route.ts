@@ -91,3 +91,37 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+// Bulk-delete selected job applications. Interviews are removed via the
+// schema's cascade relation. Scoped to the session user.
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const ids: unknown = body.ids;
+
+    if (!Array.isArray(ids) || ids.length === 0 || !ids.every((id) => typeof id === "string")) {
+      return NextResponse.json(
+        { error: "ids must be a non-empty array of strings" },
+        { status: 400 },
+      );
+    }
+
+    const result = await prisma.jobApplication.deleteMany({
+      where: {
+        id: { in: ids },
+        userId: session.user.id,
+      },
+    });
+
+    return NextResponse.json({ success: true, count: result.count });
+  } catch (error) {
+    console.error("Error bulk deleting job applications:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

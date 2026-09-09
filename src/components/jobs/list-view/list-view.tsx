@@ -11,7 +11,6 @@ import {
   MapPin,
   MessageSquare,
   DollarSign,
-  Clock,
   Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -92,7 +91,7 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const { handleBulkUpdate } = useJobs();
+  const { handleBulkUpdate, handleBulkDelete } = useJobs();
 
   // Multi-select state for bulk updates
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
@@ -282,6 +281,16 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
     }
   }
 
+  async function handleBulkDeleteSelected() {
+    if (selectedIds.size === 0) return;
+    try {
+      await handleBulkDelete(Array.from(selectedIds));
+      clearSelection();
+    } catch (error) {
+      console.error("Error deleting selected jobs:", error);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -354,15 +363,13 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
                   <TableHead>Location</TableHead>
                   <TableHead>Salary</TableHead>
                   <TableHead>Interviews</TableHead>
-                  <TableHead>Found</TableHead>
                   <TableHead>Applied</TableHead>
-                  <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {jobs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       No job applications found
                     </TableCell>
                   </TableRow>
@@ -439,20 +446,9 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {job.dateFound
-                          ? format(new Date(job.dateFound), "MMM d, yyyy")
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
                         {job.dateApplied
                           ? format(new Date(job.dateApplied), "MMM d, yyyy")
                           : <span className="text-muted-foreground/50">Not applied</span>}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="size-3" />
-                          {format(new Date(job.createdAt), "MMM d, yyyy")}
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -477,6 +473,7 @@ export function ListView({ onJobClick, refreshKey = 0 }: ListViewProps) {
           selectedCount={selectedIds.size}
           onClear={clearSelection}
           onApply={handleBulkApply}
+          onDelete={handleBulkDeleteSelected}
         />
       )}
     </div>

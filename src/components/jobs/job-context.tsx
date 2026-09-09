@@ -57,6 +57,7 @@ interface JobsContextValue {
     ids: string[],
     data: BulkUpdatePayload,
   ) => Promise<{ count: number } | null>;
+  handleBulkDelete: (ids: string[]) => Promise<{ count: number } | null>;
 }
 
 const JobsContext = React.createContext<JobsContextValue | null>(null);
@@ -309,6 +310,26 @@ export function JobsProvider({
     return { count: result.count as number };
   };
 
+  const handleBulkDelete = async (
+    ids: string[],
+  ): Promise<{ count: number } | null> => {
+    const response = await fetch("/api/jobs/bulk", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    if (!response.ok) return null;
+
+    const result = await response.json();
+
+    // Remove the deleted jobs from local state.
+    setJobs((prev) => prev.filter((job) => !ids.includes(job.id)));
+    fetchStats(statsRange);
+    setJobsVersion((v) => v + 1);
+
+    return { count: result.count as number };
+  };
+
   // Get all interviews for calendar view
   const allInterviews: InterviewWithJob[] = React.useMemo(() => {
     return jobs.flatMap((job) =>
@@ -340,6 +361,7 @@ export function JobsProvider({
     handleQuickAdd,
     jobsVersion,
     handleBulkUpdate,
+    handleBulkDelete,
   };
 
   return (

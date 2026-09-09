@@ -1,8 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, X, Check } from "lucide-react";
+import { Loader2, X, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -29,14 +40,16 @@ interface BulkActionBarProps {
   selectedCount: number;
   onClear: () => void;
   onApply: (data: BulkUpdatePayload) => Promise<void>;
+  onDelete: () => Promise<void>;
 }
 
-export function BulkActionBar({ selectedCount, onClear, onApply }: BulkActionBarProps) {
+export function BulkActionBar({ selectedCount, onClear, onApply, onDelete }: BulkActionBarProps) {
   const [status, setStatus] = React.useState<string>(UNCHANGED);
   const [response, setResponse] = React.useState<string>(UNCHANGED);
   const [source, setSource] = React.useState<string>(UNCHANGED);
   const [method, setMethod] = React.useState<string>(UNCHANGED);
   const [isApplying, setIsApplying] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const hasChange =
     status !== UNCHANGED ||
@@ -68,6 +81,18 @@ export function BulkActionBar({ selectedCount, onClear, onApply }: BulkActionBar
       console.error("Error applying bulk update:", error);
     } finally {
       setIsApplying(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await onDelete();
+    } catch (error) {
+      console.error("Error deleting selected jobs:", error);
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -148,20 +173,59 @@ export function BulkActionBar({ selectedCount, onClear, onApply }: BulkActionBar
         </Select>
       </div>
 
-      <Button
-        type="button"
-        size="sm"
-        onClick={handleApply}
-        disabled={!hasChange || isApplying}
-        className="sm:ml-auto"
-      >
-        {isApplying ? (
-          <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-        ) : (
-          <Check className="mr-1.5 size-3.5" />
-        )}
-        Apply
-      </Button>
+      <div className="flex items-center gap-2 sm:ml-auto">
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleApply}
+          disabled={!hasChange || isApplying || isDeleting}
+        >
+          {isApplying ? (
+            <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+          ) : (
+            <Check className="mr-1.5 size-3.5" />
+          )}
+          Apply
+        </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={isApplying || isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="mr-1.5 size-3.5" />
+              )}
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Delete {selectedCount} selected job{selectedCount === 1 ? "" : "s"}?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently removes the selected applications and their
+                interview records. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground"
+                onClick={handleDelete}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
