@@ -163,6 +163,23 @@ The application uses a PostgreSQL database with the following main entities:
 
 Zotes deploys as a standard Node app. On the deployment server (Coolify + Nixpacks) the build runs `npm run db:generate && npm run build` with Node 22, then serves via `npm run start`. Any platform that supports Node + Postgres (Vercel, Fly.io, a VPS behind a reverse proxy) works — just provide the environment variables above.
 
+## Job Intake Webhook
+
+Zotes exposes a secret-authenticated endpoint so external tools (for example the
+local `zee-job-hunt` automation) can create job applications without a browser
+session:
+
+    POST /api/webhooks/jobs
+    Authorization: Bearer $WEBHOOK_SECRET
+
+Set `WEBHOOK_SECRET` and `WEBHOOK_USER_EMAIL` (or `WEBHOOK_USER_ID`) on the
+server, then POST a JSON body with at least `jobTitle` and `companyName`.
+Created jobs appear on `/jobs/list` like any manual entry.
+
+Full reference - authentication, payload schema, duplicate/update behaviour,
+curl examples, and a ready-to-adapt client snippet - is in
+[docs/webhooks.md](docs/webhooks.md).
+
 ## Roadmap
 
 - [ ] Theme toggle (dark mode styles are already in place)
